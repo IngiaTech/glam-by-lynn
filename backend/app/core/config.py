@@ -1,23 +1,30 @@
 """
 Application configuration using Pydantic Settings
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 
 class Settings(BaseSettings):
     """Application settings"""
-    
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+
     # Application
     APP_NAME: str = "Glam by Lynn API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
-    
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    
+
     # Database
     DATABASE_URL: str = "sqlite:///./app.db"  # Default to SQLite for testing
     DATABASE_URL_ASYNC: str = "sqlite+aiosqlite:///./app.db"
@@ -36,26 +43,22 @@ class Settings(BaseSettings):
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
-    
+
     # AWS S3
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str = ""
-    
+
     # Email
     RESEND_API_KEY: str = ""
     FROM_EMAIL: str = "noreply@glambylynn.com"
-    
+
     # Admin
     ADMIN_EMAILS: List[str] = []
-    
+
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()
