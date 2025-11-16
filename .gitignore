@@ -1,0 +1,43 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Testing
+.coverage
+.pytest_cache/
+coverage/
+
+# Misc
+*.pyc
+__pycache__/
+.cache/
+
+# Scripts (keep for reference but don't track changes)
+create_issues.sh
