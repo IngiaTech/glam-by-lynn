@@ -6,13 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import check_db_connection
 
 # Import routers (will be added as we build them)
 # from app.api.routes import auth, products, services, bookings, orders
-
-# Database tables will be created via Alembic migrations
-# Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -53,6 +50,26 @@ async def health_check():
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT
     }
+
+
+@app.get("/health/db", tags=["Health"])
+async def database_health_check():
+    """
+    Database health check endpoint
+
+    Returns:
+        JSONResponse: Database connection status
+    """
+    is_healthy = check_db_connection()
+    status_code = 200 if is_healthy else 503
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "database": "connected" if is_healthy else "disconnected",
+            "status": "healthy" if is_healthy else "unhealthy"
+        }
+    )
 
 
 # Include routers (will be uncommented as we build them)

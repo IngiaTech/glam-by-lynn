@@ -26,3 +26,15 @@ def test_health_check_endpoint(client: TestClient):
     assert "app_name" in data
     assert "version" in data
     assert "environment" in data
+
+
+@pytest.mark.unit
+def test_database_health_check_endpoint(client: TestClient):
+    """Test database health check endpoint"""
+    response = client.get("/health/db")
+    assert response.status_code == 200
+    data = response.json()
+    assert "database" in data
+    assert "status" in data
+    assert data["database"] == "connected"
+    assert data["status"] == "healthy"
