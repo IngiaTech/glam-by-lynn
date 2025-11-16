@@ -22,22 +22,27 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border">
+      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <h1 className="text-2xl font-bold">Glam by Lynn</h1>
+          <Link href="/" className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">
+              <span className="text-foreground">Glam by </span>
+              <span className="text-secondary">Lynn</span>
+            </h1>
+          </Link>
           <div className="flex items-center gap-4">
             {authenticated ? (
               <>
-                <span className="text-sm text-muted-foreground">
+                <span className="hidden text-sm text-muted-foreground md:inline-block">
                   {user?.email}
-                  {isAdmin && <span className="ml-2 rounded bg-secondary px-2 py-1 text-xs">Admin</span>}
+                  {isAdmin && <span className="ml-2 rounded bg-secondary px-2 py-1 text-xs font-medium">Admin</span>}
                 </span>
-                <Button onClick={() => signOut()} variant="outline">
+                <Button onClick={() => signOut()} variant="outline" size="sm">
                   Sign Out
                 </Button>
               </>
             ) : (
-              <Button asChild>
+              <Button asChild size="sm">
                 <Link href="/auth/signin">Sign In</Link>
               </Button>
             )}
@@ -50,9 +55,12 @@ export default function Home() {
         <div className="mx-auto max-w-4xl">
           {/* Welcome Section */}
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-4xl font-bold">Welcome to Glam by Lynn</h2>
-            <p className="text-lg text-muted-foreground">
-              Professional makeup services and beauty product e-commerce
+            <h2 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
+              Welcome to <span className="text-foreground">Glam by </span>
+              <span className="text-secondary">Lynn</span>
+            </h2>
+            <p className="text-lg text-muted-foreground md:text-xl">
+              Professional makeup services and premium beauty products
             </p>
           </div>
 
