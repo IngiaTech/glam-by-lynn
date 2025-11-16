@@ -19,22 +19,22 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Database
-    DATABASE_URL: str
-    DATABASE_URL_ASYNC: str
-    
+    DATABASE_URL: str = "sqlite:///./app.db"  # Default to SQLite for testing
+    DATABASE_URL_ASYNC: str = "sqlite+aiosqlite:///./app.db"
+
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
+
     # Google OAuth
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str
-    
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/api/auth/callback/google"
+
     # CORS
-    FRONTEND_URL: str
+    FRONTEND_URL: str = "http://localhost:3000"
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
     
     # AWS S3
