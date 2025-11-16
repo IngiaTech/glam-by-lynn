@@ -11,8 +11,8 @@ from app.core.database import engine, Base
 # Import routers (will be added as we build them)
 # from app.api.routes import auth, products, services, bookings, orders
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Database tables will be created via Alembic migrations
+# Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
