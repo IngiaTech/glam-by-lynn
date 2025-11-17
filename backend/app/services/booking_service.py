@@ -427,3 +427,70 @@ def get_booking_by_id(db: Session, booking_id: UUID, user_id: Optional[UUID] = N
         query = query.filter(Booking.user_id == user_id)
 
     return query.first()
+
+
+def cancel_booking(
+    db: Session,
+    booking_id: UUID,
+    user_id: UUID,
+    admin_notes: Optional[str] = None
+) -> Booking:
+    """
+    Cancel a booking
+
+    Args:
+        db: Database session
+        booking_id: Booking ID to cancel
+        user_id: User ID (for ownership verification)
+        admin_notes: Optional admin notes for cancellation reason
+
+    Returns:
+        Cancelled booking
+
+    Raises:
+        ValueError: If booking not found, user doesn't own booking, or booking cannot be cancelled
+    """
+    # Get booking with ownership verification
+    booking = get_booking_by_id(db, booking_id, user_id)
+
+    if not booking:
+        raise ValueError(f"Booking with ID {booking_id} not found")
+
+    # Check if booking can be cancelled
+    if booking.status == "cancelled":
+        raise ValueError("Booking is already cancelled")
+
+    if booking.status == "completed":
+        raise ValueError("Cannot cancel a completed booking")
+
+    # Check cancellation policy (must be at least 24 hours before booking date)
+    booking_datetime = datetime.combine(booking.booking_date, booking.booking_time)
+    time_until_booking = booking_datetime - datetime.now()
+
+    if time_until_booking.total_seconds() < 86400:  # 24 hours in seconds
+        raise ValueError(
+            "Bookings must be cancelled at least 24 hours in advance. "
+            "Please contact us for assistance."
+        )
+
+    # Update booking status
+    booking.status = "cancelled"
+
+    # Add cancellation timestamp to admin notes
+    existing_notes = booking.admin_notes or ""
+    if admin_notes:
+        cancellation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Cancelled: {admin_notes}"
+    else:
+        cancellation_note = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Cancelled by user"
+    booking.admin_notes = existing_notes + cancellation_note
+
+    db.commit()
+    db.refresh(booking)
+
+    # TODO: Send cancellation email (implement email service)
+    # send_booking_cancellation_email(booking)
+
+    # Note: Calendar slot is automatically freed as we filter out cancelled bookings
+    # in is_slot_available() function
+
+    return booking

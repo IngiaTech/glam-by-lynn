@@ -73,50 +73,6 @@ async def list_user_bookings(
     )
 
 
-@router.get("/{booking_id}", response_model=BookingResponse)
-async def get_booking_details(
-    booking_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Get specific booking details (authenticated endpoint)
-
-    **Authentication required**
-
-    Returns detailed information for a specific booking.
-    Users can only access their own bookings.
-
-    Args:
-    - **booking_id**: UUID of the booking
-
-    Returns:
-    - Full booking details including:
-      - Booking number and status
-      - Date and time
-      - Package and location information
-      - Attendee counts
-      - Pricing breakdown
-      - Special requests
-
-    Raises:
-    - 404: Booking not found or user doesn't have access
-    """
-    booking = booking_service.get_booking_by_id(
-        db=db,
-        booking_id=booking_id,
-        user_id=current_user.id
-    )
-
-    if not booking:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Booking with ID {booking_id} not found"
-        )
-
-    return booking
-
-
 @router.get("/availability", response_model=AvailabilityResponse)
 async def get_booking_availability(
     start_date: date_type = Query(..., description="Start date for availability check"),
@@ -166,6 +122,50 @@ async def get_booking_availability(
     )
 
     return availability
+
+
+@router.get("/{booking_id}", response_model=BookingResponse)
+async def get_booking_details(
+    booking_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get specific booking details (authenticated endpoint)
+
+    **Authentication required**
+
+    Returns detailed information for a specific booking.
+    Users can only access their own bookings.
+
+    Args:
+    - **booking_id**: UUID of the booking
+
+    Returns:
+    - Full booking details including:
+      - Booking number and status
+      - Date and time
+      - Package and location information
+      - Attendee counts
+      - Pricing breakdown
+      - Special requests
+
+    Raises:
+    - 404: Booking not found or user doesn't have access
+    """
+    booking = booking_service.get_booking_by_id(
+        db=db,
+        booking_id=booking_id,
+        user_id=current_user.id
+    )
+
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with ID {booking_id} not found"
+        )
+
+    return booking
 
 
 @router.post("", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
@@ -225,4 +225,68 @@ async def create_booking(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+@router.put("/{booking_id}/cancel", response_model=BookingResponse)
+async def cancel_booking(
+    booking_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cancel a booking (authenticated endpoint)
+
+    **Authentication required**
+
+    Cancels a booking if it meets the cancellation policy requirements.
+    Users can only cancel their own bookings.
+
+    Cancellation Policy:
+    - Must be cancelled at least 24 hours before booking time
+    - Cannot cancel already completed bookings
+    - Cannot cancel already cancelled bookings
+
+    Effects:
+    - Booking status changed to "cancelled"
+    - Calendar slot automatically freed (available for new bookings)
+    - Cancellation note added to booking
+    - Email notification sent (TODO)
+
+    Refund Policy:
+    - Refunds are processed manually
+    - Contact support for refund requests
+
+    Args:
+    - **booking_id**: UUID of the booking to cancel
+
+    Returns:
+    - Updated booking with "cancelled" status
+    - Cancellation timestamp in admin_notes
+
+    Raises:
+    - 400: Cannot cancel (policy violation, already cancelled, or completed)
+    - 404: Booking not found or user doesn't own booking
+    """
+    try:
+        booking = booking_service.cancel_booking(
+            db=db,
+            booking_id=booking_id,
+            user_id=current_user.id
+        )
+
+        return booking
+
+    except ValueError as e:
+        error_message = str(e)
+        # Return 404 for "not found" errors
+        if "not found" in error_message.lower():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=error_message
+            )
+        # Return 400 for other validation errors
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
         )
