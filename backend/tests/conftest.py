@@ -60,7 +60,7 @@ def admin_user(db_session):
     """Create an admin user for testing"""
     user = User(
         email="admin@test.com",
-        name="Admin User",
+        full_name="Admin User",
         google_id="admin123",
         is_active=True,
         is_admin=True,
@@ -77,7 +77,7 @@ def regular_user(db_session):
     """Create a regular user for testing"""
     user = User(
         email="user@test.com",
-        name="Regular User",
+        full_name="Regular User",
         google_id="user123",
         is_active=True,
         is_admin=False
@@ -92,14 +92,14 @@ def regular_user(db_session):
 def admin_token(admin_user):
     """Create a mock admin token"""
     from app.core.security import create_access_token
-    return create_access_token(data={"sub": admin_user.email})
+    return create_access_token(data={"sub": str(admin_user.id)})
 
 
 @pytest.fixture
 def user_token(regular_user):
     """Create a mock regular user token"""
     from app.core.security import create_access_token
-    return create_access_token(data={"sub": regular_user.email})
+    return create_access_token(data={"sub": str(regular_user.id)})
 
 
 @pytest.fixture
