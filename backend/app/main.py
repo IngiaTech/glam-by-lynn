@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.database import check_db_connection
 
 # Import routers
-from app.routers import auth, services, bookings, gallery, testimonials
+from app.routers import auth, services, bookings, gallery, testimonials, products as public_products
 from app.api.routes import brands, categories, products, product_images, product_variants, service_packages
 from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery
 # from app.api.routes import orders
@@ -81,6 +81,7 @@ app.include_router(services.router, prefix="/api")  # Public services API
 app.include_router(bookings.router, prefix="/api")  # Public bookings API
 app.include_router(gallery.router, prefix="/api")  # Public gallery API
 app.include_router(testimonials.router, prefix="/api")  # Public testimonials API
+app.include_router(public_products.router)  # Public products API
 app.include_router(brands.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
