@@ -64,7 +64,9 @@ def get_products(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     in_stock_only: bool = False,
-    load_relations: bool = True
+    load_relations: bool = True,
+    sort_by: str = "created_at",
+    sort_order: str = "desc"
 ) -> tuple[list[Product], int]:
     """
     Get list of products with pagination and filters
@@ -82,6 +84,8 @@ def get_products(
         max_price: Maximum base price
         in_stock_only: Only show products with inventory > 0
         load_relations: Whether to eagerly load brand and category
+        sort_by: Sort field (created_at, base_price, title, etc.)
+        sort_order: Sort order (asc or desc)
 
     Returns:
         Tuple of (products list, total count)
@@ -130,11 +134,17 @@ def get_products(
     # Get total count
     total = query.count()
 
-    # Apply pagination and ordering
-    products = query.order_by(
-        Product.is_featured.desc(),
-        Product.created_at.desc()
-    ).offset(skip).limit(limit).all()
+    # Determine sort field
+    sort_field = getattr(Product, sort_by, Product.created_at)
+
+    # Apply sorting
+    if sort_order == "asc":
+        query = query.order_by(sort_field.asc())
+    else:
+        query = query.order_by(sort_field.desc())
+
+    # Apply pagination
+    products = query.offset(skip).limit(limit).all()
 
     return products, total
 
