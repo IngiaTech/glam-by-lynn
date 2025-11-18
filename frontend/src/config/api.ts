@@ -7,9 +7,9 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost
 export const API_ENDPOINTS = {
   // Auth
   AUTH: {
-    GOOGLE_LOGIN: "/auth/google",
-    LOGOUT: "/auth/logout",
-    ME: "/auth/me",
+    GOOGLE_LOGIN: "/api/auth/google-login",
+    LOGOUT: "/api/auth/logout",
+    ME: "/api/auth/me",
   },
   // Products
   PRODUCTS: {
@@ -69,7 +69,10 @@ export const API_ENDPOINTS = {
   // Content
   CONTENT: {
     TESTIMONIALS: "/testimonials",
-    GALLERY: "/gallery",
+  },
+  // Gallery
+  GALLERY: {
+    LIST: "/api/gallery",
   },
 } as const;
 

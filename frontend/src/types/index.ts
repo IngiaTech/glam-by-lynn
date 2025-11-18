@@ -85,28 +85,32 @@ export interface ProductVariant {
 // Service types
 export interface ServicePackage {
   id: string;
-  packageType: "bridal_large" | "bridal_small" | "bride_only" | "regular" | "classes";
+  package_type: "bridal_large" | "bridal_small" | "bride_only" | "regular" | "classes";
   name: string;
   description?: string;
-  baseBridePrice?: number;
-  baseMaidPrice?: number;
-  baseMotherPrice?: number;
-  baseOtherPrice?: number;
-  maxMaids?: number;
-  minMaids?: number;
-  includesFacial: boolean;
-  durationMinutes?: number;
-  isActive: boolean;
-  displayOrder: number;
+  base_bride_price?: string; // Decimal from backend
+  base_maid_price?: string; // Decimal from backend
+  base_mother_price?: string; // Decimal from backend
+  base_other_price?: string; // Decimal from backend
+  max_maids?: number;
+  min_maids?: number;
+  includes_facial: boolean;
+  duration_minutes?: number;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TransportLocation {
   id: string;
-  locationName: string;
+  location_name: string;
   county?: string;
-  transportCost: number;
-  isFree: boolean;
-  isActive: boolean;
+  transport_cost: string; // Decimal from backend
+  is_free: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Booking types
@@ -229,6 +233,19 @@ export interface Testimonial {
   isFeatured: boolean;
   isApproved: boolean;
   displayOrder: number;
+}
+
+export interface GalleryPost {
+  id: string;
+  mediaType: "image" | "video";
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  tags?: string[];
+  sourceType?: "instagram" | "tiktok" | "original";
+  isFeatured: boolean;
+  displayOrder: number;
+  publishedAt: string;
 }
 
 // API Response types
