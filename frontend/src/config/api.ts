@@ -75,6 +75,13 @@ export const API_ENDPOINTS = {
     LIST: "/api/testimonials",
     FEATURED: "/api/testimonials/featured",
   },
+  // Admin - Calendar
+  ADMIN_CALENDAR: {
+    LIST: "/api/admin/calendar",
+    BLOCK: "/api/admin/calendar/block",
+    UNBLOCK: (id: string) => `/api/admin/calendar/block/${id}`,
+    DETAIL: (id: string) => `/api/admin/calendar/${id}`,
+  },
 } as const;
 
 export const HTTP_METHODS = {

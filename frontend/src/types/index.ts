@@ -248,6 +248,22 @@ export interface GalleryPost {
   publishedAt: string;
 }
 
+// Calendar types
+export interface CalendarAvailability {
+  id: string;
+  date: string;
+  timeSlot: string;
+  isAvailable: boolean;
+  reason?: string;
+  createdAt: string;
+}
+
+export interface CalendarAvailabilityCreate {
+  date: string;
+  timeSlot: string;
+  reason?: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;
