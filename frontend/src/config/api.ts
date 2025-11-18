@@ -66,13 +66,14 @@ export const API_ENDPOINTS = {
     CREATE: "/reviews",
     LIST: (productId: string) => `/products/${productId}/reviews`,
   },
-  // Content
-  CONTENT: {
-    TESTIMONIALS: "/testimonials",
-  },
   // Gallery
   GALLERY: {
     LIST: "/api/gallery",
+  },
+  // Testimonials
+  TESTIMONIALS: {
+    LIST: "/api/testimonials",
+    FEATURED: "/api/testimonials/featured",
   },
 } as const;
 

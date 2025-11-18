@@ -231,8 +231,8 @@ export interface Testimonial {
   relatedServiceId?: string;
   relatedProductId?: string;
   isFeatured: boolean;
-  isApproved: boolean;
   displayOrder: number;
+  createdAt: string;
 }
 
 export interface GalleryPost {
