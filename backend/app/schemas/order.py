@@ -135,3 +135,15 @@ class OrderSummary(BaseModel):
     class Config:
         populate_by_name = True
         from_attributes = True
+
+
+class OrderListResponse(BaseModel):
+    """Response for paginated order list."""
+
+    orders: List[OrderResponse]
+    total: int
+    skip: int
+    limit: int
+
+    class Config:
+        populate_by_name = True
