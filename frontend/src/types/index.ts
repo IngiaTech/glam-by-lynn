@@ -183,6 +183,8 @@ export interface Order {
   trackingNumber?: string;
   orderItems?: OrderItem[];
   promoCode?: PromoCode;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrderItem {
