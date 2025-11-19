@@ -11,12 +11,15 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ReviewSubmissionForm } from "@/components/ReviewSubmissionForm";
+import { RatingSummary } from "@/components/RatingSummary";
+import { ReviewList } from "@/components/ReviewList";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ArrowLeft, ShoppingCart } from "lucide-react";
 import { getProductById } from "@/lib/products";
+import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import type { Product } from "@/types";
 
 interface ProductDetailPageProps {
@@ -31,6 +34,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ratingSummary, setRatingSummary] = useState<ProductRatingSummary | null>(null);
+  const [filterRating, setFilterRating] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -51,9 +56,33 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     fetchProduct();
   }, [resolvedParams.id, refreshKey]);
 
+  // Fetch rating summary
+  useEffect(() => {
+    const fetchRatingSummary = async () => {
+      try {
+        const summary = await getProductRatingSummary(resolvedParams.id);
+        setRatingSummary(summary);
+      } catch (error) {
+        console.error("Error fetching rating summary:", error);
+        // Set empty summary if error
+        setRatingSummary({
+          totalReviews: 0,
+          averageRating: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        });
+      }
+    };
+
+    fetchRatingSummary();
+  }, [resolvedParams.id, refreshKey]);
+
   const handleReviewSubmitted = () => {
     // Refresh the page to show the updated review status
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleFilterByRating = (rating: number | null) => {
+    setFilterRating(rating);
   };
 
   if (loading) {
@@ -225,6 +254,23 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             onReviewSubmitted={handleReviewSubmitted}
           />
         </div>
+
+        {/* Reviews Display Section */}
+        {ratingSummary && ratingSummary.totalReviews > 0 && (
+          <div className="mt-12 space-y-8">
+            <h2 className="text-2xl font-bold">Customer Reviews</h2>
+
+            {/* Rating Summary */}
+            <RatingSummary
+              summary={ratingSummary}
+              onFilterByRating={handleFilterByRating}
+              selectedRating={filterRating}
+            />
+
+            {/* Review List */}
+            <ReviewList productId={product.id} filterRating={filterRating} />
+          </div>
+        )}
       </main>
 
       <Footer />
