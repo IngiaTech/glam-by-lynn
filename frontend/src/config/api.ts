@@ -44,10 +44,9 @@ export const API_ENDPOINTS = {
   },
   // Orders
   ORDERS: {
-    CREATE: "/orders",
-    LIST: "/orders",
-    DETAIL: (id: string) => `/orders/${id}`,
-    MY_ORDERS: "/orders/me",
+    CREATE: "/api/orders",
+    LIST: "/api/orders",
+    DETAIL: (id: string) => `/api/orders/${id}`,
   },
   // Cart
   CART: {
