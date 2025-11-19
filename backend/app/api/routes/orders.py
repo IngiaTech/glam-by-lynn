@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_optional_current_user
 from app.models.user import User
-from app.schemas.order import OrderCreate, OrderResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderListResponse
 from app.services import order_service
 
 router = APIRouter(tags=["Orders"])
@@ -109,7 +109,7 @@ def get_order(
 
 @router.get(
     "/orders",
-    response_model=dict,
+    response_model=OrderListResponse,
     summary="Get user's orders",
 )
 def get_user_orders(
@@ -135,9 +135,64 @@ def get_user_orders(
         limit=limit,
     )
 
-    return {
-        "orders": orders,
-        "total": total,
-        "skip": skip,
-        "limit": limit,
-    }
+    return OrderListResponse(
+        orders=orders,
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/orders/track/{order_number}",
+    response_model=OrderResponse,
+    summary="Track order by order number",
+)
+def track_order(
+    order_number: str,
+    email: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_optional_current_user),
+):
+    """
+    Track an order by order number.
+
+    For guest orders, requires email parameter for verification.
+    For authenticated users, allows tracking own orders.
+
+    Query Parameters:
+        email: Guest email for verification (required for guest orders)
+    """
+    order = order_service.get_order_by_number(db, order_number)
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+
+    # If user is authenticated and owns the order, allow access
+    if current_user and order.user_id == current_user.id:
+        return order
+
+    # For guest orders, verify email
+    if order.guest_email:
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email required for guest order tracking",
+            )
+
+        if order.guest_email.lower() != email.lower():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email does not match order",
+            )
+
+        return order
+
+    # Order belongs to a different user and requester is not authenticated
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not authorized to access this order",
+    )
