@@ -198,3 +198,42 @@ export function hasAdminRole(
 export function isSuperAdmin(user: NextAuthUser | null | undefined): boolean {
   return hasAdminRole(user, "super_admin");
 }
+
+/**
+ * Check if user has any of the specified admin roles
+ */
+export function hasAnyAdminRole(
+  user: NextAuthUser | null | undefined,
+  roles: ("super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist")[]
+): boolean {
+  if (!user?.isAdmin || !user?.adminRole) return false;
+  return roles.includes(user.adminRole as any);
+}
+
+/**
+ * Check if user is product manager or super admin
+ */
+export function canManageProducts(user: NextAuthUser | null | undefined): boolean {
+  return hasAnyAdminRole(user, ["super_admin", "product_manager"]);
+}
+
+/**
+ * Check if user is booking manager or super admin
+ */
+export function canManageBookings(user: NextAuthUser | null | undefined): boolean {
+  return hasAnyAdminRole(user, ["super_admin", "booking_manager"]);
+}
+
+/**
+ * Check if user is content editor or super admin
+ */
+export function canEditContent(user: NextAuthUser | null | undefined): boolean {
+  return hasAnyAdminRole(user, ["super_admin", "content_editor"]);
+}
+
+/**
+ * Check if user is artist or super admin
+ */
+export function isArtist(user: NextAuthUser | null | undefined): boolean {
+  return hasAnyAdminRole(user, ["super_admin", "artist"]);
+}

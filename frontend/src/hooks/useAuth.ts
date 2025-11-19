@@ -7,7 +7,16 @@
 
 import { useSession } from "next-auth/react";
 import { User as NextAuthUser } from "next-auth";
-import { isAdmin, hasAdminRole, isSuperAdmin } from "@/lib/auth";
+import {
+  isAdmin,
+  hasAdminRole,
+  isSuperAdmin,
+  hasAnyAdminRole,
+  canManageProducts,
+  canManageBookings,
+  canEditContent,
+  isArtist,
+} from "@/lib/auth";
 
 /**
  * Hook to access current user and auth state
@@ -25,6 +34,11 @@ export function useAuth() {
     authenticated,
     isAdmin: isAdmin(user),
     isSuperAdmin: isSuperAdmin(user),
+    canManageProducts: canManageProducts(user),
+    canManageBookings: canManageBookings(user),
+    canEditContent: canEditContent(user),
+    isArtist: isArtist(user),
+    adminRole: user?.adminRole ?? null,
   };
 }
 
