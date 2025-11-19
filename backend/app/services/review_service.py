@@ -1,5 +1,6 @@
 """Review service for business logic."""
-from typing import List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
@@ -10,7 +11,7 @@ from app.models.order import Order, OrderItem
 
 
 def get_review_by_id(db: Session, review_id: UUID) -> Optional[Review]:
-    """Get a review by ID."""
+    """Get a review by ID with user details."""
     return db.query(Review).options(joinedload(Review.user)).filter(Review.id == review_id).first()
 
 
@@ -28,6 +29,11 @@ def get_user_review_for_product(
 def check_verified_purchase(db: Session, user_id: UUID, product_id: UUID) -> Tuple[bool, Optional[UUID]]:
     """
     Check if user has purchased the product.
+
+    Args:
+        db: Database session
+        user_id: User ID
+        product_id: Product ID
 
     Returns:
         Tuple of (is_verified, order_id)
@@ -109,7 +115,7 @@ def get_product_reviews(
     approved_only: bool = True,
     sort_by: str = "created_at",
     sort_order: str = "desc",
-) -> Tuple[List[Review], int]:
+) -> Tuple[list[Review], int]:
     """
     Get reviews for a product with pagination.
 
@@ -149,6 +155,54 @@ def get_product_reviews(
     return reviews, total
 
 
+def update_review(
+    db: Session,
+    review_id: UUID,
+    user_id: UUID,
+    rating: Optional[int] = None,
+    review_text: Optional[str] = None,
+) -> Optional[Review]:
+    """
+    Update a review (user can only update their own review).
+
+    Args:
+        db: Database session
+        review_id: Review ID
+        user_id: User ID (must match review user_id)
+        rating: Optional new rating
+        review_text: Optional new review text
+
+    Returns:
+        Updated review or None if not found/unauthorized
+
+    Raises:
+        ValueError: If user doesn't own the review
+    """
+    review = db.query(Review).filter(Review.id == review_id).first()
+
+    if not review:
+        return None
+
+    if review.user_id != user_id:
+        raise ValueError("You can only update your own reviews")
+
+    # Update fields
+    if rating is not None:
+        review.rating = rating
+
+    if review_text is not None:
+        review.review_text = review_text
+
+    # Reset approval status if content changed (needs re-review by admin)
+    if rating is not None or review_text is not None:
+        review.is_approved = False
+
+    db.commit()
+    db.refresh(review)
+
+    return review
+
+
 def update_review_approval(
     db: Session, review_id: UUID, is_approved: bool, admin_reply: Optional[str] = None
 ) -> Optional[Review]:
@@ -164,8 +218,6 @@ def update_review_approval(
     Returns:
         Updated review or None if not found
     """
-    from datetime import datetime, timezone
-
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
@@ -183,21 +235,28 @@ def update_review_approval(
     return review
 
 
-def delete_review(db: Session, review_id: UUID) -> bool:
+def delete_review(db: Session, review_id: UUID, user_id: UUID) -> bool:
     """
-    Delete a review.
+    Delete a review (user can only delete their own review).
 
     Args:
         db: Database session
         review_id: Review ID
+        user_id: User ID (must match review user_id)
 
     Returns:
         True if deleted, False if not found
+
+    Raises:
+        ValueError: If user doesn't own the review
     """
     review = db.query(Review).filter(Review.id == review_id).first()
 
     if not review:
         return False
+
+    if review.user_id != user_id:
+        raise ValueError("You can only delete your own reviews")
 
     db.delete(review)
     db.commit()
@@ -226,3 +285,46 @@ def mark_review_helpful(db: Session, review_id: UUID) -> Optional[Review]:
     db.refresh(review)
 
     return review
+
+
+def get_product_rating_summary(db: Session, product_id: UUID) -> dict:
+    """
+    Get rating summary for a product.
+
+    Args:
+        db: Database session
+        product_id: Product ID
+
+    Returns:
+        Dictionary with total_reviews, average_rating, rating_distribution
+    """
+    # Get all approved reviews for the product
+    reviews = (
+        db.query(Review)
+        .filter(Review.product_id == product_id, Review.is_approved == True)
+        .all()
+    )
+
+    total_reviews = len(reviews)
+
+    if total_reviews == 0:
+        return {
+            "total_reviews": 0,
+            "average_rating": 0.0,
+            "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+        }
+
+    # Calculate average rating
+    total_rating = sum(review.rating for review in reviews)
+    average_rating = total_rating / total_reviews
+
+    # Calculate rating distribution
+    rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for review in reviews:
+        rating_distribution[review.rating] += 1
+
+    return {
+        "total_reviews": total_reviews,
+        "average_rating": round(average_rating, 1),
+        "rating_distribution": rating_distribution,
+    }
