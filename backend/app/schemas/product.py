@@ -205,3 +205,45 @@ class ProductListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class ProductSearchRequest(BaseModel):
+    """Schema for product search request"""
+    query: str = Field(..., min_length=1, max_length=200, description="Search query")
+    brand_id: Optional[UUID] = Field(None, alias="brandId", description="Filter by brand ID")
+    category_id: Optional[UUID] = Field(None, alias="categoryId", description="Filter by category ID")
+    min_price: Optional[float] = Field(None, ge=0, alias="minPrice", description="Minimum price filter")
+    max_price: Optional[float] = Field(None, ge=0, alias="maxPrice", description="Maximum price filter")
+    skip: int = Field(0, ge=0, description="Number of records to skip")
+    limit: int = Field(20, ge=1, le=100, description="Maximum number of results")
+
+    model_config = {"populate_by_name": True}
+
+
+class ProductSearchResponse(BaseModel):
+    """Schema for product search response"""
+    products: list[ProductResponse]
+    total: int
+    skip: int
+    limit: int
+    query: str
+
+    model_config = {"populate_by_name": True}
+
+
+class ProductSuggestion(BaseModel):
+    """Schema for product autocomplete suggestion"""
+    id: str
+    title: str
+    slug: str
+    brand_name: Optional[str] = Field(None, alias="brandName")
+
+    model_config = {"populate_by_name": True}
+
+
+class ProductSuggestionsResponse(BaseModel):
+    """Schema for product suggestions response"""
+    suggestions: list[ProductSuggestion]
+    query: str
+
+    model_config = {"populate_by_name": True}

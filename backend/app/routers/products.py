@@ -7,7 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.product import ProductListResponse, ProductResponse, ProductDetailResponse
+from app.schemas.product import (
+    ProductListResponse,
+    ProductResponse,
+    ProductDetailResponse,
+    ProductSearchResponse,
+    ProductSuggestionsResponse,
+    ProductSuggestion,
+)
 from app.services import product_service
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -98,6 +105,92 @@ async def list_featured_products(
 
     return ProductListResponse(
         items=products, total=total, page=page, page_size=page_size, total_pages=total_pages
+    )
+
+
+@router.get("/search", response_model=ProductSearchResponse)
+async def search_products(
+    q: str = Query(..., min_length=1, max_length=200, description="Search query"),
+    brand_id: Optional[UUID] = Query(None, alias="brandId", description="Filter by brand ID"),
+    category_id: Optional[UUID] = Query(None, alias="categoryId", description="Filter by category ID"),
+    min_price: Optional[float] = Query(None, ge=0, alias="minPrice", description="Minimum price"),
+    max_price: Optional[float] = Query(None, ge=0, alias="maxPrice", description="Maximum price"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+):
+    """
+    Search products by title, description, brand name, or category name (public).
+
+    Searches across:
+    - Product title
+    - Product description
+    - Brand name
+    - Category name
+
+    Query parameters:
+    - **q**: Search query (required)
+    - **brandId**: Filter by specific brand
+    - **categoryId**: Filter by specific category
+    - **minPrice**: Minimum price filter
+    - **maxPrice**: Maximum price filter
+    - **skip**: Pagination offset (default: 0)
+    - **limit**: Results per page (default: 20, max: 100)
+
+    Returns only active products with complete brand and category information.
+    """
+    products, total = product_service.search_products(
+        db=db,
+        query=q,
+        brand_id=brand_id,
+        category_id=category_id,
+        min_price=min_price,
+        max_price=max_price,
+        skip=skip,
+        limit=limit,
+    )
+
+    return ProductSearchResponse(
+        products=products,
+        total=total,
+        skip=skip,
+        limit=limit,
+        query=q,
+    )
+
+
+@router.get("/suggestions", response_model=ProductSuggestionsResponse)
+async def get_product_suggestions(
+    q: str = Query(..., min_length=1, max_length=200, description="Search query"),
+    limit: int = Query(10, ge=1, le=20, description="Maximum number of suggestions"),
+    db: Session = Depends(get_db),
+):
+    """
+    Get product autocomplete suggestions (public).
+
+    Provides quick suggestions for product search autocomplete based on:
+    - Product title
+    - Brand name
+
+    Query parameters:
+    - **q**: Search query (required)
+    - **limit**: Maximum number of suggestions (default: 10, max: 20)
+
+    Returns a list of matching products with id, title, slug, and brand name.
+    Perfect for implementing search-as-you-type functionality.
+    """
+    suggestions_data = product_service.get_product_suggestions(
+        db=db,
+        query=q,
+        limit=limit,
+    )
+
+    # Convert to ProductSuggestion objects
+    suggestions = [ProductSuggestion(**s) for s in suggestions_data]
+
+    return ProductSuggestionsResponse(
+        suggestions=suggestions,
+        query=q,
     )
 
 
