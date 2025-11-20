@@ -24,10 +24,29 @@ class ReviewCreate(BaseModel):
 
 
 class ReviewUpdate(BaseModel):
+    """Schema for updating a review by the user."""
+
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    review_text: Optional[str] = Field(None, max_length=5000, alias="reviewText")
+
+    @field_validator("review_text")
+    @classmethod
+    def validate_review_text(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and clean review text."""
+        if v is not None:
+            v = v.strip()
+            if len(v) < 10 and len(v) > 0:
+                raise ValueError("Review text must be at least 10 characters if provided")
+        return v if v else None
+
+    model_config = {"populate_by_name": True}
+
+
+class ReviewAdminUpdate(BaseModel):
     """Schema for updating a review (admin only)."""
 
-    is_approved: Optional[bool] = Field(None, description="Approval status")
-    admin_reply: Optional[str] = Field(None, max_length=2000, description="Admin reply to review")
+    is_approved: Optional[bool] = Field(None, description="Approval status", alias="isApproved")
+    admin_reply: Optional[str] = Field(None, max_length=2000, description="Admin reply to review", alias="adminReply")
 
     @field_validator("admin_reply")
     @classmethod
@@ -37,15 +56,16 @@ class ReviewUpdate(BaseModel):
             v = v.strip()
         return v if v else None
 
+    model_config = {"populate_by_name": True}
+
 
 class UserSummary(BaseModel):
     """Minimal user info for review response."""
 
     id: UUID
-    name: str
-    email: str
+    full_name: Optional[str] = Field(None, alias="fullName")
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class ReviewResponse(BaseModel):
@@ -77,5 +97,16 @@ class ReviewListResponse(BaseModel):
     page: int
     page_size: int = Field(..., alias="pageSize")
     total_pages: int = Field(..., alias="totalPages")
+    average_rating: Optional[float] = Field(None, alias="averageRating")
+
+    model_config = {"populate_by_name": True}
+
+
+class ProductRatingSummary(BaseModel):
+    """Summary of product ratings."""
+
+    total_reviews: int = Field(..., alias="totalReviews")
+    average_rating: float = Field(..., alias="averageRating")
+    rating_distribution: dict[int, int] = Field(..., alias="ratingDistribution")
 
     model_config = {"populate_by_name": True}
