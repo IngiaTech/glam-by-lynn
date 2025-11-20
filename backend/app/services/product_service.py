@@ -477,3 +477,126 @@ def update_inventory(db: Session, product_id: UUID, quantity_delta: int) -> Opti
     db.refresh(product)
 
     return get_product_by_id(db, product_id, load_relations=True)
+
+
+def search_products(
+    db: Session,
+    query: str,
+    brand_id: Optional[UUID] = None,
+    category_id: Optional[UUID] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> tuple[list[Product], int]:
+    """
+    Search products by title, description, brand name, or category name.
+
+    Args:
+        db: Database session
+        query: Search query string
+        brand_id: Filter by brand
+        category_id: Filter by category
+        min_price: Minimum price filter
+        max_price: Maximum price filter
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        Tuple of (products list, total count)
+    """
+    # Start with base query
+    db_query = db.query(Product).options(
+        joinedload(Product.brand),
+        joinedload(Product.category)
+    )
+
+    # Apply search filter
+    if query and query.strip():
+        search_term = f"%{query.lower()}%"
+        db_query = db_query.outerjoin(Product.brand).outerjoin(Product.category).filter(
+            or_(
+                Product.title.ilike(search_term),
+                Product.description.ilike(search_term),
+                Brand.name.ilike(search_term),
+                Category.name.ilike(search_term),
+            )
+        )
+
+    # Apply brand filter
+    if brand_id:
+        db_query = db_query.filter(Product.brand_id == brand_id)
+
+    # Apply category filter
+    if category_id:
+        db_query = db_query.filter(Product.category_id == category_id)
+
+    # Apply price filters
+    if min_price is not None:
+        db_query = db_query.filter(Product.base_price >= min_price)
+    if max_price is not None:
+        db_query = db_query.filter(Product.base_price <= max_price)
+
+    # Only show active products
+    db_query = db_query.filter(Product.is_active == True)
+
+    # Get total count
+    total = db_query.count()
+
+    # Apply pagination and order by relevance (title match first, then created_at)
+    products = db_query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
+
+    return products, total
+
+
+def get_product_suggestions(
+    db: Session,
+    query: str,
+    limit: int = 10,
+) -> list[dict]:
+    """
+    Get product suggestions for autocomplete.
+
+    Args:
+        db: Database session
+        query: Search query string
+        limit: Maximum number of suggestions
+
+    Returns:
+        List of suggestion dictionaries with id, title, and slug
+    """
+    if not query or not query.strip():
+        return []
+
+    search_term = f"%{query.lower()}%"
+
+    # Search in product titles and brands
+    products = (
+        db.query(Product)
+        .options(joinedload(Product.brand))
+        .outerjoin(Product.brand)
+        .filter(
+            and_(
+                Product.is_active == True,
+                or_(
+                    Product.title.ilike(search_term),
+                    Brand.name.ilike(search_term),
+                )
+            )
+        )
+        .order_by(Product.title)
+        .limit(limit)
+        .all()
+    )
+
+    # Format suggestions
+    suggestions = []
+    for product in products:
+        suggestions.append({
+            "id": str(product.id),
+            "title": product.title,
+            "slug": product.slug,
+            "brand_name": product.brand.name if product.brand else None,
+        })
+
+    return suggestions
