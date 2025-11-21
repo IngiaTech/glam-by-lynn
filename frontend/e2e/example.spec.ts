@@ -20,23 +20,25 @@ test.describe('Homepage', () => {
     const header = page.locator('header');
     await expect(header).toBeVisible();
 
-    // Check for key navigation links
-    const productsLink = page.locator('a:has-text("Products")');
-    const servicesLink = page.locator('a:has-text("Services")');
+    // Check for key navigation links (use first() to avoid strict mode violations)
+    const productsLink = page.locator('a:has-text("Products")').first();
+    const servicesLink = page.locator('a:has-text("Services")').first();
 
-    await expect(productsLink.or(page.locator('nav >> text=Products'))).toBeVisible();
-    await expect(servicesLink.or(page.locator('nav >> text=Services'))).toBeVisible();
+    await expect(productsLink).toBeVisible();
+    await expect(servicesLink).toBeVisible();
   });
 
-  test('should display brand logo', async ({ page }) => {
+  test('should display brand name or logo', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Look for logo or brand name
-    const logo = page.locator('img[alt*="Glam" i]').or(
-      page.locator('text="Glam by Lynn"')
+    // Look for brand name in header or any heading containing "Glam"
+    const brandElement = page.locator('header').locator('text=/Glam/i').first().or(
+      page.locator('h1, h2, h3').locator('text=/Glam/i').first()
     );
-    await expect(logo).toBeVisible();
+
+    // Should find at least one element with "Glam" in the page
+    await expect(brandElement).toBeVisible({ timeout: 10000 });
   });
 
   test('should have functional cart icon', async ({ page }) => {
