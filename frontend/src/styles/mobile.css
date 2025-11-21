@@ -1,0 +1,243 @@
+/**
+ * Mobile-specific utility classes and optimizations
+ */
+
+/* Touch target minimum size (44x44px per Apple HIG) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Disable text selection for interactive elements on mobile */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improve tap/click feedback */
+.tap-feedback {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  transition: background-color 150ms ease;
+}
+
+.tap-feedback:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Prevent zoom on input focus (iOS) */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+textarea,
+select {
+  font-size: 16px !important; /* Minimum to prevent iOS auto-zoom */
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-smooth-ios {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: scroll;
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Optimize for mobile gestures */
+.swipeable {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Prevent pull-to-refresh on mobile */
+.no-pull-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* Mobile-friendly card spacing */
+.card-mobile {
+  @apply p-4 md:p-6;
+}
+
+/* Mobile-friendly button padding */
+.button-mobile {
+  @apply px-4 py-2.5 md:px-6 md:py-3;
+}
+
+/* Responsive text sizes */
+.text-responsive {
+  @apply text-base md:text-lg;
+}
+
+.heading-responsive-sm {
+  @apply text-xl md:text-2xl;
+}
+
+.heading-responsive-md {
+  @apply text-2xl md:text-3xl lg:text-4xl;
+}
+
+.heading-responsive-lg {
+  @apply text-3xl md:text-4xl lg:text-5xl;
+}
+
+/* Mobile-friendly spacing */
+.space-mobile {
+  @apply space-y-4 md:space-y-6;
+}
+
+.gap-mobile {
+  @apply gap-4 md:gap-6;
+}
+
+/* Container with mobile padding */
+.container-mobile {
+  @apply px-4 md:px-6 lg:px-8;
+}
+
+/* Mobile-optimized grid */
+.grid-mobile {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4;
+}
+
+/* Full width on mobile, constrained on desktop */
+.full-mobile {
+  @apply w-full md:w-auto;
+}
+
+/* Stack on mobile, row on desktop */
+.stack-mobile {
+  @apply flex flex-col md:flex-row;
+}
+
+/* Hide on mobile */
+.hide-mobile {
+  @apply hidden md:block;
+}
+
+/* Show only on mobile */
+.show-mobile {
+  @apply block md:hidden;
+}
+
+/* Improve form accessibility on mobile */
+.form-mobile label {
+  @apply mb-2 text-base font-medium;
+}
+
+.form-mobile input,
+.form-mobile textarea,
+.form-mobile select {
+  @apply min-h-[44px] text-base;
+}
+
+/* Mobile-friendly table */
+.table-mobile {
+  @apply block md:table;
+}
+
+.table-mobile thead {
+  @apply hidden md:table-header-group;
+}
+
+.table-mobile tbody {
+  @apply block md:table-row-group;
+}
+
+.table-mobile tr {
+  @apply block mb-4 md:table-row md:mb-0;
+}
+
+.table-mobile td {
+  @apply block md:table-cell;
+}
+
+.table-mobile td:before {
+  content: attr(data-label);
+  @apply font-bold mr-2 md:hidden;
+}
+
+/* Sticky mobile header */
+.sticky-mobile {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Mobile-friendly modal */
+.modal-mobile {
+  @apply h-full md:h-auto rounded-none md:rounded-lg;
+}
+
+/* Safe area for mobile devices with notches */
+.safe-area-padding {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Optimize images for mobile */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent layout shift from images */
+.aspect-ratio-box {
+  position: relative;
+  width: 100%;
+}
+
+.aspect-ratio-box::before {
+  content: "";
+  display: block;
+  padding-bottom: var(--aspect-ratio, 56.25%); /* Default 16:9 */
+}
+
+.aspect-ratio-box > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Mobile-optimized animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Improve tap performance */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile-friendly focus states */
+@media (max-width: 768px) {
+  *:focus-visible {
+    outline: 2px solid hsl(var(--secondary));
+    outline-offset: 2px;
+  }
+}
