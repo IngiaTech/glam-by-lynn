@@ -149,21 +149,15 @@ test.describe('Service Booking Journey', () => {
     await firstBookButton.click();
     await page.waitForLoadState('networkidle');
 
-    // Try to submit without filling required fields
+    // Verify submit button is disabled when required fields are empty
     const submitButton = page.locator('button:has-text("Complete Booking")').or(
       page.locator('button:has-text("Confirm")').or(
         page.locator('main button[type="submit"]')
       )
     );
 
-    await submitButton.first().click();
-
-    // Verify validation errors
-    const errorMessages = page.locator('text=/required|select a date|choose a time/i').or(
-      page.locator('[role="alert"]')
-    );
-
-    await expect(errorMessages.first()).toBeVisible({ timeout: 5000 });
+    // Button should be disabled when form is invalid
+    await expect(submitButton.first()).toBeDisabled();
   });
 
   test('should calculate transport costs correctly', async ({ page }) => {

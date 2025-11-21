@@ -51,14 +51,16 @@ export class BookingHelpers {
     await dateInput.fill(details.date);
 
     // Select time slot (using shadcn/ui combobox)
-    const timeCombobox = this.page.locator('[aria-label="Time *"], [placeholder*="time" i]').or(
-      this.page.locator('input[type="time"]')
+    const timeCombobox = this.page.getByRole('combobox', { name: 'Time *' }).or(
+      this.page.locator('button:has-text("Select time")')
     );
     await timeCombobox.click();
     await this.page.locator(`[role="option"]:has-text("${details.timeSlot}")`).first().click();
 
     // Select location (using shadcn/ui combobox)
-    const locationCombobox = this.page.locator('[aria-label="Location *"], [placeholder*="location" i]');
+    const locationCombobox = this.page.getByRole('combobox', { name: 'Location *' }).or(
+      this.page.locator('button:has-text("Select location")')
+    );
     await locationCombobox.click();
     await this.page.locator(`[role="option"]:has-text("${details.location}")`).first().click();
 
