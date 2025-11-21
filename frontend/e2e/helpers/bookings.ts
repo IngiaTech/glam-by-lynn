@@ -50,17 +50,17 @@ export class BookingHelpers {
     const dateInput = this.page.locator('input[type="date"]');
     await dateInput.fill(details.date);
 
-    // Select time slot
-    const timeSelect = this.page.locator('select:has(option:text-matches("\\d{2}:\\d{2}", "i"))').or(
+    // Select time slot (using shadcn/ui combobox)
+    const timeCombobox = this.page.locator('[aria-label="Time *"], [placeholder*="time" i]').or(
       this.page.locator('input[type="time"]')
     );
-    await timeSelect.selectOption(details.timeSlot).catch(() => timeSelect.fill(details.timeSlot));
+    await timeCombobox.click();
+    await this.page.locator(`[role="option"]:has-text("${details.timeSlot}")`).first().click();
 
-    // Select location
-    const locationRadio = this.page.locator(`input[value="${details.location}"]`).or(
-      this.page.locator(`label:has-text("${details.location}")`)
-    );
-    await locationRadio.click();
+    // Select location (using shadcn/ui combobox)
+    const locationCombobox = this.page.locator('[aria-label="Location *"], [placeholder*="location" i]');
+    await locationCombobox.click();
+    await this.page.locator(`[role="option"]:has-text("${details.location}")`).first().click();
 
     // Fill participant numbers
     if (details.numBrides !== undefined) {

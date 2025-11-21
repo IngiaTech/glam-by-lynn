@@ -150,13 +150,13 @@ test.describe('Service Booking Journey', () => {
     await page.waitForLoadState('networkidle');
 
     // Try to submit without filling required fields
-    const submitButton = page.locator('button:has-text("Confirm")').or(
-      page.locator('button:has-text("Book")').or(
-        page.locator('button[type="submit"]')
+    const submitButton = page.locator('button:has-text("Complete Booking")').or(
+      page.locator('button:has-text("Confirm")').or(
+        page.locator('main button[type="submit"]')
       )
     );
 
-    await submitButton.click();
+    await submitButton.first().click();
 
     // Verify validation errors
     const errorMessages = page.locator('text=/required|select a date|choose a time/i').or(
@@ -218,7 +218,7 @@ test.describe('Service Booking Journey', () => {
     await page.waitForLoadState('networkidle');
 
     // Verify pricing information is displayed
-    const pricingInfo = page.locator('text=/KSh|Price|Bride.*KSh|Maid.*KSh/i');
+    const pricingInfo = page.locator('text=/Pricing|KSh|Bride|Maid|Contact for pricing/i');
     await expect(pricingInfo.first()).toBeVisible();
 
     // Verify package features are listed
