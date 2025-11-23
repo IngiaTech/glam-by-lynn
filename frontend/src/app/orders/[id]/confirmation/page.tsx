@@ -48,7 +48,7 @@ export default function OrderConfirmationPage() {
 
       try {
         setLoading(true);
-        const token = session?.user?.email ? "dummy-token" : undefined;
+        const token = session?.accessToken;
         const data = await getOrderById(orderId, token);
         setOrder(data);
       } catch (err: any) {

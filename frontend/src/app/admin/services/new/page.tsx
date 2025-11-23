@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -187,7 +188,7 @@ export default function NewServicePackage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -211,7 +212,7 @@ export default function NewServicePackage() {
       router.push("/admin/services");
     } catch (err: any) {
       console.error("Error creating package:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to create service package");
+      setSubmitError(extractErrorMessage(err, "Failed to create service package"));
     } finally {
       setSubmitting(false);
     }

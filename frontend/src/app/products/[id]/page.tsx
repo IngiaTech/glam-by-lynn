@@ -458,7 +458,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             <div>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-bold">
-                  KSh {parseFloat(effectivePrice.toString()).toLocaleString()}
+                  KSh {effectivePrice ? parseFloat(effectivePrice.toString()).toLocaleString() : "0"}
                 </span>
                 {hasDiscount && (
                   <Badge variant="destructive">

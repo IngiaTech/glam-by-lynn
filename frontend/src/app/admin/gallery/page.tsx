@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface GalleryPost {
   id: string;
@@ -50,7 +51,7 @@ export default function GalleryManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setError("Authentication required");
@@ -75,7 +76,7 @@ export default function GalleryManagement() {
         setTotalPages(response.data.totalPages);
       } catch (err: any) {
         console.error("Error fetching gallery posts:", err);
-        setError(err.response?.data?.detail || "Failed to load gallery posts");
+        setError(extractErrorMessage(err, "Failed to load gallery posts"));
       } finally {
         setLoadingPosts(false);
       }
@@ -88,7 +89,7 @@ export default function GalleryManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -114,7 +115,7 @@ export default function GalleryManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -127,7 +128,7 @@ export default function GalleryManagement() {
       window.location.reload();
     } catch (err: any) {
       console.error("Error deleting post:", err);
-      alert(err.response?.data?.detail || "Failed to delete post");
+      alert(extractErrorMessage(err, "Failed to delete post"));
     }
   };
 

@@ -27,7 +27,7 @@ import {
   formatStatus,
   getStatusBadgeVariant,
 } from "@/lib/orders";
-import { useAuth, useRequireAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import {
   Loader2,
@@ -44,43 +44,66 @@ import {
 } from "lucide-react";
 
 export default function OrderHistoryPage() {
-  useRequireAuth(); // Redirect to login if not authenticated
-
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, authenticated, loading: authLoading } = useAuth();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
   const [reorderSuccess, setReorderSuccess] = useState<string | null>(null);
 
   const limit = 10;
 
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (!authLoading && !authenticated) {
+      router.push("/auth/signin");
+    }
+  }, [authenticated, authLoading, router]);
+
   useEffect(() => {
     async function loadOrders() {
       if (!session?.user?.email) {
+        setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const data = await getUserOrders(skip, limit);
+        const token = session?.accessToken;
+        console.log("[Orders] Session:", { hasUser: !!session?.user, hasToken: !!token });
+
+        if (!token) {
+          setError("Authentication required. Please sign in again to view your orders.");
+          setLoading(false);
+          return;
+        }
+
+        const data = await getUserOrders(token, skip, limit);
         setOrders(data.orders);
         setTotal(data.total);
       } catch (err: any) {
         console.error("Failed to load orders:", err);
-        setError(err.message || "Failed to load orders");
+
+        // Check if it's an authentication error
+        if (err.message?.includes("Could not validate credentials") || err.message?.includes("Not authenticated")) {
+          setError("Your session has expired. Please sign in again.");
+          // Optionally redirect to sign-in
+          setTimeout(() => router.push("/auth/signin"), 2000);
+        } else {
+          setError(err.message || "Failed to load orders");
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadOrders();
-  }, [session, skip]);
+  }, [session, skip, router]);
 
   const handlePageChange = (newSkip: number) => {
     setSkip(newSkip);
@@ -129,7 +152,7 @@ export default function OrderHistoryPage() {
   const totalPages = Math.ceil(total / limit);
 
   // Filter orders by status on client side (could be moved to backend API)
-  const filteredOrders = statusFilter
+  const filteredOrders = statusFilter && statusFilter !== "all"
     ? orders.filter((order) => order.status === statusFilter)
     : orders;
 
@@ -216,7 +239,7 @@ export default function OrderHistoryPage() {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="payment_confirmed">Payment Confirmed</SelectItem>
                   <SelectItem value="processing">Processing</SelectItem>
@@ -236,7 +259,7 @@ export default function OrderHistoryPage() {
               <Package className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">No orders found</h3>
               <p className="mb-6 text-center text-sm text-muted-foreground">
-                {statusFilter
+                {statusFilter && statusFilter !== "all"
                   ? `You don't have any ${formatStatus(statusFilter).toLowerCase()} orders yet.`
                   : "You haven't placed any orders yet. Start shopping!"}
               </p>

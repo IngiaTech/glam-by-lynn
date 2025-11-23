@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -83,7 +84,7 @@ export default function NewProduct() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) return;
 
@@ -130,7 +131,7 @@ export default function NewProduct() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -159,7 +160,7 @@ export default function NewProduct() {
       router.push("/admin/products");
     } catch (err: any) {
       console.error("Error creating product:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to create product");
+      setSubmitError(extractErrorMessage(err, "Failed to create product"));
     } finally {
       setSubmitting(false);
     }

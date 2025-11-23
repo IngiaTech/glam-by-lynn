@@ -11,6 +11,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart } from "lucide-react";
+import { HeroParallaxBackground } from "@/components/animations/HeroParallaxBackground";
+import { FadeInSection } from "@/components/animations/FadeInSection";
 
 interface Product {
   id: string;
@@ -42,7 +44,24 @@ interface Testimonial {
   is_featured: boolean;
 }
 
+interface ServicePackage {
+  id: string;
+  package_type: string;
+  name: string;
+  description: string;
+  base_bride_price: string;
+  base_maid_price?: string;
+  base_mother_price?: string;
+  base_other_price?: string;
+  max_maids?: number;
+  min_maids?: number;
+  includes_facial: boolean;
+  duration_minutes: number;
+  display_order: number;
+}
+
 export default function Home() {
+  const [featuredServices, setFeaturedServices] = useState<ServicePackage[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -53,11 +72,18 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Fetch featured services (bridal packages)
+        const servicesRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SERVICES.LIST}?limit=3`);
+        if (servicesRes.ok) {
+          const servicesData = await servicesRes.json();
+          setFeaturedServices(servicesData.items || servicesData);
+        }
+
         // Fetch featured products
         const productsRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.FEATURED}?limit=6`);
         if (productsRes.ok) {
           const productsData = await productsRes.json();
-          setFeaturedProducts(productsData);
+          setFeaturedProducts(productsData.items || productsData);
         }
 
         // Fetch categories
@@ -106,6 +132,8 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-muted/30 to-secondary/10">
+        {/* Parallax Background with Makeup Products */}
+        <HeroParallaxBackground />
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container relative mx-auto px-4 py-20 md:py-32">
           <div className="mx-auto max-w-4xl text-center">
@@ -157,17 +185,114 @@ export default function Home() {
       </section>
 
       <main>
+        {/* Featured Services Section */}
+        <section className="border-b border-border bg-gradient-to-b from-secondary/5 to-background py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <FadeInSection direction="down" delay={0.1}>
+              <div className="mb-12 text-center">
+                <Badge variant="secondary" className="mb-4 px-4 py-2">
+                  <Sparkles className="mr-2 h-4 w-4 inline" />
+                  Our Signature Services
+                </Badge>
+                <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+                  Bridal Makeup Packages
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Professional bridal makeup services for your special day
+                </p>
+              </div>
+            </FadeInSection>
+
+            {loading ? (
+              <div className="grid gap-8 md:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <CardHeader>
+                      <div className="h-6 w-3/4 animate-pulse rounded bg-muted mb-2" />
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-20 animate-pulse rounded bg-muted" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : featuredServices.length > 0 ? (
+              <div className="grid gap-8 md:grid-cols-3">
+                {featuredServices.map((service, index) => (
+                  <FadeInSection key={service.id} direction="up" delay={0.2 + index * 0.1}>
+                    <Card className="group relative overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50">
+                    <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full" />
+                    <CardHeader className="relative">
+                      <CardTitle className="text-xl mb-2">{service.name}</CardTitle>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-secondary">
+                          KSh {parseFloat(service.base_bride_price).toLocaleString()}
+                        </span>
+                        <span className="text-sm text-muted-foreground">starting</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground">{service.description}</p>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-secondary" />
+                          <span>Duration: {Math.floor(service.duration_minutes / 60)}+ hours</span>
+                        </div>
+                        {service.includes_facial && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-secondary" />
+                            <span>Includes facial treatment</span>
+                          </div>
+                        )}
+                        {service.max_maids && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-secondary" />
+                            <span>Up to {service.max_maids} bridesmaids</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button asChild className="w-full group-hover:bg-secondary group-hover:text-secondary-foreground">
+                        <Link href={`/bookings/new?packageId=${service.id}`}>
+                          Book Now
+                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                    </Card>
+                  </FadeInSection>
+                ))}
+              </div>
+            ) : null}
+
+            <FadeInSection direction="up" delay={0.5}>
+              <div className="mt-10 text-center">
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/services">
+                    View All Services
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </FadeInSection>
+          </div>
+        </section>
+
         {/* Featured Products Section */}
         <section className="border-b border-border bg-background py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-                Featured Products
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                Discover our curated selection of premium beauty essentials
-              </p>
-            </div>
+            <FadeInSection direction="down" delay={0.1}>
+              <div className="mb-12 text-center">
+                <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+                  Featured Products
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Discover our curated selection of premium beauty essentials
+                </p>
+              </div>
+            </FadeInSection>
 
             {loading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -182,8 +307,9 @@ export default function Home() {
               </div>
             ) : featuredProducts.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {featuredProducts.map((product) => (
-                  <Card key={product.id} className="group overflow-hidden transition-all hover:shadow-lg">
+                {featuredProducts.map((product, index) => (
+                  <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
+                    <Card className="group overflow-hidden transition-all hover:shadow-lg">
                     <Link href={`/products/${product.slug}`}>
                       <div className="relative aspect-square overflow-hidden bg-muted">
                         {product.images && product.images[0] ? (
@@ -233,7 +359,8 @@ export default function Home() {
                         </div>
                       </CardContent>
                     </Link>
-                  </Card>
+                    </Card>
+                  </FadeInSection>
                 ))}
               </div>
             ) : (
@@ -243,34 +370,39 @@ export default function Home() {
               </div>
             )}
 
-            <div className="mt-10 text-center">
-              <Button asChild size="lg" variant="outline">
-                <Link href="/products">
-                  View All Products
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <FadeInSection direction="up" delay={0.5}>
+              <div className="mt-10 text-center">
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/products">
+                    View All Products
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </FadeInSection>
           </div>
         </section>
 
         {/* Categories Section */}
         <section className="bg-muted/30 py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-                Shop by Category
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                Find exactly what you're looking for
-              </p>
-            </div>
+            <FadeInSection direction="down" delay={0.1}>
+              <div className="mb-12 text-center">
+                <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+                  Shop by Category
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Find exactly what you're looking for
+                </p>
+              </div>
+            </FadeInSection>
 
             {categories.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {categories.map((category) => (
-                  <Link key={category.id} href={`/products?category=${category.slug}`}>
-                    <Card className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg">
+                {categories.map((category, index) => (
+                  <FadeInSection key={category.id} direction="up" delay={0.2 + (index % 4) * 0.1}>
+                    <Link href={`/products?category=${category.slug}`}>
+                      <Card className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg">
                       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/20 to-muted">
                         {category.image_url ? (
                           <Image
@@ -293,8 +425,9 @@ export default function Home() {
                           </p>
                         )}
                       </CardHeader>
-                    </Card>
-                  </Link>
+                      </Card>
+                    </Link>
+                  </FadeInSection>
                 ))}
               </div>
             ) : (
@@ -315,19 +448,22 @@ export default function Home() {
         {/* Testimonials Section */}
         <section className="border-t border-border py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-                What Our Clients Say
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                Real experiences from real people
-              </p>
-            </div>
+            <FadeInSection direction="down" delay={0.1}>
+              <div className="mb-12 text-center">
+                <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+                  What Our Clients Say
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Real experiences from real people
+                </p>
+              </div>
+            </FadeInSection>
 
             {testimonials.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {testimonials.map((testimonial) => (
-                  <Card key={testimonial.id} className="flex flex-col">
+                {testimonials.map((testimonial, index) => (
+                  <FadeInSection key={testimonial.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
+                    <Card className="flex flex-col">
                     <CardHeader>
                       <div className="mb-2 flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (
@@ -351,7 +487,8 @@ export default function Home() {
                     <CardContent className="flex-1">
                       <p className="text-muted-foreground">"{testimonial.content}"</p>
                     </CardContent>
-                  </Card>
+                    </Card>
+                  </FadeInSection>
                 ))}
               </div>
             ) : (
@@ -361,21 +498,24 @@ export default function Home() {
               </div>
             )}
 
-            <div className="mt-10 text-center">
-              <Button asChild variant="outline" size="lg">
-                <Link href="/gallery">
-                  View Our Work
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <FadeInSection direction="up" delay={0.5}>
+              <div className="mt-10 text-center">
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/gallery">
+                    View Our Work
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </FadeInSection>
           </div>
         </section>
 
         {/* Newsletter Section */}
         <section className="bg-gradient-to-br from-secondary/10 via-background to-muted/20 py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <Card className="mx-auto max-w-2xl border-2 border-secondary/20">
+            <FadeInSection direction="up" delay={0.2}>
+              <Card className="mx-auto max-w-2xl border-2 border-secondary/20">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl md:text-3xl">
                   Join Our Beauty Community
@@ -418,7 +558,8 @@ export default function Home() {
               <CardFooter className="justify-center text-xs text-muted-foreground">
                 We respect your privacy. Unsubscribe at any time.
               </CardFooter>
-            </Card>
+              </Card>
+            </FadeInSection>
           </div>
         </section>
       </main>

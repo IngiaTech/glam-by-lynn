@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface ServicePackage {
   id: string;
@@ -64,7 +65,7 @@ export default function ServicePackagesManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setError("Authentication required");
@@ -89,7 +90,7 @@ export default function ServicePackagesManagement() {
         setTotalPages(response.data.total_pages);
       } catch (err: any) {
         console.error("Error fetching packages:", err);
-        setError(err.response?.data?.detail || "Failed to load service packages");
+        setError(extractErrorMessage(err, "Failed to load service packages"));
       } finally {
         setLoadingPackages(false);
       }
@@ -102,7 +103,7 @@ export default function ServicePackagesManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -128,7 +129,7 @@ export default function ServicePackagesManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -141,7 +142,7 @@ export default function ServicePackagesManagement() {
       window.location.reload();
     } catch (err: any) {
       console.error("Error deleting package:", err);
-      alert(err.response?.data?.detail || "Failed to delete package");
+      alert(extractErrorMessage(err, "Failed to delete package"));
     }
   };
 

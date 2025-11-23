@@ -5,7 +5,7 @@ Business logic for product management
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, any_
 
 from app.models.product import Product, Brand, Category
 from app.schemas.product import ProductCreate, ProductUpdate, slugify
@@ -212,7 +212,7 @@ def get_products(
             or_(
                 Product.title.ilike(search_term),
                 Product.description.ilike(search_term),
-                Product.tags.contains([search])  # PostgreSQL ARRAY contains
+                search.ilike(any_(Product.tags))  # PostgreSQL ARRAY search
             )
         )
 

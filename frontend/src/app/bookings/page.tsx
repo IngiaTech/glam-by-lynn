@@ -43,10 +43,8 @@ import {
 } from "lucide-react";
 
 export default function BookingHistoryPage() {
-  useRequireAuth(); // Redirect to login if not authenticated
-
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, authenticated, loading: authLoading } = useAuth();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,21 +52,35 @@ export default function BookingHistoryPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const pageSize = 10;
 
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (!authLoading && !authenticated) {
+      router.push("/auth/signin");
+    }
+  }, [authenticated, authLoading, router]);
+
   useEffect(() => {
     async function loadBookings() {
       if (!session?.user?.email) {
+        setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const token = "dummy-token"; // TODO: Get real token from session
-        const data = await getUserBookings(token, page, pageSize, statusFilter || undefined);
+        const token = session?.accessToken;
+        if (!token) {
+          setError("Authentication required. Please sign in to view your bookings.");
+          setLoading(false);
+          return;
+        }
+        const filterValue = statusFilter === "all" ? undefined : statusFilter;
+        const data = await getUserBookings(token, page, pageSize, filterValue);
         setBookings(data.items);
         setTotal(data.total);
         setTotalPages(data.totalPages);
@@ -90,7 +102,11 @@ export default function BookingHistoryPage() {
 
     try {
       setCancellingId(bookingId);
-      const token = "dummy-token"; // TODO: Get real token from session
+      const token = session?.accessToken;
+      if (!token) {
+        alert("Authentication required. Please sign in to cancel bookings.");
+        return;
+      }
       await cancelBooking(bookingId, token);
 
       // Refresh bookings list
@@ -156,7 +172,7 @@ export default function BookingHistoryPage() {
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="deposit_paid">Deposit Paid</SelectItem>
@@ -186,7 +202,7 @@ export default function BookingHistoryPage() {
               <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium">No bookings found</p>
               <p className="mb-6 text-sm text-muted-foreground">
-                {statusFilter
+                {statusFilter && statusFilter !== "all"
                   ? `No bookings with status "${formatStatus(statusFilter)}"`
                   : "You haven't made any bookings yet"}
               </p>
@@ -263,15 +279,15 @@ export default function BookingHistoryPage() {
                         </div>
                       </div>
 
-                      {booking.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Location</p>
-                            <p className="font-medium">{booking.location.location_name}</p>
-                          </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Location</p>
+                          <p className="font-medium">
+                            {booking.customLocationAddress || booking.location?.location_name || "N/A"}
+                          </p>
                         </div>
-                      )}
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />

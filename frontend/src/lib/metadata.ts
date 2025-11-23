@@ -19,7 +19,7 @@ export function constructMetadata({
   noIndex = false,
   ...props
 }: {
-  title?: string
+  title?: string | { default: string; template: string }
   description?: string
   image?: string
   noIndex?: boolean
@@ -50,7 +50,7 @@ export function constructMetadata({
       type: 'website',
       locale: 'en_KE',
       url: siteConfig.url,
-      title,
+      title: typeof title === 'string' ? title : title.default,
       description,
       siteName: siteConfig.name,
       images: [
@@ -58,13 +58,13 @@ export function constructMetadata({
           url: image,
           width: 1200,
           height: 630,
-          alt: title,
+          alt: typeof title === 'string' ? title : title.default,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: typeof title === 'string' ? title : title.default,
       description,
       images: [image],
       creator: '@glambylynn',

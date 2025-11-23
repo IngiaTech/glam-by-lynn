@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -70,7 +71,7 @@ export default function NewGalleryPost() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -92,7 +93,7 @@ export default function NewGalleryPost() {
       router.push("/admin/gallery");
     } catch (err: any) {
       console.error("Error creating gallery post:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to create gallery post");
+      setSubmitError(extractErrorMessage(err, "Failed to create gallery post"));
     } finally {
       setSubmitting(false);
     }

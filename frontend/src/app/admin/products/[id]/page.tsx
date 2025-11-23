@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -87,7 +88,7 @@ export default function EditProduct() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setLoadError("Authentication required");
@@ -126,7 +127,7 @@ export default function EditProduct() {
         setCategories(categoriesRes.data.items || []);
       } catch (err: any) {
         console.error("Error fetching data:", err);
-        setLoadError(err.response?.data?.detail || "Failed to load product");
+        setLoadError(extractErrorMessage(err, "Failed to load product"));
       } finally {
         setLoading(false);
       }
@@ -161,7 +162,7 @@ export default function EditProduct() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -190,7 +191,7 @@ export default function EditProduct() {
       router.push("/admin/products");
     } catch (err: any) {
       console.error("Error updating product:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to update product");
+      setSubmitError(extractErrorMessage(err, "Failed to update product"));
     } finally {
       setSubmitting(false);
     }

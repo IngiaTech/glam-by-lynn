@@ -12,8 +12,8 @@ class PromoCodeCreate(BaseModel):
 
     code: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = Field(None)
-    discount_type: str = Field(..., pattern="^(percentage|fixed)$")
-    discount_value: Decimal = Field(..., gt=0, decimal_places=2)
+    discount_type: str = Field(..., pattern="^(percentage|fixed)$", alias="discountType")
+    discount_value: Decimal = Field(..., gt=0, decimal_places=2, alias="discountValue")
     min_order_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2, alias="minOrderAmount")
     max_discount_amount: Optional[Decimal] = Field(None, ge=0, decimal_places=2, alias="maxDiscountAmount")
     usage_limit: Optional[int] = Field(None, gt=0, alias="usageLimit")

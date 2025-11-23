@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface Brand {
   id: string;
@@ -50,7 +51,7 @@ export default function BrandsManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setError("Authentication required");
@@ -77,7 +78,7 @@ export default function BrandsManagement() {
         setTotalPages(response.data.total_pages);
       } catch (err: any) {
         console.error("Error fetching brands:", err);
-        setError(err.response?.data?.detail || "Failed to load brands");
+        setError(extractErrorMessage(err, "Failed to load brands"));
       } finally {
         setLoadingBrands(false);
       }
@@ -90,7 +91,7 @@ export default function BrandsManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -117,7 +118,7 @@ export default function BrandsManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -130,7 +131,7 @@ export default function BrandsManagement() {
       setTotalBrands(totalBrands - 1);
     } catch (err: any) {
       console.error("Error deleting brand:", err);
-      alert(err.response?.data?.detail || "Failed to delete brand");
+      alert(extractErrorMessage(err, "Failed to delete brand"));
     }
   };
 

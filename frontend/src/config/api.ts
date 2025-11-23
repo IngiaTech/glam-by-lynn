@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     GOOGLE_LOGIN: "/api/auth/google-login",
     LOGOUT: "/api/auth/logout",
     ME: "/api/auth/me",
+    REFRESH: "/api/auth/refresh",
   },
   // Products
   PRODUCTS: {
@@ -20,14 +21,14 @@ export const API_ENDPOINTS = {
   },
   // Brands
   BRANDS: {
-    LIST: "/brands",
-    DETAIL: (id: string) => `/brands/${id}`,
+    LIST: "/api/brands",
+    DETAIL: (id: string) => `/api/brands/${id}`,
   },
   // Categories
   CATEGORIES: {
-    LIST: "/categories",
-    DETAIL: (id: string) => `/categories/${id}`,
-    HIERARCHY: "/categories/hierarchy",
+    LIST: "/api/categories",
+    DETAIL: (id: string) => `/api/categories/${id}`,
+    HIERARCHY: "/api/categories/hierarchy",
   },
   // Services
   SERVICES: {
@@ -50,15 +51,15 @@ export const API_ENDPOINTS = {
   },
   // Cart
   CART: {
-    GET: "/cart",
-    ADD_ITEM: "/cart/items",
-    UPDATE_ITEM: (itemId: string) => `/cart/items/${itemId}`,
-    REMOVE_ITEM: (itemId: string) => `/cart/items/${itemId}`,
-    CLEAR: "/cart/clear",
+    GET: "/api/cart",
+    ADD_ITEM: "/api/cart/items",
+    UPDATE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
+    REMOVE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
+    CLEAR: "/api/cart/clear",
   },
   // Promo Codes
   PROMO_CODES: {
-    VALIDATE: "/promo-codes/validate",
+    VALIDATE: "/api/promo-codes/validate",
   },
   // Reviews
   REVIEWS: {

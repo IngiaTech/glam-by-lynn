@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Grid, List, X, Search, Filter } from "lucide-react";
-import { getProducts, getBrands, getCategories, type ProductFilters } from "@/lib/products";
+import { getProducts, type ProductFilters } from "@/lib/products";
 import type { Product, Brand, Category } from "@/types";
 
 type ViewMode = "grid" | "list";
@@ -38,6 +38,9 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showFilters, setShowFilters] = useState(true);
+
+  // Local search query (client-side filtering)
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Filter state
   const [filters, setFilters] = useState<ProductFilters>({
@@ -56,24 +59,6 @@ export default function ProductsPage() {
   const [priceMin, setPriceMin] = useState<string>("");
   const [priceMax, setPriceMax] = useState<string>("");
 
-  // Fetch brands and categories on mount
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [brandsData, categoriesData] = await Promise.all([
-          getBrands(),
-          getCategories(),
-        ]);
-        setBrands(brandsData);
-        setCategories(categoriesData);
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
-
   // Fetch products whenever filters change
   useEffect(() => {
     const fetchProducts = async () => {
@@ -83,6 +68,22 @@ export default function ProductsPage() {
         setProducts(data.items);
         setTotalPages(data.total_pages);
         setTotalProducts(data.total);
+
+        // Extract unique brands and categories from products
+        const uniqueBrands = new Map<string, Brand>();
+        const uniqueCategories = new Map<string, Category>();
+
+        data.items.forEach((product) => {
+          if (product.brand && !uniqueBrands.has(product.brand.id)) {
+            uniqueBrands.set(product.brand.id, product.brand);
+          }
+          if (product.category && !uniqueCategories.has(product.category.id)) {
+            uniqueCategories.set(product.category.id, product.category);
+          }
+        });
+
+        setBrands(Array.from(uniqueBrands.values()));
+        setCategories(Array.from(uniqueCategories.values()));
       } catch (error) {
         console.error("Error fetching products:", error);
         setProducts([]);
@@ -124,13 +125,27 @@ export default function ProductsPage() {
     });
     setPriceMin("");
     setPriceMax("");
+    setSearchQuery("");
   };
+
+  // Client-side filtering based on search query
+  const filteredProducts = products.filter((product) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      product.title.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query) ||
+      product.brand?.name.toLowerCase().includes(query) ||
+      product.category?.name.toLowerCase().includes(query)
+    );
+  });
 
   // Check if any filters are active
   const hasActiveFilters =
     filters.brandId ||
     filters.categoryId ||
-    filters.search ||
+    searchQuery ||
     filters.minPrice !== undefined ||
     filters.maxPrice !== undefined;
 
@@ -152,8 +167,8 @@ export default function ProductsPage() {
       }
     }
 
-    if (filters.search) {
-      active.push({ key: "search", label: "Search", value: filters.search });
+    if (searchQuery) {
+      active.push({ key: "search", label: "Search", value: searchQuery });
     }
 
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
@@ -176,6 +191,8 @@ export default function ProductsPage() {
         maxPrice: undefined,
         page: 1,
       }));
+    } else if (key === "search") {
+      setSearchQuery("");
     } else {
       setFilters((prev) => ({
         ...prev,
@@ -236,8 +253,8 @@ export default function ProductsPage() {
                     id="search"
                     type="text"
                     placeholder="Search products..."
-                    value={filters.search || ""}
-                    onChange={(e) => updateFilter("search", e.target.value || undefined)}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
                   />
                 </div>
@@ -367,7 +384,7 @@ export default function ProductsPage() {
                   {loading ? (
                     "Loading..."
                   ) : (
-                    `Showing ${products.length} of ${totalProducts} products`
+                    `Showing ${filteredProducts.length} of ${totalProducts} products`
                   )}
                 </p>
               </div>
@@ -460,7 +477,7 @@ export default function ProductsPage() {
                   </Card>
                 ))}
               </div>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="text-muted-foreground">No products found</p>
                 {hasActiveFilters && (
@@ -477,10 +494,11 @@ export default function ProductsPage() {
                     : "space-y-4"
                 }
               >
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <Card
                     key={product.id}
-                    className={viewMode === "list" ? "flex" : "flex flex-col"}
+                    data-testid="product-card"
+                    className={viewMode === "list" ? "product-card flex" : "product-card flex flex-col"}
                   >
                     <CardHeader className={viewMode === "list" ? "flex-1" : ""}>
                       <div className="mb-2 flex items-start justify-between">
@@ -503,7 +521,7 @@ export default function ProductsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-2xl font-bold">
-                            ${parseFloat(product.basePrice.toString()).toFixed(2)}
+                            ${product.basePrice ? parseFloat(product.basePrice.toString()).toFixed(2) : "0.00"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {product.inventoryCount > 0

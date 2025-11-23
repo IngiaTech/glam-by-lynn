@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,11 +22,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Search,
   ShoppingCart,
   User,
   Menu,
-  ChevronDown,
   LogOut,
   Package,
   Heart,
@@ -37,45 +34,58 @@ import {
 } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface SearchSuggestion {
-  id: string;
-  title: string;
-  slug: string;
-  type: "product" | "category";
-}
-
 export function Header() {
-  const { user, authenticated, isAdmin } = useAuth();
+  const { user, authenticated, isAdmin, session } = useAuth();
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
   const [cartItemCount, setCartItemCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
 
-  // Fetch categories on mount
+  // Validate session token periodically
   useEffect(() => {
-    async function fetchCategories() {
+    if (!authenticated || !session?.accessToken) return;
+
+    // Skip validation on auth pages to avoid interfering with OAuth flow
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/')) {
+      return;
+    }
+
+    const validateToken = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CATEGORIES.LIST}?limit=10`);
-        if (res.ok) {
-          const data = await res.json();
-          setCategories(data);
+        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+
+        // If token is invalid (401), sign out the user
+        if (res.status === 401) {
+          console.log("[Header] Session token expired, signing out...");
+          await signOut({ redirect: false });
+          router.push("/auth/signin");
         }
       } catch (error) {
-        console.error("Error fetching categories:", error);
+        // Silently catch network errors to avoid crashing the app
+        // This can happen during SSR or when the backend is temporarily unavailable
+        console.warn("[Header] Could not validate session (network error):", error);
       }
-    }
-    fetchCategories();
-  }, []);
+    };
+
+    // Don't validate immediately to avoid SSR issues and OAuth interference
+    // Wait 5 seconds after mount to ensure OAuth flow completes
+    const initialTimeout = setTimeout(validateToken, 5000);
+
+    // Then validate every 5 minutes
+    const interval = setInterval(validateToken, 5 * 60 * 1000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [authenticated, session?.accessToken, router]);
+
+  // Categories are no longer fetched globally to reduce API calls
+  // They are now extracted from products on the products page
+  // This ensures we only show categories that have products
 
   // Fetch cart count
   useEffect(() => {
@@ -99,64 +109,6 @@ export function Header() {
     }
     fetchCartCount();
   }, [authenticated]);
-
-  // Search suggestions debounced
-  useEffect(() => {
-    if (searchQuery.length < 2) {
-      setSearchSuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.SEARCH}?q=${encodeURIComponent(searchQuery)}&limit=5`
-        );
-        if (res.ok) {
-          const products = await res.json();
-          const suggestions: SearchSuggestion[] = products.map((p: any) => ({
-            id: p.id,
-            title: p.title,
-            slug: p.slug,
-            type: "product" as const,
-          }));
-          setSearchSuggestions(suggestions);
-        }
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Click outside to close suggestions
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery("");
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
-    if (suggestion.type === "product") {
-      router.push(`/products/${suggestion.slug}`);
-    }
-    setSearchQuery("");
-    setShowSuggestions(false);
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -187,39 +139,25 @@ export function Header() {
               Services
             </Link>
 
-            {/* Categories Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  Products
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/products" className="cursor-pointer">
-                    All Products
-                  </Link>
-                </DropdownMenuItem>
-                {categories.length > 0 && <DropdownMenuSeparator />}
-                {categories.map((category) => (
-                  <DropdownMenuItem key={category.id} asChild>
-                    <Link
-                      href={`/products?category=${category.slug}`}
-                      className="cursor-pointer"
-                    >
-                      {category.name}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/products"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Products
+            </Link>
 
             <Link
               href="/gallery"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Gallery
+            </Link>
+            <Link
+              href="/vision-2026"
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Vision 2026
+              <Badge variant="secondary" className="text-xs">New</Badge>
             </Link>
             {isAdmin && (
               <Link
@@ -231,43 +169,8 @@ export function Header() {
             )}
           </nav>
 
-          {/* Search, Cart, User Menu */}
+          {/* Cart, User Menu */}
           <div className="flex items-center gap-3">
-            {/* Search - Desktop */}
-            <div ref={searchRef} className="relative hidden md:block">
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search products..."
-                    className="w-64 pl-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setShowSuggestions(true)}
-                  />
-                </div>
-              </form>
-
-              {/* Search Suggestions */}
-              {showSuggestions && searchSuggestions.length > 0 && (
-                <div className="absolute top-full mt-1 w-full rounded-md border border-border bg-background shadow-lg">
-                  {searchSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-muted"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Search className="h-3 w-3 text-muted-foreground" />
-                        <span>{suggestion.title}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Cart Icon */}
             <Button variant="ghost" size="icon" asChild className="relative">
               <Link href="/cart">
@@ -363,22 +266,6 @@ export function Header() {
                   </SheetTitle>
                 </SheetHeader>
 
-                {/* Mobile Search */}
-                <div className="my-6">
-                  <form onSubmit={handleSearch}>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Search products..."
-                        className="pl-9"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                  </form>
-                </div>
-
                 {/* Mobile Navigation */}
                 <nav className="flex flex-col gap-4">
                   <Link
@@ -403,28 +290,21 @@ export function Header() {
                     Products
                   </Link>
 
-                  {/* Mobile Categories */}
-                  {categories.length > 0 && (
-                    <div className="ml-4 flex flex-col gap-2">
-                      {categories.map((category) => (
-                        <Link
-                          key={category.id}
-                          href={`/products?category=${category.slug}`}
-                          className="text-sm text-muted-foreground"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {category.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
                   <Link
                     href="/gallery"
                     className="text-sm font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Gallery
+                  </Link>
+
+                  <Link
+                    href="/vision-2026"
+                    className="flex items-center gap-2 text-sm font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Vision 2026
+                    <Badge variant="secondary" className="text-xs">New</Badge>
                   </Link>
 
                   {authenticated && (

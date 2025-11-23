@@ -124,7 +124,11 @@ export interface Booking {
   packageId: string;
   bookingDate: string;
   bookingTime: string;
-  locationId: string;
+  locationId?: string; // Optional - bookings can use custom locations instead
+  customLocationAddress?: string;
+  customLocationLatitude?: number;
+  customLocationLongitude?: number;
+  customLocationDistanceKm?: number;
   numBrides: number;
   numMaids: number;
   numMothers: number;

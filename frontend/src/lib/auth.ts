@@ -116,22 +116,36 @@ export const authOptions: NextAuthOptions = {
         token.adminRole = session.adminRole;
       }
 
-      // Refresh user data from backend periodically using backend JWT token
-      if (token.accessToken && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 60 * 60 * 1000)) {
+      // Refresh access token and user data periodically
+      // Backend access token expires after 15 minutes, so refresh every 14 minutes
+      if (token.refreshToken && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 14 * 60 * 1000)) {
         try {
-          const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
-            headers: {
-              Authorization: `Bearer ${token.accessToken}`,
-            },
+          // First, refresh the access token using the refresh token
+          const refreshResponse = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`, {
+            refresh_token: token.refreshToken,
           });
 
-          if (response.data) {
-            token.isAdmin = response.data.isAdmin;
-            token.adminRole = response.data.adminRole;
-            token.lastRefresh = Date.now();
+          if (refreshResponse.data) {
+            // Update tokens
+            token.accessToken = refreshResponse.data.access_token;
+            token.refreshToken = refreshResponse.data.refresh_token;
+
+            // Then fetch updated user data with the new access token
+            const userResponse = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
+              headers: {
+                Authorization: `Bearer ${token.accessToken}`,
+              },
+            });
+
+            if (userResponse.data) {
+              token.isAdmin = userResponse.data.isAdmin;
+              token.adminRole = userResponse.data.adminRole;
+              token.lastRefresh = Date.now();
+            }
           }
         } catch (error) {
-          console.error("Error refreshing user data:", error);
+          console.error("Error refreshing token and user data:", error);
+          // If refresh fails, user will need to sign in again
         }
       }
 

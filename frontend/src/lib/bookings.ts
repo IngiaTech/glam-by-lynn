@@ -69,7 +69,11 @@ export async function createBooking(
     package_id: string;
     booking_date: string;
     booking_time: string;
-    location_id: string;
+    location_id?: string;
+    custom_location_address?: string;
+    custom_location_latitude?: number;
+    custom_location_longitude?: number;
+    custom_location_distance_km?: number;
     num_brides: number;
     num_maids: number;
     num_mothers: number;
@@ -101,7 +105,8 @@ export async function createBooking(
     throw new Error(errorData.detail || `Failed to create booking: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return transformBookingResponse(data);
 }
 
 /**
@@ -136,6 +141,46 @@ export function calculateBookingPrice(
 }
 
 /**
+ * Transform backend booking response (snake_case) to frontend format (camelCase)
+ */
+function transformBookingResponse(data: any): Booking {
+  return {
+    id: data.id,
+    bookingNumber: data.booking_number,
+    userId: data.user_id,
+    guestEmail: data.guest_email,
+    guestName: data.guest_name,
+    guestPhone: data.guest_phone,
+    packageId: data.package_id,
+    bookingDate: data.booking_date,
+    bookingTime: data.booking_time,
+    locationId: data.location_id,
+    customLocationAddress: data.custom_location_address,
+    customLocationLatitude: data.custom_location_latitude,
+    customLocationLongitude: data.custom_location_longitude,
+    customLocationDistanceKm: data.custom_location_distance_km,
+    numBrides: data.num_brides,
+    numMaids: data.num_maids,
+    numMothers: data.num_mothers,
+    numOthers: data.num_others,
+    weddingTheme: data.wedding_theme,
+    specialRequests: data.special_requests,
+    subtotal: parseFloat(data.subtotal),
+    transportCost: parseFloat(data.transport_cost),
+    totalAmount: parseFloat(data.total_amount),
+    depositAmount: data.deposit_amount ? parseFloat(data.deposit_amount) : undefined,
+    depositPaid: data.deposit_paid,
+    depositPaidAt: data.deposit_paid_at,
+    status: data.status,
+    adminNotes: data.admin_notes,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    package: data.package,
+    location: data.location,
+  };
+}
+
+/**
  * Get a specific booking by ID
  */
 export async function getBookingById(bookingId: string, token?: string): Promise<Booking> {
@@ -158,20 +203,23 @@ export async function getBookingById(bookingId: string, token?: string): Promise
     throw new Error(errorData.detail || `Failed to fetch booking: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return transformBookingResponse(data);
 }
 
 /**
  * Format currency for display (KSh)
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null) return "KSh 0";
   return `KSh ${amount.toLocaleString()}`;
 }
 
 /**
  * Format date for display
  */
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return "N/A";
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", {
     weekday: "long",
@@ -184,7 +232,8 @@ export function formatDate(dateStr: string): string {
 /**
  * Format time for display
  */
-export function formatTime(timeStr: string): string {
+export function formatTime(timeStr: string | undefined | null): string {
+  if (!timeStr) return "N/A";
   const [hours, minutes] = timeStr.split(":");
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? "PM" : "AM";
@@ -226,7 +275,7 @@ export async function getUserBookings(
 
   const data = await response.json();
   return {
-    items: data.items,
+    items: data.items.map(transformBookingResponse),
     total: data.total,
     page: data.page,
     totalPages: data.total_pages,
@@ -250,7 +299,8 @@ export async function cancelBooking(bookingId: string, token: string): Promise<B
     throw new Error(errorData.detail || `Failed to cancel booking: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return transformBookingResponse(data);
 }
 
 /**

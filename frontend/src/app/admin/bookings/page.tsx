@@ -10,6 +10,7 @@ import {
   cancelAdminBooking,
   exportBookingsCSV,
 } from "@/lib/admin-bookings";
+import { extractErrorMessage } from "@/lib/error-utils";
 import type { Booking } from "@/types";
 
 const STATUS_OPTIONS = [
@@ -71,7 +72,7 @@ export default function AdminBookingsPage() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
         },
-        session.accessToken
+        session?.accessToken
       );
 
       setBookings(data.items);
@@ -79,7 +80,7 @@ export default function AdminBookingsPage() {
       setTotalPages(data.total_pages);
     } catch (err: any) {
       console.error("Error loading bookings:", err);
-      setError(err.response?.data?.detail || "Failed to load bookings");
+      setError(extractErrorMessage(err, "Failed to load bookings"));
     } finally {
       setLoading(false);
     }
@@ -95,11 +96,11 @@ export default function AdminBookingsPage() {
           depositPaid: !booking.depositPaid,
           adminNotes: `Deposit ${!booking.depositPaid ? "marked as paid" : "marked as unpaid"}`,
         },
-        session.accessToken
+        session?.accessToken
       );
       await loadBookings();
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to update deposit");
+      setError(extractErrorMessage(err, "Failed to update deposit"));
     }
   };
 
@@ -113,11 +114,11 @@ export default function AdminBookingsPage() {
           status: newStatus as any,
           adminNotes: `Status changed to ${newStatus}`,
         },
-        session.accessToken
+        session?.accessToken
       );
       await loadBookings();
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to update status");
+      setError(extractErrorMessage(err, "Failed to update status"));
     }
   };
 
@@ -126,10 +127,10 @@ export default function AdminBookingsPage() {
     if (!confirm(`Cancel booking ${booking.bookingNumber}?`)) return;
 
     try {
-      await cancelAdminBooking(booking.id, "Admin cancelled", session.accessToken);
+      await cancelAdminBooking(booking.id, "Admin cancelled", session?.accessToken);
       await loadBookings();
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to cancel booking");
+      setError(extractErrorMessage(err, "Failed to cancel booking"));
     }
   };
 
@@ -143,7 +144,7 @@ export default function AdminBookingsPage() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
         },
-        session.accessToken
+        session?.accessToken
       );
 
       const url = window.URL.createObjectURL(blob);
@@ -347,7 +348,7 @@ export default function AdminBookingsPage() {
                           </button>
                         </td>
                         <td className="px-4 py-3 font-medium">
-                          KES {booking.totalAmount.toLocaleString()}
+                          KES {(booking.totalAmount || 0).toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <button
@@ -487,15 +488,15 @@ export default function AdminBookingsPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>KES {selectedBooking.subtotal.toLocaleString()}</span>
+                        <span>KES {(selectedBooking.subtotal || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Transport:</span>
-                        <span>KES {selectedBooking.transportCost.toLocaleString()}</span>
+                        <span>KES {(selectedBooking.transportCost || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total:</span>
-                        <span>KES {selectedBooking.totalAmount.toLocaleString()}</span>
+                        <span>KES {(selectedBooking.totalAmount || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Deposit (50%):</span>

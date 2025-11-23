@@ -74,7 +74,7 @@ export default function AdminCalendarPage() {
         startDate,
         endDate,
         false,
-        session.accessToken
+        session?.accessToken
       );
       setBlockedSlots(data.items);
     } catch (err) {
@@ -148,7 +148,7 @@ export default function AdminCalendarPage() {
           timeSlot: selectedDateTime.timeSlot,
           reason: blockReason || undefined,
         },
-        session.accessToken
+        session?.accessToken
       );
       setShowBlockModal(false);
       setSelectedDateTime(null);
@@ -169,7 +169,7 @@ export default function AdminCalendarPage() {
     setError(null);
 
     try {
-      await unblockTimeSlot(slotId, session.accessToken);
+      await unblockTimeSlot(slotId, session?.accessToken);
       setSelectedSlot(null);
       await loadCalendarData();
     } catch (err) {

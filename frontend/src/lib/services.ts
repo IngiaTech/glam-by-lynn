@@ -50,7 +50,7 @@ export async function getServicePackageById(id: string): Promise<ServicePackage>
  */
 export function formatPrice(price?: number | string): string {
   if (!price) return "Contact for pricing";
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  const numPrice = typeof price === "string" ? parseFloat(price) : price;
   if (isNaN(numPrice)) return "Contact for pricing";
   return `KSh ${numPrice.toLocaleString()}`;
 }

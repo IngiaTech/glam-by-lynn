@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash2, Star, StarOff, CheckCircle, XCircle } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface Testimonial {
   id: string;
@@ -66,7 +67,7 @@ export default function TestimonialsPage() {
       setError("");
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -96,7 +97,7 @@ export default function TestimonialsPage() {
       setTotal(response.data.total);
     } catch (err: any) {
       console.error("Error fetching testimonials:", err);
-      setError(err.response?.data?.detail || "Failed to load testimonials");
+      setError(extractErrorMessage(err, "Failed to load testimonials"));
     } finally {
       setLoading(false);
     }
@@ -115,7 +116,7 @@ export default function TestimonialsPage() {
       setDeletingId(id);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -131,7 +132,7 @@ export default function TestimonialsPage() {
       await fetchTestimonials();
     } catch (err: any) {
       console.error("Error deleting testimonial:", err);
-      alert(err.response?.data?.detail || "Failed to delete testimonial");
+      alert(extractErrorMessage(err, "Failed to delete testimonial"));
     } finally {
       setDeletingId(null);
     }
@@ -142,7 +143,7 @@ export default function TestimonialsPage() {
       setTogglingId(testimonial.id);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -162,7 +163,7 @@ export default function TestimonialsPage() {
       await fetchTestimonials();
     } catch (err: any) {
       console.error("Error toggling featured status:", err);
-      alert(err.response?.data?.detail || "Failed to update testimonial");
+      alert(extractErrorMessage(err, "Failed to update testimonial"));
     } finally {
       setTogglingId(null);
     }
@@ -173,7 +174,7 @@ export default function TestimonialsPage() {
       setTogglingId(testimonial.id);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -193,7 +194,7 @@ export default function TestimonialsPage() {
       await fetchTestimonials();
     } catch (err: any) {
       console.error("Error toggling approval status:", err);
-      alert(err.response?.data?.detail || "Failed to update testimonial");
+      alert(extractErrorMessage(err, "Failed to update testimonial"));
     } finally {
       setTogglingId(null);
     }

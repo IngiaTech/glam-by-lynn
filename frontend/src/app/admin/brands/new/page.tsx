@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -55,7 +56,7 @@ export default function NewBrand() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -75,7 +76,7 @@ export default function NewBrand() {
       router.push("/admin/brands");
     } catch (err: any) {
       console.error("Error creating brand:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to create brand");
+      setSubmitError(extractErrorMessage(err, "Failed to create brand"));
     } finally {
       setSubmitting(false);
     }

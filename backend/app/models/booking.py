@@ -8,6 +8,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
@@ -41,12 +42,21 @@ class Booking(Base):
     )
     booking_date = Column(Date, nullable=False, index=True)
     booking_time = Column(Time, nullable=False)
+
+    # Location: Can use either predefined location OR custom location
     location_id = Column(
         UUID(as_uuid=True),
         ForeignKey("transport_locations.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,  # Made nullable to support custom locations
         index=True,
     )
+
+    # Custom location fields (for locations not in transport_locations table)
+    custom_location_address = Column(Text, nullable=True)  # Full address from Mapbox
+    custom_location_latitude = Column(Float, nullable=True)  # Latitude coordinate
+    custom_location_longitude = Column(Float, nullable=True)  # Longitude coordinate
+    custom_location_distance_km = Column(Float, nullable=True)  # Distance from Nairobi in km
+
     num_brides = Column(Integer, default=1)
     num_maids = Column(Integer, default=0)
     num_mothers = Column(Integer, default=0)
@@ -95,7 +105,18 @@ class Booking(Base):
             "deposit_amount IS NULL OR deposit_amount = ROUND(total_amount * 0.5, 2)",
             name="bookings_deposit_amount_check_50_percent",
         ),
+        CheckConstraint(
+            """
+            location_id IS NOT NULL OR
+            (custom_location_address IS NOT NULL AND
+             custom_location_latitude IS NOT NULL AND
+             custom_location_longitude IS NOT NULL AND
+             custom_location_distance_km IS NOT NULL)
+            """,
+            name="bookings_location_check",
+        ),
         Index("idx_bookings_date_time", "booking_date", "booking_time"),
+        Index("idx_bookings_custom_location", "custom_location_latitude", "custom_location_longitude"),
     )
 
     def __repr__(self) -> str:
