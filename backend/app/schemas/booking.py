@@ -35,7 +35,14 @@ class BookingCreate(BaseModel):
     package_id: UUID = Field(..., description="Service package ID")
     booking_date: date_type = Field(..., description="Booking date")
     booking_time: time_type = Field(..., description="Booking time")
-    location_id: UUID = Field(..., description="Transport location ID")
+
+    # Location: Either use predefined location OR custom location (both optional, but one must be provided)
+    location_id: Optional[UUID] = Field(None, description="Predefined transport location ID")
+    custom_location_address: Optional[str] = Field(None, description="Custom location address from Mapbox")
+    custom_location_latitude: Optional[float] = Field(None, description="Custom location latitude")
+    custom_location_longitude: Optional[float] = Field(None, description="Custom location longitude")
+    custom_location_distance_km: Optional[float] = Field(None, description="Distance from Nairobi in km")
+
     num_brides: int = Field(1, ge=0, description="Number of brides")
     num_maids: int = Field(0, ge=0, description="Number of maids/bridesmaids")
     num_mothers: int = Field(0, ge=0, description="Number of mothers")
@@ -58,7 +65,14 @@ class BookingResponse(BaseModel):
     package_id: UUID
     booking_date: date_type
     booking_time: time_type
-    location_id: UUID
+
+    # Location fields (can be either predefined or custom)
+    location_id: Optional[UUID]
+    custom_location_address: Optional[str]
+    custom_location_latitude: Optional[float]
+    custom_location_longitude: Optional[float]
+    custom_location_distance_km: Optional[float]
+
     num_brides: int
     num_maids: int
     num_mothers: int

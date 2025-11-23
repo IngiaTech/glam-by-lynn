@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sparkles } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 export default function NewPromoCodePage() {
   const { isAdmin, loading: authLoading } = useRequireAdmin();
@@ -55,7 +56,7 @@ export default function NewPromoCodePage() {
 
     try {
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -107,11 +108,7 @@ export default function NewPromoCodePage() {
       router.push("/admin/promo-codes");
     } catch (err: any) {
       console.error("Error creating promo code:", err);
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Failed to create promo code"
-      );
+      setError(extractErrorMessage(err, "Failed to create promo code"));
     } finally {
       setLoading(false);
     }

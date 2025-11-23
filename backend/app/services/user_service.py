@@ -163,6 +163,9 @@ def get_or_create_user_from_oauth(
         if image and user.profile_picture_url != image:
             user.profile_picture_url = image
         db.commit()
+
+        # Force fresh query to get latest admin status from database
+        db.expire(user)
         db.refresh(user)
         return user, created, link_stats
 
@@ -177,6 +180,9 @@ def get_or_create_user_from_oauth(
         if image:
             user.profile_picture_url = image
         db.commit()
+
+        # Force fresh query to get latest admin status from database
+        db.expire(user)
         db.refresh(user)
 
         # If this was a guest user, link their data

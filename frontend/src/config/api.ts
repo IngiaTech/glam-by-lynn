@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     GOOGLE_LOGIN: "/api/auth/google-login",
     LOGOUT: "/api/auth/logout",
     ME: "/api/auth/me",
+    REFRESH: "/api/auth/refresh",
   },
   // Products
   PRODUCTS: {
@@ -50,15 +51,15 @@ export const API_ENDPOINTS = {
   },
   // Cart
   CART: {
-    GET: "/cart",
-    ADD_ITEM: "/cart/items",
-    UPDATE_ITEM: (itemId: string) => `/cart/items/${itemId}`,
-    REMOVE_ITEM: (itemId: string) => `/cart/items/${itemId}`,
-    CLEAR: "/cart/clear",
+    GET: "/api/cart",
+    ADD_ITEM: "/api/cart/items",
+    UPDATE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
+    REMOVE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
+    CLEAR: "/api/cart/clear",
   },
   // Promo Codes
   PROMO_CODES: {
-    VALIDATE: "/promo-codes/validate",
+    VALIDATE: "/api/promo-codes/validate",
   },
   // Reviews
   REVIEWS: {

@@ -48,7 +48,7 @@ export default function BookingConfirmationPage() {
 
       try {
         setLoading(true);
-        const token = session?.user?.email ? "dummy-token" : undefined;
+        const token = session?.accessToken;
         const data = await getBookingById(bookingId, token);
         setBooking(data);
       } catch (err: any) {
@@ -153,15 +153,18 @@ export default function BookingConfirmationPage() {
                     {formatTime(booking.bookingTime)}
                   </p>
                 </div>
-                {booking.location && (
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Location</p>
-                    <p className="flex items-center gap-2 font-medium">
-                      <MapPin className="h-4 w-4" />
-                      {booking.location.locationName}
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Location</p>
+                  <p className="flex items-center gap-2 font-medium">
+                    <MapPin className="h-4 w-4" />
+                    {booking.customLocationAddress || booking.location?.location_name || "Location not specified"}
+                  </p>
+                  {booking.customLocationDistanceKm && (
+                    <p className="text-xs text-muted-foreground">
+                      {booking.customLocationDistanceKm.toFixed(1)} km from Nairobi
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <Badge variant={booking.status === "pending" ? "secondary" : "default"}>
@@ -360,9 +363,9 @@ export default function BookingConfirmationPage() {
                     1
                   </span>
                   <div>
-                    <p className="font-medium">Complete Your Deposit Payment</p>
+                    <p className="font-medium">Booking Confirmation</p>
                     <p className="text-sm text-muted-foreground">
-                      Pay the required deposit to secure your booking
+                      Review your booking details and deposit payment instructions above
                     </p>
                   </div>
                 </li>
@@ -371,9 +374,9 @@ export default function BookingConfirmationPage() {
                     2
                   </span>
                   <div>
-                    <p className="font-medium">We'll Confirm Your Booking</p>
+                    <p className="font-medium">Make Deposit Payment</p>
                     <p className="text-sm text-muted-foreground">
-                      You'll receive a confirmation email/SMS within 24 hours
+                      Pay the 50% deposit via M-Pesa or bank transfer to secure your booking
                     </p>
                   </div>
                 </li>
@@ -382,9 +385,9 @@ export default function BookingConfirmationPage() {
                     3
                   </span>
                   <div>
-                    <p className="font-medium">Prepare for Your Appointment</p>
+                    <p className="font-medium">Service Delivery</p>
                     <p className="text-sm text-muted-foreground">
-                      We'll send you preparation tips and reminders before your date
+                      On your appointment day, our team will arrive at your location ready to make you look stunning
                     </p>
                   </div>
                 </li>
@@ -393,9 +396,20 @@ export default function BookingConfirmationPage() {
                     4
                   </span>
                   <div>
-                    <p className="font-medium">Enjoy Your Service</p>
+                    <p className="font-medium">Complete Payment</p>
                     <p className="text-sm text-muted-foreground">
-                      Our team will arrive at your location ready to make you look stunning
+                      Pay the remaining 50% balance after service delivery
+                    </p>
+                  </div>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
+                    5
+                  </span>
+                  <div>
+                    <p className="font-medium">Share Your Experience</p>
+                    <p className="text-sm text-muted-foreground">
+                      Leave a review and help others discover our services
                     </p>
                   </div>
                 </li>

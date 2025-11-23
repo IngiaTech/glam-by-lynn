@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -47,7 +48,7 @@ export default function NewCategory() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) return;
 
@@ -90,7 +91,7 @@ export default function NewCategory() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -111,7 +112,7 @@ export default function NewCategory() {
       router.push("/admin/categories");
     } catch (err: any) {
       console.error("Error creating category:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to create category");
+      setSubmitError(extractErrorMessage(err, "Failed to create category"));
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -51,7 +52,7 @@ export default function EditCategory() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setLoadError("Authentication required");
@@ -82,7 +83,7 @@ export default function EditCategory() {
         setCategories(filteredCategories);
       } catch (err: any) {
         console.error("Error fetching data:", err);
-        setLoadError(err.response?.data?.detail || "Failed to load category");
+        setLoadError(extractErrorMessage(err, "Failed to load category"));
       } finally {
         setLoading(false);
       }
@@ -116,7 +117,7 @@ export default function EditCategory() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -137,7 +138,7 @@ export default function EditCategory() {
       router.push("/admin/categories");
     } catch (err: any) {
       console.error("Error updating category:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to update category");
+      setSubmitError(extractErrorMessage(err, "Failed to update category"));
     } finally {
       setSubmitting(false);
     }

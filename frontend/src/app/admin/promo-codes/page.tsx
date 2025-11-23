@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface PromoCode {
   id: string;
@@ -69,7 +70,7 @@ export default function PromoCodesPage() {
       setError("");
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -99,7 +100,7 @@ export default function PromoCodesPage() {
       setTotal(response.data.total);
     } catch (err: any) {
       console.error("Error fetching promo codes:", err);
-      setError(err.response?.data?.detail || "Failed to load promo codes");
+      setError(extractErrorMessage(err, "Failed to load promo codes"));
     } finally {
       setLoading(false);
     }
@@ -118,7 +119,7 @@ export default function PromoCodesPage() {
       setDeletingId(id);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -134,7 +135,7 @@ export default function PromoCodesPage() {
       await fetchPromoCodes();
     } catch (err: any) {
       console.error("Error deleting promo code:", err);
-      alert(err.response?.data?.detail || "Failed to delete promo code");
+      alert(extractErrorMessage(err, "Failed to delete promo code"));
     } finally {
       setDeletingId(null);
     }

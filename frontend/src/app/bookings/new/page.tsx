@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ServicePackage, TransportLocation } from "@/types";
 import { getActiveServicePackages } from "@/lib/services";
 import {
@@ -30,6 +31,8 @@ import {
   calculateBookingPrice,
   formatCurrency,
 } from "@/lib/bookings";
+import { calculateTransportCost } from "@/lib/transport-pricing";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Calendar, MapPin, Users, DollarSign } from "lucide-react";
 
@@ -47,7 +50,14 @@ function BookingFormContent() {
 
   // Form state
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
+  const [locationType, setLocationType] = useState<"predefined" | "custom">("predefined");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [customLocation, setCustomLocation] = useState<{
+    address: string;
+    latitude: number;
+    longitude: number;
+    distanceKm: number;
+  } | null>(null);
   const [bookingDate, setBookingDate] = useState<string>("");
   const [bookingTime, setBookingTime] = useState<string>("");
   const [numBrides, setNumBrides] = useState<number>(1);
@@ -95,24 +105,36 @@ function BookingFormContent() {
   }, [searchParams]);
 
   // Calculate price
-  const pricing = selectedPackage && selectedLocation
-    ? calculateBookingPrice(
-        parseFloat(selectedPackage.base_bride_price || "0"),
-        parseFloat(selectedPackage.base_maid_price || "0"),
-        parseFloat(selectedPackage.base_mother_price || "0"),
-        parseFloat(selectedPackage.base_other_price || "0"),
-        numBrides,
-        numMaids,
-        numMothers,
-        numOthers,
-        parseFloat(selectedLocation.transport_cost)
-      )
+  const pricing = selectedPackage && (selectedLocation || customLocation)
+    ? (() => {
+        const transportCost = locationType === "predefined" && selectedLocation
+          ? parseFloat(selectedLocation.transport_cost)
+          : customLocation
+          ? calculateTransportCost(customLocation.distanceKm).totalCost
+          : 0;
+
+        return calculateBookingPrice(
+          parseFloat(selectedPackage.base_bride_price || "0"),
+          parseFloat(selectedPackage.base_maid_price || "0"),
+          parseFloat(selectedPackage.base_mother_price || "0"),
+          parseFloat(selectedPackage.base_other_price || "0"),
+          numBrides,
+          numMaids,
+          numMothers,
+          numOthers,
+          transportCost
+        );
+      })()
     : null;
 
   // Validation
+  const hasValidLocation = locationType === "predefined"
+    ? !!selectedLocationId
+    : !!customLocation;
+
   const canSubmit =
     selectedPackageId &&
-    selectedLocationId &&
+    hasValidLocation &&
     bookingDate &&
     bookingTime &&
     (user || (guestName && guestEmail && guestPhone)) &&
@@ -147,7 +169,14 @@ function BookingFormContent() {
         package_id: selectedPackageId,
         booking_date: bookingDate,
         booking_time: bookingTime,
-        location_id: selectedLocationId,
+        ...(locationType === "predefined"
+          ? { location_id: selectedLocationId }
+          : {
+              custom_location_address: customLocation!.address,
+              custom_location_latitude: customLocation!.latitude,
+              custom_location_longitude: customLocation!.longitude,
+              custom_location_distance_km: customLocation!.distanceKm,
+            }),
         num_brides: numBrides,
         num_maids: numMaids,
         num_mothers: numMothers,
@@ -161,7 +190,7 @@ function BookingFormContent() {
         }),
       };
 
-      const token = session?.user?.accessToken; // Get real JWT token from session
+      const token = (session as any)?.accessToken; // Get real JWT token from session
       const booking = await createBooking(bookingData, token);
 
       // Redirect to confirmation page
@@ -286,21 +315,68 @@ function BookingFormContent() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
-                <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                  <SelectTrigger id="location">
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.location_name}
-                        {parseFloat(loc.transport_cost) > 0 && ` (+${formatCurrency(parseFloat(loc.transport_cost))})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Location Type *</Label>
+                  <RadioGroup value={locationType} onValueChange={(value) => setLocationType(value as "predefined" | "custom")}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="predefined" id="predefined" />
+                      <Label htmlFor="predefined" className="font-normal cursor-pointer">
+                        Choose from predefined locations (Nairobi/Kitui)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="custom" />
+                      <Label htmlFor="custom" className="font-normal cursor-pointer">
+                        Search for my location
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {locationType === "predefined" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Select Location *</Label>
+                    <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                      <SelectTrigger id="location">
+                        <SelectValue placeholder="Select location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations.map((loc) => (
+                          <SelectItem key={loc.id} value={loc.id}>
+                            {loc.location_name}
+                            {parseFloat(loc.transport_cost) > 0 && ` (+${formatCurrency(parseFloat(loc.transport_cost))})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="customLocation">Search Location *</Label>
+                    <LocationAutocomplete
+                      onLocationSelect={(location) => {
+                        setCustomLocation({
+                          address: location.address,
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                          distanceKm: location.distanceFromNairobi || 0,
+                        });
+                      }}
+                      placeholder="Search for your location in Kenya..."
+                    />
+                    {customLocation && (
+                      <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
+                        <p className="text-sm font-medium">{customLocation.address}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Distance from Nairobi: {customLocation.distanceKm.toFixed(1)} km
+                          {" • "}
+                          Transport cost: {formatCurrency(calculateTransportCost(customLocation.distanceKm).totalCost)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

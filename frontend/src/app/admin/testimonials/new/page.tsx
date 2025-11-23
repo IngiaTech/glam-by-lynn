@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface ServicePackage {
   id: string;
@@ -60,7 +61,7 @@ export default function NewTestimonialPage() {
   const fetchServicesAndProducts = async () => {
     try {
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -97,7 +98,7 @@ export default function NewTestimonialPage() {
 
     try {
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -143,11 +144,7 @@ export default function NewTestimonialPage() {
       router.push("/admin/testimonials");
     } catch (err: any) {
       console.error("Error creating testimonial:", err);
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Failed to create testimonial"
-      );
+      setError(extractErrorMessage(err, "Failed to create testimonial"));
     } finally {
       setLoading(false);
     }
@@ -305,11 +302,11 @@ export default function NewTestimonialPage() {
             <div>
               <Label htmlFor="relatedServiceId">Related Service</Label>
               <Select
-                value={formData.relatedServiceId}
+                value={formData.relatedServiceId || "none"}
                 onValueChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    relatedServiceId: value,
+                    relatedServiceId: value === "none" ? "" : value,
                   }))
                 }
               >
@@ -317,7 +314,7 @@ export default function NewTestimonialPage() {
                   <SelectValue placeholder="Select a service (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {services.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
                       {service.name}
@@ -330,11 +327,11 @@ export default function NewTestimonialPage() {
             <div>
               <Label htmlFor="relatedProductId">Related Product</Label>
               <Select
-                value={formData.relatedProductId}
+                value={formData.relatedProductId || "none"}
                 onValueChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    relatedProductId: value,
+                    relatedProductId: value === "none" ? "" : value,
                   }))
                 }
               >
@@ -342,7 +339,7 @@ export default function NewTestimonialPage() {
                   <SelectValue placeholder="Select a product (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {products.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
                       {product.name}

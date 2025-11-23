@@ -24,8 +24,13 @@ import {
 export function useAuth() {
   const { data: session, status } = useSession();
   const loading = status === "loading";
-  const authenticated = status === "authenticated";
-  const user = session?.user as NextAuthUser | undefined;
+
+  // Check if we have a valid session with an access token
+  // If session exists but no accessToken, consider it expired/invalid
+  const hasValidToken = session?.accessToken != null;
+  const authenticated = status === "authenticated" && hasValidToken;
+
+  const user = authenticated ? (session?.user as NextAuthUser | undefined) : undefined;
 
   return {
     user: user ?? null,

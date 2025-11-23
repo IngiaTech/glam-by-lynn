@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface Brand {
   id: string;
@@ -77,7 +78,7 @@ export default function ProductsManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) return;
 
@@ -111,7 +112,7 @@ export default function ProductsManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setError("Authentication required");
@@ -152,7 +153,7 @@ export default function ProductsManagement() {
         setTotalPages(response.data.total_pages);
       } catch (err: any) {
         console.error("Error fetching products:", err);
-        setError(err.response?.data?.detail || "Failed to load products");
+        setError(extractErrorMessage(err, "Failed to load products"));
       } finally {
         setLoadingProducts(false);
       }
@@ -165,7 +166,7 @@ export default function ProductsManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -193,7 +194,7 @@ export default function ProductsManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -207,7 +208,7 @@ export default function ProductsManagement() {
       setTotalProducts(totalProducts - 1);
     } catch (err: any) {
       console.error("Error deleting product:", err);
-      alert(err.response?.data?.detail || "Failed to delete product");
+      alert(extractErrorMessage(err, "Failed to delete product"));
     }
   };
 

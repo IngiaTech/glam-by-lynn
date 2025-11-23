@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface Category {
   id: string;
@@ -46,7 +47,7 @@ export default function CategoriesManagement() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setError("Authentication required");
@@ -73,7 +74,7 @@ export default function CategoriesManagement() {
         setTotalCategories(response.data.total);
       } catch (err: any) {
         console.error("Error fetching categories:", err);
-        setError(err.response?.data?.detail || "Failed to load categories");
+        setError(extractErrorMessage(err, "Failed to load categories"));
       } finally {
         setLoadingCategories(false);
       }
@@ -111,7 +112,7 @@ export default function CategoriesManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -137,7 +138,7 @@ export default function CategoriesManagement() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) return;
 
@@ -150,7 +151,7 @@ export default function CategoriesManagement() {
       window.location.reload();
     } catch (err: any) {
       console.error("Error deleting category:", err);
-      alert(err.response?.data?.detail || "Failed to delete category");
+      alert(extractErrorMessage(err, "Failed to delete category"));
     }
   };
 

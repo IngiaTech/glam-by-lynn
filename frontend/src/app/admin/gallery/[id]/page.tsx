@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -56,7 +57,7 @@ export default function EditGalleryPost() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const session = await fetch("/api/auth/session").then(res => res.json());
-        const token = session?.user?.accessToken;
+        const token = session?.accessToken;
 
         if (!token) {
           setLoadError("Authentication required");
@@ -81,7 +82,7 @@ export default function EditGalleryPost() {
         });
       } catch (err: any) {
         console.error("Error fetching post:", err);
-        setLoadError(err.response?.data?.detail || "Failed to load gallery post");
+        setLoadError(extractErrorMessage(err, "Failed to load gallery post"));
       } finally {
         setLoading(false);
       }
@@ -115,7 +116,7 @@ export default function EditGalleryPost() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setSubmitError("Authentication required");
@@ -137,7 +138,7 @@ export default function EditGalleryPost() {
       router.push("/admin/gallery");
     } catch (err: any) {
       console.error("Error updating gallery post:", err);
-      setSubmitError(err.response?.data?.detail || "Failed to update gallery post");
+      setSubmitError(extractErrorMessage(err, "Failed to update gallery post"));
     } finally {
       setSubmitting(false);
     }

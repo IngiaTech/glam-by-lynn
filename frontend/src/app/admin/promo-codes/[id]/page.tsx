@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 interface PromoCode {
   id: string;
@@ -72,7 +73,7 @@ export default function EditPromoCodePage() {
       setLoading(true);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -117,7 +118,7 @@ export default function EditPromoCodePage() {
       });
     } catch (err: any) {
       console.error("Error fetching promo code:", err);
-      setError(err.response?.data?.detail || "Failed to load promo code");
+      setError(extractErrorMessage(err, "Failed to load promo code"));
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,7 @@ export default function EditPromoCodePage() {
 
     try {
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -182,11 +183,7 @@ export default function EditPromoCodePage() {
       router.push("/admin/promo-codes");
     } catch (err: any) {
       console.error("Error updating promo code:", err);
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Failed to update promo code"
-      );
+      setError(extractErrorMessage(err, "Failed to update promo code"));
     } finally {
       setSaving(false);
     }

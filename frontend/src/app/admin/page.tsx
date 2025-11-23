@@ -18,6 +18,7 @@ import {
   ArrowRight,
   DollarSign,
 } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 import Link from "next/link";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import axios from "axios";
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
       setLoading(true);
 
       const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.user?.accessToken;
+      const token = session?.accessToken;
 
       if (!token) {
         setError("Authentication required");
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
       setStats(response.data);
     } catch (err: any) {
       console.error("Error fetching analytics:", err);
-      setError(err.response?.data?.detail || "Failed to load analytics");
+      setError(extractErrorMessage(err, "Failed to load analytics"));
     } finally {
       setLoading(false);
     }
