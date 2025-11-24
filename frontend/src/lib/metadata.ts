@@ -1,10 +1,16 @@
 import { Metadata } from 'next'
 
+/**
+ * Site Configuration
+ *
+ * Note: OpenGraph images are dynamically generated using @vercel/og
+ * See opengraph-image.tsx and twitter-image.tsx files in each route
+ */
 export const siteConfig = {
   name: 'Glam by Lynn',
   description: 'Premier makeup artistry and beauty services in Nairobi and Kitui, Kenya. Professional makeup, beauty products, and 2026 vision for comprehensive salon, spa, and barbershop services.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://glambylynn.com',
-  ogImage: '/og-image.jpg',
+  url: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://glambylynn.com',
+  ogImage: '/og-image.jpg', // Fallback static image
   links: {
     facebook: 'https://facebook.com/glambylynn',
     instagram: 'https://instagram.com/glambylynn',
