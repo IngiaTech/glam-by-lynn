@@ -48,7 +48,31 @@ export default function BookingConfirmationPage() {
 
       try {
         setLoading(true);
+
+        // First, try to get booking data from sessionStorage (passed from creation page)
+        // This allows guest users to see confirmation without needing authentication
+        const cachedBooking = sessionStorage.getItem(`booking_${bookingId}`);
+
+        if (cachedBooking) {
+          // Use cached booking data and clear it from storage
+          const bookingData = JSON.parse(cachedBooking);
+          setBooking(bookingData);
+          sessionStorage.removeItem(`booking_${bookingId}`);
+          setLoading(false);
+          return;
+        }
+
+        // If no cached data, try to fetch from API (requires authentication)
+        // This handles cases where authenticated users refresh or bookmark the page
         const token = session?.accessToken;
+
+        if (!token) {
+          // Guest user without cached data - can't fetch from API
+          setError("Booking confirmation not found. Please check your email for booking details.");
+          setLoading(false);
+          return;
+        }
+
         const data = await getBookingById(bookingId, token);
         setBooking(data);
       } catch (err: any) {

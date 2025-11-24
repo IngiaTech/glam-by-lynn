@@ -193,6 +193,10 @@ function BookingFormContent() {
       const token = (session as any)?.accessToken; // Get real JWT token from session
       const booking = await createBooking(bookingData, token);
 
+      // Store booking data in sessionStorage for confirmation page
+      // This eliminates the need for an unauthenticated booking fetch API
+      sessionStorage.setItem(`booking_${booking.id}`, JSON.stringify(booking));
+
       // Redirect to confirmation page
       router.push(`/bookings/${booking.id}/confirmation`);
     } catch (err: any) {
