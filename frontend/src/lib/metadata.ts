@@ -61,10 +61,12 @@ export function constructMetadata({
       siteName: siteConfig.name,
       images: [
         {
-          url: image,
+          url: image.startsWith('http') ? image : `${siteConfig.url}${image}`,
+          secureUrl: image.startsWith('http') ? image : `${siteConfig.url}${image}`,
           width: 1200,
           height: 630,
           alt: typeof title === 'string' ? title : title.default,
+          type: 'image/png',
         },
       ],
     },
