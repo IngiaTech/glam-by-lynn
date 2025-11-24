@@ -4,6 +4,7 @@
 import axios from "axios";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import type { Booking, PaginatedResponse } from "@/types";
+import { transformKeysToCamelCase } from "@/lib/utils";
 
 interface BookingListParams {
   page?: number;
@@ -53,7 +54,7 @@ export async function fetchAdminBookings(
   if (params.endDate) queryParams.endDate = params.endDate;
   if (params.locationId) queryParams.locationId = params.locationId;
 
-  const response = await axios.get<PaginatedResponse<Booking>>(
+  const response = await axios.get(
     `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BOOKINGS.LIST}`,
     {
       params: queryParams,
@@ -63,7 +64,8 @@ export async function fetchAdminBookings(
     }
   );
 
-  return response.data;
+  // Transform snake_case keys to camelCase
+  return transformKeysToCamelCase<PaginatedResponse<Booking>>(response.data);
 }
 
 /**
@@ -73,7 +75,7 @@ export async function fetchAdminBooking(
   bookingId: string,
   token: string
 ): Promise<Booking> {
-  const response = await axios.get<Booking>(
+  const response = await axios.get(
     `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BOOKINGS.DETAIL(bookingId)}`,
     {
       headers: {
@@ -82,7 +84,8 @@ export async function fetchAdminBooking(
     }
   );
 
-  return response.data;
+  // Transform snake_case keys to camelCase
+  return transformKeysToCamelCase<Booking>(response.data);
 }
 
 /**
@@ -93,7 +96,7 @@ export async function updateAdminBooking(
   data: BookingUpdateData,
   token: string
 ): Promise<Booking> {
-  const response = await axios.put<Booking>(
+  const response = await axios.put(
     `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BOOKINGS.UPDATE(bookingId)}`,
     data,
     {
@@ -103,7 +106,8 @@ export async function updateAdminBooking(
     }
   );
 
-  return response.data;
+  // Transform snake_case keys to camelCase
+  return transformKeysToCamelCase<Booking>(response.data);
 }
 
 /**
@@ -114,7 +118,7 @@ export async function updateBookingDeposit(
   data: DepositUpdateData,
   token: string
 ): Promise<Booking> {
-  const response = await axios.put<Booking>(
+  const response = await axios.put(
     `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BOOKINGS.DEPOSIT(bookingId)}`,
     data,
     {
@@ -124,7 +128,8 @@ export async function updateBookingDeposit(
     }
   );
 
-  return response.data;
+  // Transform snake_case keys to camelCase
+  return transformKeysToCamelCase<Booking>(response.data);
 }
 
 /**
@@ -135,7 +140,7 @@ export async function updateBookingStatus(
   data: StatusUpdateData,
   token: string
 ): Promise<Booking> {
-  const response = await axios.put<Booking>(
+  const response = await axios.put(
     `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BOOKINGS.STATUS(bookingId)}`,
     data,
     {
@@ -145,7 +150,8 @@ export async function updateBookingStatus(
     }
   );
 
-  return response.data;
+  // Transform snake_case keys to camelCase
+  return transformKeysToCamelCase<Booking>(response.data);
 }
 
 /**
