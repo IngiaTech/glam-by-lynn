@@ -6,6 +6,7 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
+import { ProductImageUpload, ProductImage } from "@/components/admin/ProductImageUpload";
 
 const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(500, "Title too long"),
@@ -81,6 +82,11 @@ export default function EditProduct() {
   const [submitError, setSubmitError] = useState("");
   const [loadError, setLoadError] = useState("");
 
+  // Product images state
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!isAdmin || !productId) return;
@@ -97,10 +103,11 @@ export default function EditProduct() {
 
         const headers = { Authorization: `Bearer ${token}` };
 
-        const [productRes, brandsRes, categoriesRes] = await Promise.all([
+        const [productRes, brandsRes, categoriesRes, imagesRes] = await Promise.all([
           axios.get(`${apiUrl}/api/admin/products/${productId}`, { headers }),
           axios.get(`${apiUrl}/api/admin/brands?page_size=100`, { headers }),
           axios.get(`${apiUrl}/api/admin/categories?page_size=100`, { headers }),
+          axios.get(`${apiUrl}/api/admin/products/${productId}/images`, { headers }),
         ]);
 
         const product = productRes.data;
@@ -125,6 +132,16 @@ export default function EditProduct() {
 
         setBrands(brandsRes.data.items || []);
         setCategories(categoriesRes.data.items || []);
+
+        // Transform backend images to ProductImage format
+        const existingImages: ProductImage[] = (imagesRes.data || []).map((img: any, index: number) => ({
+          id: img.id,
+          imageUrl: img.image_url,
+          altText: img.alt_text || "",
+          isPrimary: img.is_primary,
+          displayOrder: img.display_order ?? index,
+        }));
+        setProductImages(existingImages);
       } catch (err: any) {
         console.error("Error fetching data:", err);
         setLoadError(extractErrorMessage(err, "Failed to load product"));
@@ -212,6 +229,113 @@ export default function EditProduct() {
       ...formData,
       tags: formData.tags?.filter(t => t !== tag) || [],
     });
+  };
+
+  const handleImagesChange = async (newImages: ProductImage[]) => {
+    // Find newly added images (those with file property but no id)
+    const imagesToUpload = newImages.filter(img => img.file && !img.id);
+
+    if (imagesToUpload.length > 0) {
+      setUploadingMedia(true);
+      setSubmitError("");
+
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const session = await fetch("/api/auth/session").then(res => res.json());
+        const token = session?.accessToken;
+
+        if (!token) {
+          setSubmitError("Authentication required");
+          return;
+        }
+
+        // Upload each new image
+        for (const image of imagesToUpload) {
+          if (image.file) {
+            const formData = new FormData();
+            formData.append("file", image.file);
+            formData.append("alt_text", image.altText || "");
+            formData.append("is_primary", image.isPrimary.toString());
+            formData.append("display_order", image.displayOrder.toString());
+
+            const response = await axios.post(
+              `${apiUrl}/api/admin/products/${productId}/images`,
+              formData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "multipart/form-data",
+                },
+              }
+            );
+
+            // Replace the temporary image with the uploaded one
+            const uploadedImage = response.data.image;
+            const index = newImages.findIndex(img => img.file === image.file);
+            if (index !== -1) {
+              newImages[index] = {
+                id: uploadedImage.id,
+                imageUrl: uploadedImage.image_url,
+                altText: uploadedImage.alt_text || "",
+                isPrimary: uploadedImage.is_primary,
+                displayOrder: uploadedImage.display_order,
+              };
+            }
+          }
+        }
+
+        setProductImages(newImages);
+      } catch (err: any) {
+        console.error("Error uploading images:", err);
+        setSubmitError(extractErrorMessage(err, "Failed to upload images"));
+      } finally {
+        setUploadingMedia(false);
+      }
+    } else {
+      setProductImages(newImages);
+    }
+
+    // Check if any images were removed
+    const removedImages = productImages.filter(
+      oldImg => oldImg.id && !newImages.find(newImg => newImg.id === oldImg.id)
+    );
+
+    if (removedImages.length > 0) {
+      await handleDeleteImages(removedImages);
+    }
+  };
+
+  const handleDeleteImages = async (imagesToDelete: ProductImage[]) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const session = await fetch("/api/auth/session").then(res => res.json());
+      const token = session?.accessToken;
+
+      if (!token) {
+        setSubmitError("Authentication required");
+        return;
+      }
+
+      // Delete each image
+      for (const image of imagesToDelete) {
+        if (image.id) {
+          setDeletingImageId(image.id);
+          await axios.delete(
+            `${apiUrl}/api/admin/images/${image.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("Error deleting images:", err);
+      setSubmitError(extractErrorMessage(err, "Failed to delete images"));
+    } finally {
+      setDeletingImageId(null);
+    }
   };
 
   if (authLoading || loading) {
@@ -542,6 +666,27 @@ export default function EditProduct() {
               </label>
             </div>
           </div>
+        </div>
+
+        {/* Product Images */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Product Images</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Upload product images (up to 10). Images are uploaded immediately.
+          </p>
+          <ProductImageUpload
+            productId={productId}
+            images={productImages}
+            onImagesChange={handleImagesChange}
+            maxImages={10}
+            disabled={submitting || uploadingMedia}
+          />
+          {uploadingMedia && (
+            <div className="mt-4 text-sm text-muted-foreground flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-secondary"></div>
+              Uploading images...
+            </div>
+          )}
         </div>
 
         {/* Actions */}
