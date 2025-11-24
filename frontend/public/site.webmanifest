@@ -1,7 +1,7 @@
 {
   "name": "Glam by Lynn",
   "short_name": "Glam by Lynn",
-  "description": "Professional makeup services and beauty products in Kenya",
+  "description": "Premier makeup artistry and beauty services in Nairobi and Kitui, Kenya",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -15,8 +15,8 @@
     }
   ],
   "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
   "display": "standalone",
   "start_url": "/",
-  "scope": "/"
+  "orientation": "portrait"
 }

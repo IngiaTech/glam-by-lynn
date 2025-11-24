@@ -6,6 +6,8 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
+import { ProductImageUpload, ProductImage } from "@/components/admin/ProductImageUpload";
+import { ProductVideoInput, ProductVideo } from "@/components/admin/ProductVideoInput";
 
 const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(500, "Title too long"),
@@ -76,6 +78,12 @@ export default function NewProduct() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  // Image and video state
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [productVideos, setProductVideos] = useState<ProductVideo[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -151,11 +159,53 @@ export default function NewProduct() {
       if (!submitData.meta_description) delete submitData.meta_description;
       if (!submitData.description) delete submitData.description;
 
-      await axios.post(
+      // Step 1: Create the product
+      const createResponse = await axios.post(
         `${apiUrl}/api/admin/products`,
         submitData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const productId = createResponse.data.id;
+      setCreatedProductId(productId);
+
+      // Step 2: Upload images if any
+      if (productImages.length > 0) {
+        setUploadingMedia(true);
+
+        for (const image of productImages) {
+          if (image.file) {
+            const formData = new FormData();
+            formData.append("file", image.file);
+            formData.append("alt_text", image.altText || "");
+            formData.append("is_primary", image.isPrimary.toString());
+            formData.append("display_order", image.displayOrder.toString());
+
+            await axios.post(
+              `${apiUrl}/api/admin/products/${productId}/images`,
+              formData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "multipart/form-data",
+                },
+              }
+            );
+          }
+        }
+      }
+
+      // Step 3: Add video URLs if any (API endpoint to be implemented)
+      // For now, we'll skip this until backend supports video URL endpoints
+      // if (productVideos.length > 0) {
+      //   for (const video of productVideos) {
+      //     await axios.post(
+      //       `${apiUrl}/api/admin/products/${productId}/videos`,
+      //       video,
+      //       { headers: { Authorization: `Bearer ${token}` } }
+      //     );
+      //   }
+      // }
 
       router.push("/admin/products");
     } catch (err: any) {
@@ -163,6 +213,7 @@ export default function NewProduct() {
       setSubmitError(extractErrorMessage(err, "Failed to create product"));
     } finally {
       setSubmitting(false);
+      setUploadingMedia(false);
     }
   };
 
@@ -436,6 +487,26 @@ export default function NewProduct() {
           </div>
         </div>
 
+        {/* Product Images */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <ProductImageUpload
+            images={productImages}
+            onImagesChange={setProductImages}
+            maxImages={10}
+            disabled={submitting || uploadingMedia}
+          />
+        </div>
+
+        {/* Product Videos */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <ProductVideoInput
+            videos={productVideos}
+            onVideosChange={setProductVideos}
+            maxVideos={3}
+            disabled={submitting || uploadingMedia}
+          />
+        </div>
+
         {/* SEO */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">SEO Metadata</h2>
@@ -514,10 +585,14 @@ export default function NewProduct() {
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || uploadingMedia}
             className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
           >
-            {submitting ? "Creating..." : "Create Product"}
+            {uploadingMedia
+              ? "Uploading images..."
+              : submitting
+              ? "Creating product..."
+              : "Create Product"}
           </button>
         </div>
       </form>
