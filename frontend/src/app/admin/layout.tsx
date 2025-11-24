@@ -51,16 +51,6 @@ const navigationItems: NavItem[] = [
     icon: <Package className="h-5 w-5" />,
   },
   {
-    label: "Categories",
-    href: "/admin/categories",
-    icon: <Layers className="h-5 w-5" />,
-  },
-  {
-    label: "Brands",
-    href: "/admin/brands",
-    icon: <Bookmark className="h-5 w-5" />,
-  },
-  {
     label: "Services",
     href: "/admin/services",
     icon: <Scissors className="h-5 w-5" />,
