@@ -115,14 +115,17 @@ export default function GalleryPage() {
       <Header />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-b from-secondary/10 to-background py-12">
-          <div className="container mx-auto px-4">
+        {/* Hero Section - Dark gradient matching brand */}
+        <section className="relative overflow-hidden bg-hero-gradient text-white py-12 md:py-16">
+          {/* Animated pink glow effect */}
+          <div className="absolute -right-1/2 -top-1/2 h-[200%] w-[200%] bg-pink-subtle animate-hero-pulse" />
+          <div className="container relative mx-auto px-4">
             <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold md:text-5xl">
-                Our <span className="text-secondary">Gallery</span>
+              <h1 className="text-4xl font-bold md:text-5xl drop-shadow-lg">
+                <span className="text-white">Our</span>{" "}
+                <span className="text-[#FFB6C1]">Gallery</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-white/80 max-w-2xl mx-auto">
                 Explore our portfolio of stunning makeup transformations, bridal looks, and beauty moments
               </p>
             </div>

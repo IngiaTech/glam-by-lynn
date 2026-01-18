@@ -32,11 +32,11 @@ export default function AdminSettingsPage() {
   // Business Info
   const [businessInfo, setBusinessInfo] = useState({
     businessName: "Glam by Lynn",
-    description: "Premier makeup artistry and beauty services in Nairobi and Kitui, Kenya",
+    description: "Premier makeup artistry and beauty services in Kitui and Nairobi, Kenya",
     email: "contact@glambylynn.com",
     phone: "+254 XXX XXX XXX",
     whatsapp: "+254 XXX XXX XXX",
-    address: "Nairobi & Kitui, Kenya",
+    address: "Kitui & Nairobi, Kenya",
   });
 
   // Social Media

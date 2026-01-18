@@ -20,7 +20,7 @@ export const metadata: Metadata = constructMetadata({
     default: "Glam by Lynn - Premier Beauty & Makeup Services in Kenya",
     template: "%s | Glam by Lynn",
   },
-  description: "Premier makeup artistry and beauty services in Nairobi and Kitui, Kenya. Professional makeup, beauty products, and comprehensive salon services. Book your transformation today.",
+  description: "Premier makeup artistry and beauty services in Kitui and Nairobi, Kenya. Professional makeup, beauty products, and comprehensive salon services. Book your transformation today.",
 });
 
 export default function RootLayout({

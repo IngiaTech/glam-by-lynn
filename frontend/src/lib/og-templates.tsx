@@ -126,7 +126,7 @@ export function BaseOGTemplate({
       {/* Footer */}
       <div style={baseStyles.footer}>
         {showLocation && (
-          <div style={baseStyles.location}>📍 Nairobi & Kitui, Kenya</div>
+          <div style={baseStyles.location}>📍 Kitui & Nairobi, Kenya</div>
         )}
       </div>
     </div>
@@ -190,7 +190,7 @@ export function HomepageOGTemplate() {
   return (
     <BaseOGTemplate
       title="Premier Makeup Artistry & Beauty Services"
-      description="Professional makeup, beauty products, and comprehensive salon services in Nairobi and Kitui, Kenya"
+      description="Professional makeup, beauty products, and comprehensive salon services in Kitui and Nairobi, Kenya"
       badge="✨ Glam by Lynn"
     />
   );

@@ -139,3 +139,57 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Glam by Lynn Brand Gradients - matching glam-by-lynn-platform.html */
+/* Hero gradient: black -> dark gray -> hot pink */
+.bg-hero-gradient {
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #FF69B4 100%);
+}
+
+/* Dark section gradient: black -> dark gray */
+.bg-dark-gradient {
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+}
+
+/* CTA gradient: black -> dark gray */
+.bg-cta-gradient {
+  background: linear-gradient(135deg, #000000, #1a1a1a);
+}
+
+/* Pink button gradient: hot pink -> deep pink */
+.bg-pink-gradient {
+  background: linear-gradient(135deg, #FF69B4, #FF1493);
+}
+
+/* Light section gradient: light gray -> white */
+.bg-light-gradient {
+  background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
+}
+
+/* Vision badge gradient: deep pink -> hot pink */
+.bg-vision-gradient {
+  background: linear-gradient(135deg, #FF1493, #FF69B4);
+}
+
+/* Subtle pink gradient for sections */
+.bg-pink-subtle {
+  background: linear-gradient(135deg, rgba(255, 182, 193, 0.1) 0%, transparent 70%);
+}
+
+/* Animated pulse effect for hero backgrounds */
+@keyframes hero-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 0.5; }
+}
+
+.animate-hero-pulse {
+  animation: hero-pulse 8s ease-in-out infinite;
+}
+
+/* Grid pattern overlay */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 182, 193, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}

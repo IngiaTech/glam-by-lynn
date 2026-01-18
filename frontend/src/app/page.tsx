@@ -130,34 +130,34 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-background via-muted/30 to-secondary/10">
+      {/* Hero Section - Dark gradient matching glam-by-lynn-platform.html */}
+      <section className="relative overflow-hidden bg-hero-gradient text-white">
+        {/* Animated pink glow background effect */}
+        <div className="absolute -right-1/2 -top-1/2 h-[200%] w-[200%] bg-pink-subtle animate-hero-pulse" />
         {/* Parallax Background with Makeup Products */}
         <HeroParallaxBackground />
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container relative mx-auto px-4 py-20 md:py-32">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge variant="secondary" className="mb-6 px-4 py-2">
+            <Badge className="mb-6 px-4 py-2 bg-vision-gradient text-white border-0 shadow-lg shadow-pink-500/30">
               <Sparkles className="mr-2 h-4 w-4 inline" />
               Premium Beauty Services & Products
             </Badge>
-            <h1 className="mb-6 text-5xl font-bold tracking-tight md:text-7xl">
-              <span className="text-foreground">Glam by</span>{" "}
-              <span className="text-secondary">Lynn</span>
+            <h1 className="mb-6 text-5xl font-bold tracking-tight md:text-7xl drop-shadow-lg">
+              <span className="text-white">Glam by</span>{" "}
+              <span className="text-[#FFB6C1]">Lynn</span>
             </h1>
-            <p className="mb-8 text-lg text-muted-foreground md:text-xl lg:text-2xl">
-              Professional makeup artistry and curated beauty products
-              <br className="hidden md:block" />
-              for your most special moments
+            <p className="mb-8 text-lg text-white/80 md:text-xl lg:text-2xl">
+              Makeup artistry at its best
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
-              <Button asChild size="lg" className="group">
+              <Button asChild size="lg" className="group bg-pink-gradient hover:opacity-90 text-white border-0 shadow-lg shadow-pink-500/30">
                 <Link href="/services">
                   Book a Service
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="group">
+              <Button asChild variant="outline" size="lg" className="group border-[#FFB6C1] text-white hover:bg-[#FFB6C1]/20 hover:text-white">
                 <Link href="/products">
                   <ShoppingBag className="mr-2 h-4 w-4" />
                   Shop Products
@@ -166,18 +166,18 @@ export default function Home() {
             </div>
 
             {/* Trust Indicators */}
-            <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm text-white/70">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-secondary" />
+                <CheckCircle className="h-4 w-4 text-[#FFB6C1]" />
                 <span>Professional Certified</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-secondary" />
+                <CheckCircle className="h-4 w-4 text-[#FFB6C1]" />
                 <span>Premium Products</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-secondary" />
-                <span>Based in Nairobi & Kitui</span>
+                <CheckCircle className="h-4 w-4 text-[#FFB6C1]" />
+                <span>Based in Kitui & Nairobi</span>
               </div>
             </div>
           </div>

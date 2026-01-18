@@ -18,7 +18,7 @@ export default async function Image() {
   return new ImageResponse(
     <GenericPageOGTemplate
       title="About Glam by Lynn"
-      description="Your trusted beauty partner in Nairobi and Kitui, Kenya"
+      description="Your trusted beauty partner in Kitui and Nairobi, Kenya"
     />,
     { ...size }
   );

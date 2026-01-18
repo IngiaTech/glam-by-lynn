@@ -116,7 +116,7 @@ export default function Vision2026Page() {
         "Mobile hair styling",
         "Event and wedding services",
         "Corporate wellness programs",
-        "Serving Nairobi and Kitui regions",
+        "Serving Kitui and Nairobi regions",
       ],
       image: "/placeholder-van.jpg",
     },
@@ -141,7 +141,7 @@ export default function Vision2026Page() {
     {
       icon: MapPin,
       title: "Multiple Locations",
-      description: "Conveniently located in Nairobi and Kitui, with mobile services",
+      description: "Conveniently located in Kitui and Nairobi, with mobile services",
     },
     {
       icon: Users,
@@ -159,30 +159,32 @@ export default function Vision2026Page() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-background via-secondary/5 to-background py-20 md:py-32">
-        <div className="container mx-auto px-4">
+      {/* Hero Section - Dark gradient matching brand */}
+      <section className="relative overflow-hidden bg-hero-gradient text-white py-20 md:py-32">
+        {/* Animated pink glow effect */}
+        <div className="absolute -right-1/2 -top-1/2 h-[200%] w-[200%] bg-pink-subtle animate-hero-pulse" />
+        <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge className="mb-6 text-base" variant="secondary">
+            <Badge className="mb-6 text-base bg-vision-gradient text-white border-0 shadow-lg shadow-pink-500/30">
               Coming 2026
             </Badge>
-            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
-              Our <span className="text-secondary">Vision</span> for Tomorrow
+            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl drop-shadow-lg">
+              Our <span className="text-[#FFB6C1]">Vision</span> for Tomorrow
             </h1>
-            <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+            <p className="mb-8 text-lg text-white/80 md:text-xl">
               Building on our foundation of excellence in makeup artistry and beauty products,
               we're expanding to offer a complete beauty and wellness destination. From premium salon
               services to rejuvenating spa treatments, we're bringing world-class experiences to
-              Nairobi and Kitui.
+              Kitui and Nairobi.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild>
+              <Button size="lg" asChild className="bg-pink-gradient hover:opacity-90 text-white border-0 shadow-lg shadow-pink-500/30">
                 <a href="#interest-form">
                   Register Your Interest
                   <Sparkles className="ml-2 h-5 w-5" />
                 </a>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" asChild className="border-[#FFB6C1] text-white hover:bg-[#FFB6C1]/20 hover:text-white">
                 <a href="#services">Explore Services</a>
               </Button>
             </div>
@@ -190,8 +192,8 @@ export default function Vision2026Page() {
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute -left-4 top-1/4 h-72 w-72 rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute -right-4 bottom-1/4 h-96 w-96 rounded-full bg-secondary/10 blur-3xl" />
+        <div className="absolute -left-4 top-1/4 h-72 w-72 rounded-full bg-[#FFB6C1]/10 blur-3xl" />
+        <div className="absolute -right-4 bottom-1/4 h-96 w-96 rounded-full bg-[#FF69B4]/10 blur-3xl" />
       </section>
 
       {/* Vision Statement */}

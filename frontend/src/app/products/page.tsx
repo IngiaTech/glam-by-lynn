@@ -206,17 +206,20 @@ export default function ProductsPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="border-b border-border bg-gradient-to-b from-background to-muted/20 px-4 py-16 md:py-20">
-        <div className="container mx-auto">
+      {/* Hero Section - Dark gradient matching brand */}
+      <section className="relative overflow-hidden bg-hero-gradient text-white px-4 py-16 md:py-20">
+        {/* Animated pink glow effect */}
+        <div className="absolute -right-1/2 -top-1/2 h-[200%] w-[200%] bg-pink-subtle animate-hero-pulse" />
+        <div className="container relative mx-auto">
           <div className="mx-auto max-w-3xl text-center">
-            <Badge variant="secondary" className="mb-4">
+            <Badge className="mb-4 bg-vision-gradient text-white border-0 shadow-lg shadow-pink-500/30">
               Premium Beauty Products
             </Badge>
-            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
-              Shop Products
+            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl drop-shadow-lg">
+              <span className="text-white">Shop</span>{" "}
+              <span className="text-[#FFB6C1]">Products</span>
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-white/80">
               Professional-grade makeup, skincare, and beauty tools
             </p>
           </div>

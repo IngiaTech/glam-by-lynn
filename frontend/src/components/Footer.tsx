@@ -27,29 +27,29 @@ export function Footer() {
   };
 
   return (
-    <footer className="border-t border-border bg-muted/50">
+    <footer className="bg-black text-white">
       <div className="container mx-auto px-4 py-12">
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand & Newsletter */}
           <div className="space-y-4 md:col-span-1">
             <h3 className="text-lg font-bold">
-              <span className="text-foreground">Glam by </span>
-              <span className="text-secondary">Lynn</span>
+              <span className="text-white">Glam by </span>
+              <span className="text-[#FFB6C1]">Lynn</span>
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/70">
               Professional makeup services and premium beauty products for every occasion.
             </p>
 
             {/* Newsletter Signup */}
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Subscribe to our newsletter</h4>
+              <h4 className="text-sm font-semibold text-[#FFB6C1]">Subscribe to our newsletter</h4>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
                 <Input
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   disabled={subscribeStatus === "loading"}
                   required
                 />
@@ -57,28 +57,28 @@ export function Footer() {
                   type="submit"
                   size="icon"
                   disabled={subscribeStatus === "loading"}
-                  className="shrink-0"
+                  className="shrink-0 bg-pink-gradient hover:opacity-90 text-white border-0"
                 >
                   <Mail className="h-4 w-4" />
                 </Button>
               </form>
               {subscribeStatus === "success" && (
-                <p className="text-xs text-secondary">Successfully subscribed!</p>
+                <p className="text-xs text-[#FFB6C1]">Successfully subscribed!</p>
               )}
               {subscribeStatus === "error" && (
-                <p className="text-xs text-destructive">Failed to subscribe. Please try again.</p>
+                <p className="text-xs text-red-400">Failed to subscribe. Please try again.</p>
               )}
             </div>
 
             {/* Social Media Links */}
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Follow Us</h4>
+              <h4 className="text-sm font-semibold text-[#FFB6C1]">Follow Us</h4>
               <div className="flex gap-3">
                 <Link
                   href="https://facebook.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-secondary transition-colors"
+                  className="text-white/70 hover:text-[#FFB6C1] transition-colors"
                   aria-label="Facebook"
                 >
                   <Facebook className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function Footer() {
                   href="https://instagram.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-secondary transition-colors"
+                  className="text-white/70 hover:text-[#FFB6C1] transition-colors"
                   aria-label="Instagram"
                 >
                   <Instagram className="h-5 w-5" />
@@ -96,7 +96,7 @@ export function Footer() {
                   href="https://twitter.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-secondary transition-colors"
+                  className="text-white/70 hover:text-[#FFB6C1] transition-colors"
                   aria-label="Twitter"
                 >
                   <Twitter className="h-5 w-5" />
@@ -105,7 +105,7 @@ export function Footer() {
                   href="https://youtube.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-secondary transition-colors"
+                  className="text-white/70 hover:text-[#FFB6C1] transition-colors"
                   aria-label="YouTube"
                 >
                   <Youtube className="h-5 w-5" />
@@ -116,25 +116,25 @@ export function Footer() {
 
           {/* Services */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Services</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="text-sm font-semibold text-[#FFB6C1]">Services</h4>
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <Link href="/services#bridal" className="hover:text-foreground">
+                <Link href="/services#bridal" className="hover:text-[#FFB6C1] transition-colors">
                   Bridal Makeup
                 </Link>
               </li>
               <li>
-                <Link href="/services#events" className="hover:text-foreground">
+                <Link href="/services#events" className="hover:text-[#FFB6C1] transition-colors">
                   Special Events
                 </Link>
               </li>
               <li>
-                <Link href="/services#classes" className="hover:text-foreground">
+                <Link href="/services#classes" className="hover:text-[#FFB6C1] transition-colors">
                   Makeup Classes
                 </Link>
               </li>
               <li>
-                <Link href="/services#consultations" className="hover:text-foreground">
+                <Link href="/services#consultations" className="hover:text-[#FFB6C1] transition-colors">
                   Consultations
                 </Link>
               </li>
@@ -143,25 +143,25 @@ export function Footer() {
 
           {/* Shop */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Shop</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="text-sm font-semibold text-[#FFB6C1]">Shop</h4>
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <Link href="/products" className="hover:text-foreground">
+                <Link href="/products" className="hover:text-[#FFB6C1] transition-colors">
                   All Products
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=makeup" className="hover:text-foreground">
+                <Link href="/products?category=makeup" className="hover:text-[#FFB6C1] transition-colors">
                   Makeup
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=skincare" className="hover:text-foreground">
+                <Link href="/products?category=skincare" className="hover:text-[#FFB6C1] transition-colors">
                   Skincare
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=tools" className="hover:text-foreground">
+                <Link href="/products?category=tools" className="hover:text-[#FFB6C1] transition-colors">
                   Tools & Brushes
                 </Link>
               </li>
@@ -170,25 +170,25 @@ export function Footer() {
 
           {/* Company */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Company</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <h4 className="text-sm font-semibold text-[#FFB6C1]">Company</h4>
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <Link href="/about" className="hover:text-foreground">
+                <Link href="/about" className="hover:text-[#FFB6C1] transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/gallery" className="hover:text-foreground">
+                <Link href="/gallery" className="hover:text-[#FFB6C1] transition-colors">
                   Gallery
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-foreground">
+                <Link href="/contact" className="hover:text-[#FFB6C1] transition-colors">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-foreground">
+                <Link href="/faq" className="hover:text-[#FFB6C1] transition-colors">
                   FAQ
                 </Link>
               </li>
@@ -196,46 +196,47 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-8 bg-white/20" />
 
         {/* Bottom */}
         <div className="space-y-4">
-          <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
+          <div className="flex flex-col items-center justify-between gap-4 text-sm text-white/70 md:flex-row">
             <p>&copy; {currentYear} Glam by Lynn. All rights reserved.</p>
+            <p className="text-white/50">Building the future of beauty in Kenya</p>
             <div className="flex gap-6">
-              <Link href="/privacy" className="hover:text-foreground">
+              <Link href="/privacy" className="hover:text-[#FFB6C1] transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="hover:text-foreground">
+              <Link href="/terms" className="hover:text-[#FFB6C1] transition-colors">
                 Terms of Service
               </Link>
             </div>
           </div>
 
           {/* Payment Methods */}
-          <div className="flex flex-col items-center gap-3 border-t border-border pt-4 md:flex-row md:justify-between">
-            <p className="text-xs text-muted-foreground">We accept:</p>
+          <div className="flex flex-col items-center gap-3 border-t border-white/10 pt-4 md:flex-row md:justify-between">
+            <p className="text-xs text-white/50">We accept:</p>
             <div className="flex items-center gap-4">
               {/* M-Pesa */}
-              <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5">
-                <Smartphone className="h-4 w-4 text-green-600" />
-                <span className="text-xs font-semibold text-green-600">M-PESA</span>
+              <div className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
+                <Smartphone className="h-4 w-4 text-green-400" />
+                <span className="text-xs font-semibold text-green-400">M-PESA</span>
               </div>
 
               {/* Credit/Debit Cards */}
-              <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Visa</span>
+              <div className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
+                <CreditCard className="h-4 w-4 text-white/70" />
+                <span className="text-xs font-medium text-white/70">Visa</span>
               </div>
 
-              <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Mastercard</span>
+              <div className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
+                <CreditCard className="h-4 w-4 text-white/70" />
+                <span className="text-xs font-medium text-white/70">Mastercard</span>
               </div>
 
               {/* Bank Transfer */}
-              <div className="rounded-md border border-border bg-background px-3 py-1.5">
-                <span className="text-xs font-medium text-muted-foreground">Bank Transfer</span>
+              <div className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
+                <span className="text-xs font-medium text-white/70">Bank Transfer</span>
               </div>
             </div>
           </div>

@@ -18,7 +18,7 @@ export default async function Image() {
   return new ImageResponse(
     <GenericPageOGTemplate
       title="Professional Makeup Services"
-      description="Bridal makeup, special occasions, and makeup classes in Nairobi & Kitui"
+      description="Bridal makeup, special occasions, and makeup classes in Kitui & Nairobi"
     />,
     { ...size }
   );
