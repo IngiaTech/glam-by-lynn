@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Glam by Lynn is a comprehensive web application for a makeup artist and beauty business serving clients in Kenya (primarily Nairobi and Kitui). The platform combines three core elements:
+Glam by Lynn is a comprehensive web application for a makeup artist and beauty business serving clients in Kenya (primarily Kitui and Nairobi). The platform combines three core elements:
 
 1. **Makeup Services** - Booking system for bridal makeup, regular makeup, and makeup artistry classes
 2. **E-Commerce** - Full-featured online store for skincare and beauty products
@@ -10,7 +10,7 @@ Glam by Lynn is a comprehensive web application for a makeup artist and beauty b
 
 ## Business Context
 
-**Target Market:** Kenya (Nairobi, Kitui, and surrounding areas)
+**Target Market:** Kenya (Kitui, Nairobi, and surrounding areas)
 **Brand Colors:** Black and Light Pink
 **Business Owner:** Lynn (Glam by Lynn)
 

@@ -5,7 +5,7 @@ Enterprise-grade web application for a makeup artist and beauty business serving
 ## Project Overview
 
 **Business:** Glam by Lynn  
-**Locations:** Nairobi and Kitui, Kenya  
+**Locations:** Kitui and Nairobi, Kenya  
 **Brand Colors:** Black and Light Pink
 
 ### Core Features

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Glam by Lynn** is an enterprise web application for a makeup artist and beauty business in Kenya. It combines makeup service booking, e-commerce for beauty products, and a 2026 vision showcase for future expansion (salon/spa/barbershop).
 
 **Brand Identity:**
-- Business locations: Nairobi and Kitui, Kenya
+- Business locations: Kitui and Nairobi, Kenya
 - Brand colors: Black and Light Pink
 - Visual branding: "Glam by" in white/foreground, "Lynn" in pink/secondary
 
@@ -29,11 +29,13 @@ alembic revision --autogenerate -m "description"  # Create migration
 alembic current                         # Show current migration
 alembic downgrade -1                    # Rollback one migration
 
-# Testing
+# Testing (70% coverage required)
 pytest                                  # Run all tests
 pytest --cov=app tests/                # Run with coverage
 pytest tests/test_auth.py              # Run specific test file
 pytest -v                              # Verbose output
+pytest -m unit                         # Run unit tests only
+pytest -m integration                  # Run integration tests only
 ```
 
 ### Frontend (Next.js)
@@ -57,8 +59,26 @@ npm run type-check                     # TypeScript type checking
 npm run build                          # Build for production
 npm start                              # Start production server
 
+# Testing
+npm test                               # Run Jest tests
+npm run test:watch                     # Watch mode
+npm run test:coverage                  # Coverage report
+
+# E2E Testing (Playwright)
+npm run test:e2e                       # Run all E2E tests
+npm run test:e2e:ui                    # Interactive UI mode
+npm run test:e2e:headed                # Run with visible browser
+npm run test:e2e:debug                 # Debug mode
+
 # Add shadcn/ui components
 npx shadcn@latest add <component-name> # Install UI component
+```
+
+### Docker
+```bash
+# From project root
+docker-compose up                      # Start all services (PostgreSQL, backend)
+docker-compose up -d                   # Start in detached mode
 ```
 
 ## Architecture & Key Patterns
@@ -145,14 +165,16 @@ def get_users(db: Session = Depends(get_db)):
 ### Backend Layout
 ```
 backend/app/
-├── api/routes/          # API endpoint handlers (commented out in main.py)
+├── api/routes/          # API endpoint handlers
+│   └── admin/          # Admin-only endpoints
 ├── core/                # Config, database, security
 │   ├── config.py       # Settings from environment
-│   └── database.py     # SQLAlchemy setup
+│   ├── database.py     # SQLAlchemy setup
+│   └── dependencies.py # FastAPI dependencies (auth, admin checks)
 ├── models/              # SQLAlchemy ORM models
-├── routers/             # FastAPI routers (auth.router currently active)
+├── routers/             # FastAPI routers (public endpoints)
 ├── schemas/             # Pydantic request/response schemas
-├── services/            # Business logic layer
+├── services/            # Business logic layer (~25 service files)
 └── tests/               # Pytest test files
 ```
 
@@ -167,6 +189,7 @@ frontend/src/
 │   ├── about/          # About page
 │   ├── contact/        # Contact page
 │   ├── faq/            # FAQ page
+│   ├── admin/          # Admin dashboard and management pages
 │   ├── privacy/        # Privacy policy
 │   ├── terms/          # Terms of service
 │   └── api/auth/       # NextAuth API route
@@ -184,11 +207,12 @@ frontend/src/
 
 ### Backend (.env)
 Required variables:
-- `DATABASE_URL` - PostgreSQL connection string
-- `SECRET_KEY` - JWT signing key
+- `DATABASE_URL` - PostgreSQL connection string (**PostgreSQL required**, not SQLite)
+- `SECRET_KEY` - JWT signing key (32+ characters in production)
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth secret
 - `FRONTEND_URL` - Frontend URL for CORS
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 
 ### Frontend (.env.local)
 Required variables:

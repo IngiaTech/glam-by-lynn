@@ -235,7 +235,7 @@ class EmailService:
 
             <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
                 <p>© {datetime.now().year} Glam by Lynn. All rights reserved.</p>
-                <p>Nairobi & Kitui, Kenya</p>
+                <p>Kitui & Nairobi, Kenya</p>
             </div>
         </body>
         </html>
@@ -275,7 +275,7 @@ class EmailService:
         The Glam by Lynn Team
 
         © {datetime.now().year} Glam by Lynn. All rights reserved.
-        Nairobi & Kitui, Kenya
+        Kitui & Nairobi, Kenya
         """
 
         return self.send_email(to_email, subject, html_content, text_content)
@@ -357,7 +357,7 @@ class EmailService:
 
             <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
                 <p>© {datetime.now().year} Glam by Lynn. All rights reserved.</p>
-                <p>Nairobi & Kitui, Kenya</p>
+                <p>Kitui & Nairobi, Kenya</p>
             </div>
         </body>
         </html>
@@ -388,7 +388,7 @@ class EmailService:
         The Glam by Lynn Team
 
         © {datetime.now().year} Glam by Lynn. All rights reserved.
-        Nairobi & Kitui, Kenya
+        Kitui & Nairobi, Kenya
         """
 
         return self.send_email(to_email, subject, html_content, text_content)
@@ -458,7 +458,7 @@ class EmailService:
 
             <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
                 <p>© {datetime.now().year} Glam by Lynn. All rights reserved.</p>
-                <p>Nairobi & Kitui, Kenya</p>
+                <p>Kitui & Nairobi, Kenya</p>
             </div>
         </body>
         </html>
@@ -483,7 +483,7 @@ class EmailService:
         The Glam by Lynn Team
 
         © {datetime.now().year} Glam by Lynn. All rights reserved.
-        Nairobi & Kitui, Kenya
+        Kitui & Nairobi, Kenya
         """
 
         return self.send_email(to_email, subject, html_content, text_content)
