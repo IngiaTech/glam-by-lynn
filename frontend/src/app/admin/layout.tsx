@@ -29,6 +29,7 @@ import {
   Bookmark,
   Scissors,
   MapPin,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -54,6 +55,11 @@ const navigationItems: NavItem[] = [
     label: "Services",
     href: "/admin/services",
     icon: <Scissors className="h-5 w-5" />,
+  },
+  {
+    label: "Classes",
+    href: "/admin/classes",
+    icon: <GraduationCap className="h-5 w-5" />,
   },
   {
     label: "Bookings",

@@ -43,6 +43,9 @@ class User(Base):
     admin_activity_logs = relationship(
         "AdminActivityLog", back_populates="admin_user", lazy="dynamic"
     )
+    class_enrollments = relationship(
+        "ClassEnrollment", back_populates="user", lazy="dynamic"
+    )
 
     __table_args__ = (
         CheckConstraint(

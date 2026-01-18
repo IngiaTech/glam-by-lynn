@@ -14,9 +14,9 @@ from app.core.middleware import (
 )
 
 # Import routers
-from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision
+from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision, classes
 from app.api.routes import brands, categories, products, product_images, product_variants, service_packages, orders, reviews
-from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery, users as admin_users, testimonials as admin_testimonials, promo_codes as admin_promo_codes, analytics as admin_analytics, vision as admin_vision, activity_logs as admin_activity_logs, booking_analytics
+from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery, users as admin_users, testimonials as admin_testimonials, promo_codes as admin_promo_codes, analytics as admin_analytics, vision as admin_vision, activity_logs as admin_activity_logs, booking_analytics, classes as admin_classes
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -104,6 +104,7 @@ app.include_router(public_reviews.router, prefix="/api")  # Public reviews API
 app.include_router(cart.router, prefix="/api")  # Shopping cart API
 app.include_router(wishlist.router, prefix="/api")  # Wishlist API
 app.include_router(vision.router, prefix="/api")  # 2026 Vision registration API
+app.include_router(classes.router, prefix="/api")  # Public classes API
 app.include_router(brands.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
@@ -123,6 +124,7 @@ app.include_router(admin_users.router, prefix="/api")  # Admin users API
 app.include_router(admin_vision.router, prefix="/api")  # Admin vision registration API
 app.include_router(admin_activity_logs.router, prefix="/api")  # Admin activity logs API
 app.include_router(booking_analytics.router, prefix="/api")  # Admin booking analytics API
+app.include_router(admin_classes.router, prefix="/api")  # Admin classes API
 
 
 if __name__ == "__main__":

@@ -111,16 +111,16 @@ export function Header() {
   }, [authenticated]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 bg-black shadow-md shadow-black/20">
       <div className="container mx-auto px-4">
         {/* Main header */}
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-secondary" />
+            <Sparkles className="h-6 w-6 text-[#FFB6C1]" />
             <h1 className="text-xl font-bold md:text-2xl">
-              <span className="text-foreground">Glam by </span>
-              <span className="text-secondary">Lynn</span>
+              <span className="text-white">Glam by </span>
+              <span className="text-[#FFB6C1]">Lynn</span>
             </h1>
           </Link>
 
@@ -128,41 +128,46 @@ export function Header() {
           <nav className="hidden items-center gap-6 lg:flex">
             <Link
               href="/"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
             >
               Home
             </Link>
             <Link
               href="/services"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
             >
               Services
             </Link>
-
+            <Link
+              href="/classes"
+              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
+            >
+              Classes
+            </Link>
             <Link
               href="/products"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
             >
               Products
             </Link>
 
             <Link
               href="/gallery"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
             >
               Gallery
             </Link>
             <Link
               href="/vision-2026"
-              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="flex items-center gap-1.5 text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
             >
               Vision 2026
-              <Badge variant="secondary" className="text-xs">New</Badge>
+              <Badge className="text-xs bg-vision-gradient text-white border-0">New</Badge>
             </Link>
             {isAdmin && (
               <Link
                 href="/admin"
-                className="text-sm font-medium text-secondary transition-colors hover:text-secondary/80"
+                className="text-sm font-semibold text-[#FFB6C1] transition-colors hover:text-[#FF69B4] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
               >
                 Admin
               </Link>
@@ -172,13 +177,12 @@ export function Header() {
           {/* Cart, User Menu */}
           <div className="flex items-center gap-3">
             {/* Cart Icon */}
-            <Button variant="ghost" size="icon" asChild className="relative">
+            <Button variant="ghost" size="icon" asChild className="relative text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10">
               <Link href="/cart">
                 <ShoppingCart className="h-5 w-5" />
                 {cartItemCount > 0 && (
                   <Badge
-                    variant="secondary"
-                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs"
+                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs bg-pink-gradient text-white border-0"
                   >
                     {cartItemCount > 9 ? "9+" : cartItemCount}
                   </Badge>
@@ -190,7 +194,7 @@ export function Header() {
             {authenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10">
                     <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -246,7 +250,7 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="bg-pink-gradient hover:opacity-90 text-white border-0">
                 <Link href="/auth/signin">Sign In</Link>
               </Button>
             )}
@@ -254,7 +258,7 @@ export function Header() {
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden">
+                <Button variant="ghost" size="icon" className="lg:hidden text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -281,6 +285,13 @@ export function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Services
+                  </Link>
+                  <Link
+                    href="/classes"
+                    className="text-sm font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Classes
                   </Link>
                   <Link
                     href="/products"

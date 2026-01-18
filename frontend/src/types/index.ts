@@ -288,3 +288,82 @@ export interface PaginatedResponse<T> {
   page_size: number;
   total_pages: number;
 }
+
+// Makeup Classes types
+export interface MakeupClass {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  skillLevel: "beginner" | "intermediate" | "advanced";
+  topic: "bridal" | "everyday" | "special_effects" | "editorial" | "corrective" | "stage_theater" | "airbrush" | "contouring" | "eye_makeup" | "other";
+  durationHours: number;
+  priceFrom?: number;
+  priceTo?: number;
+  whatYouLearn?: string[];
+  requirements?: string[];
+  imageUrl?: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassEnrollment {
+  id: string;
+  enrollmentNumber: string;
+  classId: string;
+  userId?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  preferredDates?: string[];
+  message?: string;
+  status: "pending" | "contacted" | "confirmed" | "completed" | "cancelled";
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  makeupClass?: MakeupClass;
+}
+
+export interface ClassEnrollmentCreate {
+  classId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  preferredDates?: string[];
+  message?: string;
+}
+
+export interface MakeupClassCreate {
+  title: string;
+  description?: string;
+  skillLevel: "beginner" | "intermediate" | "advanced";
+  topic: string;
+  durationHours: number;
+  priceFrom?: number;
+  priceTo?: number;
+  whatYouLearn?: string[];
+  requirements?: string[];
+  imageUrl?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  displayOrder?: number;
+}
+
+export interface MakeupClassUpdate {
+  title?: string;
+  description?: string;
+  skillLevel?: "beginner" | "intermediate" | "advanced";
+  topic?: string;
+  durationHours?: number;
+  priceFrom?: number;
+  priceTo?: number;
+  whatYouLearn?: string[];
+  requirements?: string[];
+  imageUrl?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  displayOrder?: number;
+}

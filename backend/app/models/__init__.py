@@ -30,6 +30,10 @@ from app.models.content import (
     VisionRegistration,
     AdminActivityLog,
 )
+from app.models.makeup_class import (
+    MakeupClass,
+    ClassEnrollment,
+)
 
 __all__ = [
     # User
@@ -60,4 +64,7 @@ __all__ = [
     "Testimonial",
     "VisionRegistration",
     "AdminActivityLog",
+    # Makeup Classes
+    "MakeupClass",
+    "ClassEnrollment",
 ]

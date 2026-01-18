@@ -38,6 +38,8 @@ from app.models import (
     Testimonial,
     VisionRegistration,
     AdminActivityLog,
+    MakeupClass,
+    ClassEnrollment,
 )
 
 # this is the Alembic Config object, which provides

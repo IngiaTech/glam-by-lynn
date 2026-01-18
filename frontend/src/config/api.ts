@@ -100,6 +100,30 @@ export const API_ENDPOINTS = {
     CANCEL: (id: string) => `/api/admin/bookings/${id}`,
     EXPORT_CSV: "/api/admin/bookings/export/csv",
   },
+  // Makeup Classes (Public)
+  CLASSES: {
+    LIST: "/api/classes",
+    DETAIL: (id: string) => `/api/classes/${id}`,
+    BY_SLUG: (slug: string) => `/api/classes/slug/${slug}`,
+    ENROLL: "/api/classes/enroll",
+    ENROLLMENT_STATUS: (enrollmentNumber: string) => `/api/classes/enrollment/${enrollmentNumber}`,
+  },
+  // Admin - Makeup Classes
+  ADMIN_CLASSES: {
+    LIST: "/api/admin/classes",
+    CREATE: "/api/admin/classes",
+    DETAIL: (id: string) => `/api/admin/classes/${id}`,
+    UPDATE: (id: string) => `/api/admin/classes/${id}`,
+    DELETE: (id: string) => `/api/admin/classes/${id}`,
+    ENROLLMENTS: {
+      LIST: "/api/admin/classes/enrollments/all",
+      DETAIL: (id: string) => `/api/admin/classes/enrollments/${id}`,
+      STATUS: (id: string) => `/api/admin/classes/enrollments/${id}/status`,
+      DELETE: (id: string) => `/api/admin/classes/enrollments/${id}`,
+      STATS: "/api/admin/classes/enrollments/stats",
+      EXPORT_CSV: "/api/admin/classes/enrollments/export/csv",
+    },
+  },
 } as const;
 
 export const HTTP_METHODS = {
