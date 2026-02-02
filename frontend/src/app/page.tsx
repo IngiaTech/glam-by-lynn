@@ -11,7 +11,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart } from "lucide-react";
-import { HeroParallaxBackground } from "@/components/animations/HeroParallaxBackground";
 import { FadeInSection } from "@/components/animations/FadeInSection";
 
 interface Product {
@@ -130,12 +129,10 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section - Dark gradient matching glam-by-lynn-platform.html */}
+      {/* Hero Section - Dark gradient matching other pages */}
       <section className="relative overflow-hidden bg-hero-gradient text-white">
         {/* Animated pink glow background effect */}
         <div className="absolute -right-1/2 -top-1/2 h-[200%] w-[200%] bg-pink-subtle animate-hero-pulse" />
-        {/* Parallax Background with Makeup Products */}
-        <HeroParallaxBackground />
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container relative mx-auto px-4 py-20 md:py-32">
           <div className="mx-auto max-w-4xl text-center">
