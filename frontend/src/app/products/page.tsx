@@ -48,7 +48,7 @@ export default function ProductsPage() {
     pageSize: 20,
     sortBy: "created_at",
     sortOrder: "desc",
-    inStockOnly: true,
+    inStockOnly: false,
   });
 
   // Pagination state
@@ -121,7 +121,7 @@ export default function ProductsPage() {
       pageSize: 20,
       sortBy: "created_at",
       sortOrder: "desc",
-      inStockOnly: true,
+      inStockOnly: false,
     });
     setPriceMin("");
     setPriceMax("");
@@ -172,8 +172,8 @@ export default function ProductsPage() {
     }
 
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      const min = filters.minPrice !== undefined ? `$${filters.minPrice}` : "0";
-      const max = filters.maxPrice !== undefined ? `$${filters.maxPrice}` : "∞";
+      const min = filters.minPrice !== undefined ? `KSh ${filters.minPrice}` : "0";
+      const max = filters.maxPrice !== undefined ? `KSh ${filters.maxPrice}` : "∞";
       active.push({ key: "price", label: "Price", value: `${min} - ${max}` });
     }
 
@@ -497,18 +497,27 @@ export default function ProductsPage() {
                     : "space-y-4"
                 }
               >
-                {filteredProducts.map((product) => (
+                {filteredProducts.map((product) => {
+                  const isOutOfStock = product.inventory_count <= 0;
+                  return (
                   <Card
                     key={product.id}
                     data-testid="product-card"
-                    className={viewMode === "list" ? "product-card flex" : "product-card flex flex-col"}
+                    className={`${viewMode === "list" ? "product-card flex" : "product-card flex flex-col"} ${isOutOfStock ? "opacity-75" : ""}`}
                   >
                     <CardHeader className={viewMode === "list" ? "flex-1" : ""}>
                       <div className="mb-2 flex items-start justify-between">
                         <Badge variant="secondary" className="text-xs">
                           {product.category?.name || "Uncategorized"}
                         </Badge>
-                        {product.isFeatured && <Badge className="text-xs">Featured</Badge>}
+                        <div className="flex gap-1">
+                          {isOutOfStock && (
+                            <Badge variant="outline" className="text-xs border-destructive text-destructive">
+                              Out of Stock
+                            </Badge>
+                          )}
+                          {product.is_featured && <Badge className="text-xs">Featured</Badge>}
+                        </div>
                       </div>
                       <CardTitle className="text-lg">{product.title}</CardTitle>
                       <CardDescription className="line-clamp-2">
@@ -524,13 +533,17 @@ export default function ProductsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-2xl font-bold">
-                            ${product.basePrice ? parseFloat(product.basePrice.toString()).toFixed(2) : "0.00"}
+                            KSh {product.base_price ? parseFloat(product.base_price.toString()).toLocaleString() : "0"}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {product.inventoryCount > 0
-                              ? `${product.inventoryCount} in stock`
-                              : "Out of stock"}
-                          </p>
+                          {isOutOfStock ? (
+                            <p className="text-xs text-destructive font-medium">
+                              Restocking soon
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              {product.inventory_count} in stock
+                            </p>
+                          )}
                         </div>
                         <Button
                           size="sm"
@@ -541,7 +554,8 @@ export default function ProductsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
 

@@ -59,8 +59,8 @@ export default async function Image({ params }: { params: { id: string } }) {
     );
   }
 
-  const price = product.basePrice
-    ? `KSh ${product.basePrice.toLocaleString()}`
+  const price = product.base_price
+    ? `KSh ${product.base_price.toLocaleString()}`
     : 'Contact for pricing';
 
   const description = product.description?.substring(0, 150) || 'Quality beauty product from Glam by Lynn';
@@ -71,7 +71,7 @@ export default async function Image({ params }: { params: { id: string } }) {
       description={description}
       price={price}
       category={product.category?.name}
-      inStock={product.inventoryCount > 0}
+      inStock={product.inventory_count > 0}
     />,
     { ...size }
   );

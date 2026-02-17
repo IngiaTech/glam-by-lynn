@@ -52,7 +52,7 @@ export default function EditClassPage() {
     description: "",
     skillLevel: "beginner",
     topic: "bridal",
-    durationHours: 2,
+    durationDays: 1,
     priceFrom: "",
     priceTo: "",
     whatYouLearn: [""],
@@ -92,7 +92,7 @@ export default function EditClassPage() {
           description: cls.description || "",
           skillLevel: cls.skillLevel,
           topic: cls.topic,
-          durationHours: cls.durationHours,
+          durationDays: cls.durationDays,
           priceFrom: cls.priceFrom?.toString() || "",
           priceTo: cls.priceTo?.toString() || "",
           whatYouLearn: cls.whatYouLearn?.length ? cls.whatYouLearn : [""],
@@ -159,7 +159,7 @@ export default function EditClassPage() {
         description: formData.description || null,
         skillLevel: formData.skillLevel,
         topic: formData.topic,
-        durationHours: formData.durationHours,
+        durationDays: formData.durationDays,
         priceFrom: formData.priceFrom ? parseFloat(formData.priceFrom) : null,
         priceTo: formData.priceTo ? parseFloat(formData.priceTo) : null,
         imageUrl: formData.imageUrl || null,
@@ -309,19 +309,19 @@ export default function EditClassPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="durationHours">
-                  Duration (hours) <span className="text-destructive">*</span>
+                <Label htmlFor="durationDays">
+                  Duration (days) <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="durationHours"
+                  id="durationDays"
                   type="number"
-                  min="0.5"
-                  step="0.5"
-                  value={formData.durationHours}
+                  min="1"
+                  step="1"
+                  value={formData.durationDays}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      durationHours: parseFloat(e.target.value) || 0,
+                      durationDays: parseFloat(e.target.value) || 0,
                     }))
                   }
                   required

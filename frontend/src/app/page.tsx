@@ -154,7 +154,7 @@ export default function Home() {
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="group border-[#FFB6C1] text-white hover:bg-[#FFB6C1]/20 hover:text-white">
+              <Button asChild variant="outline" size="lg" className="group border-[#FFB6C1] text-[#FFB6C1] hover:bg-[#FFB6C1]/20 hover:text-white">
                 <Link href="/products">
                   <ShoppingBag className="mr-2 h-4 w-4" />
                   Shop Products

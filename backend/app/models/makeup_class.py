@@ -37,8 +37,8 @@ class MakeupClass(Base):
     # Topic/category: bridal, everyday, special_effects, editorial, etc.
     topic = Column(String(100), nullable=False, index=True)
 
-    # Duration in hours (can be decimal for half hours)
-    duration_hours = Column(Numeric(4, 1), nullable=False)
+    # Duration in days (can be decimal for half days)
+    duration_days = Column(Numeric(4, 1), nullable=False)
 
     # Price range (indicative, admin confirms final price)
     price_from = Column(Numeric(10, 2))
@@ -77,7 +77,7 @@ class MakeupClass(Base):
             "topic IN ('bridal', 'everyday', 'special_effects', 'editorial', 'corrective', 'stage_theater', 'airbrush', 'contouring', 'eye_makeup', 'other')",
             name="makeup_classes_topic_check",
         ),
-        CheckConstraint("duration_hours > 0", name="makeup_classes_duration_check"),
+        CheckConstraint("duration_days > 0", name="makeup_classes_duration_check"),
         CheckConstraint(
             "price_from IS NULL OR price_from >= 0",
             name="makeup_classes_price_from_check",

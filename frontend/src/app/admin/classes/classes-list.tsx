@@ -338,7 +338,7 @@ export function ClassesList() {
                         {getTopicLabel(cls.topic)}
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
-                        {cls.durationHours} hours
+                        {cls.durationDays} {cls.durationDays === 1 ? "day" : "days"}
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         {formatPrice(cls.priceFrom, cls.priceTo)}

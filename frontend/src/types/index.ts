@@ -43,43 +43,46 @@ export interface Product {
   title: string;
   slug: string;
   description?: string;
-  brandId?: string;
-  categoryId?: string;
-  basePrice: number;
-  discountType?: "percentage" | "fixed";
-  discountValue?: number;
+  brand_id?: string;
+  category_id?: string;
+  base_price: number;
+  discount_type?: "percentage" | "fixed";
+  discount_value?: number;
   sku?: string;
-  inventoryCount: number;
-  lowStockThreshold: number;
-  isActive: boolean;
-  isFeatured: boolean;
+  inventory_count: number;
+  low_stock_threshold: number;
+  is_active: boolean;
+  is_featured: boolean;
   tags?: string[];
-  metaTitle?: string;
-  metaDescription?: string;
+  meta_title?: string;
+  meta_description?: string;
   brand?: Brand;
   category?: Category;
   images?: ProductImage[];
   variants?: ProductVariant[];
+  final_price?: number;
+  in_stock?: boolean;
+  is_low_stock?: boolean;
 }
 
 export interface ProductImage {
   id: string;
-  productId: string;
-  imageUrl: string;
-  altText?: string;
-  isPrimary: boolean;
-  displayOrder: number;
+  product_id: string;
+  image_url: string;
+  alt_text?: string;
+  is_primary: boolean;
+  display_order: number;
 }
 
 export interface ProductVariant {
   id: string;
-  productId: string;
-  variantType: string;
-  variantValue: string;
-  priceAdjustment: number;
-  inventoryCount: number;
+  product_id: string;
+  variant_type: string;
+  variant_value: string;
+  price_adjustment: number;
+  inventory_count: number;
   sku?: string;
-  isActive: boolean;
+  is_active: boolean;
 }
 
 // Service types
@@ -297,7 +300,7 @@ export interface MakeupClass {
   description?: string;
   skillLevel: "beginner" | "intermediate" | "advanced";
   topic: "bridal" | "everyday" | "special_effects" | "editorial" | "corrective" | "stage_theater" | "airbrush" | "contouring" | "eye_makeup" | "other";
-  durationHours: number;
+  durationDays: number;
   priceFrom?: number;
   priceTo?: number;
   whatYouLearn?: string[];
@@ -341,7 +344,7 @@ export interface MakeupClassCreate {
   description?: string;
   skillLevel: "beginner" | "intermediate" | "advanced";
   topic: string;
-  durationHours: number;
+  durationDays: number;
   priceFrom?: number;
   priceTo?: number;
   whatYouLearn?: string[];
@@ -357,7 +360,7 @@ export interface MakeupClassUpdate {
   description?: string;
   skillLevel?: "beginner" | "intermediate" | "advanced";
   topic?: string;
-  durationHours?: number;
+  durationDays?: number;
   priceFrom?: number;
   priceTo?: number;
   whatYouLearn?: string[];

@@ -117,9 +117,9 @@ export default function EditProduct() {
           description: product.description || "",
           brand_id: product.brand?.id || "",
           category_id: product.category?.id || "",
-          base_price: product.base_price || 0,
+          base_price: parseFloat(product.base_price) || 0,
           discount_type: product.discount_type || undefined,
-          discount_value: product.discount_value || 0,
+          discount_value: parseFloat(product.discount_value) || 0,
           sku: product.sku || "",
           inventory_count: product.inventory_count || 0,
           low_stock_threshold: product.low_stock_threshold || 10,
@@ -475,7 +475,7 @@ export default function EditProduct() {
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.base_price}
+                value={formData.base_price || ""}
                 onChange={(e) => setFormData({ ...formData, base_price: parseFloat(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
@@ -511,7 +511,7 @@ export default function EditProduct() {
                     min="0"
                     step="0.01"
                     max={formData.discount_type === "percentage" ? "100" : undefined}
-                    value={formData.discount_value}
+                    value={formData.discount_value || ""}
                     onChange={(e) => setFormData({ ...formData, discount_value: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   />
@@ -534,7 +534,7 @@ export default function EditProduct() {
               <input
                 type="number"
                 min="0"
-                value={formData.inventory_count}
+                value={formData.inventory_count || ""}
                 onChange={(e) => setFormData({ ...formData, inventory_count: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
@@ -548,7 +548,7 @@ export default function EditProduct() {
               <input
                 type="number"
                 min="0"
-                value={formData.low_stock_threshold}
+                value={formData.low_stock_threshold || ""}
                 onChange={(e) => setFormData({ ...formData, low_stock_threshold: parseInt(e.target.value) || 10 })}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />

@@ -296,7 +296,7 @@ export default function ClassesPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      <span>{cls.durationHours} hours</span>
+                      <span>{cls.durationDays} {cls.durationDays === 1 ? "day" : "days"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />

@@ -33,7 +33,7 @@ class MakeupClassBase(BaseModel):
     description: Optional[str] = None
     skill_level: str = Field(..., alias="skillLevel")
     topic: str
-    duration_hours: float = Field(..., gt=0, alias="durationHours")
+    duration_days: float = Field(..., gt=0, alias="durationDays")
     price_from: Optional[float] = Field(None, ge=0, alias="priceFrom")
     price_to: Optional[float] = Field(None, ge=0, alias="priceTo")
     what_you_learn: Optional[list[str]] = Field(None, alias="whatYouLearn")
@@ -72,7 +72,7 @@ class MakeupClassUpdate(BaseModel):
     description: Optional[str] = None
     skill_level: Optional[str] = Field(None, alias="skillLevel")
     topic: Optional[str] = None
-    duration_hours: Optional[float] = Field(None, gt=0, alias="durationHours")
+    duration_days: Optional[float] = Field(None, gt=0, alias="durationDays")
     price_from: Optional[float] = Field(None, ge=0, alias="priceFrom")
     price_to: Optional[float] = Field(None, ge=0, alias="priceTo")
     what_you_learn: Optional[list[str]] = Field(None, alias="whatYouLearn")
@@ -108,7 +108,7 @@ class MakeupClassResponse(BaseModel):
     description: Optional[str] = None
     skill_level: str = Field(..., alias="skillLevel")
     topic: str
-    duration_hours: float = Field(..., alias="durationHours")
+    duration_days: float = Field(..., alias="durationDays")
     price_from: Optional[float] = Field(None, alias="priceFrom")
     price_to: Optional[float] = Field(None, alias="priceTo")
     what_you_learn: Optional[list[str]] = Field(None, alias="whatYouLearn")

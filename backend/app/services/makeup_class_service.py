@@ -127,7 +127,7 @@ def create_makeup_class(db: Session, data: MakeupClassCreate) -> MakeupClass:
         description=data.description,
         skill_level=data.skill_level,
         topic=data.topic,
-        duration_hours=data.duration_hours,
+        duration_days=data.duration_days,
         price_from=data.price_from,
         price_to=data.price_to,
         what_you_learn=data.what_you_learn,

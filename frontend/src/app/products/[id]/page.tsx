@@ -90,9 +90,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         setProduct(data);
 
         // Fetch related products (same category)
-        if (data.categoryId) {
+        if (data.category_id) {
           const relatedRes = await fetch(
-            `${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.LIST}?category=${data.categoryId}&limit=4`
+            `${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.LIST}?category=${data.category_id}&limit=4`
           );
           if (relatedRes.ok) {
             const relatedData = await relatedRes.json();
@@ -292,9 +292,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     );
   }
 
-  const effectivePrice = product.basePrice;
+  const effectivePrice = product.base_price;
   const hasDiscount =
-    product.discountType && product.discountValue && product.discountValue > 0;
+    product.discount_type && product.discount_value && product.discount_value > 0;
   const hasImages = product.images && product.images.length > 0;
   const currentImage = hasImages && product.images ? product.images[selectedImageIndex] : null;
 
@@ -332,8 +332,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <>
                   <div className="relative aspect-square">
                     <Image
-                      src={currentImage!.imageUrl}
-                      alt={currentImage!.altText || product.title}
+                      src={currentImage!.image_url}
+                      alt={currentImage!.alt_text || product.title}
                       fill
                       className="object-cover"
                       priority
@@ -400,8 +400,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     }`}
                   >
                     <Image
-                      src={img.imageUrl}
-                      alt={img.altText || `${product.title} - ${index + 1}`}
+                      src={img.image_url}
+                      alt={img.alt_text || `${product.title} - ${index + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -422,7 +422,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 {product.category && (
                   <Badge variant="secondary">{product.category.name}</Badge>
                 )}
-                {product.isFeatured && <Badge>Featured</Badge>}
+                {product.is_featured && <Badge>Featured</Badge>}
               </div>
               <h1 className="text-3xl font-bold tracking-tight">{product.title}</h1>
               {product.sku && (
@@ -462,9 +462,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 </span>
                 {hasDiscount && (
                   <Badge variant="destructive">
-                    {product.discountType === "percentage"
-                      ? `${product.discountValue}% OFF`
-                      : `KSh ${product.discountValue} OFF`}
+                    {product.discount_type === "percentage"
+                      ? `${product.discount_value}% OFF`
+                      : `KSh ${product.discount_value} OFF`}
                   </Badge>
                 )}
               </div>
@@ -472,9 +472,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
             {/* Stock Status */}
             <div>
-              {product.inventoryCount > 0 ? (
+              {product.inventory_count > 0 ? (
                 <Badge variant="outline" className="border-green-500 text-green-700">
-                  In Stock ({product.inventoryCount} available)
+                  In Stock ({product.inventory_count} available)
                 </Badge>
               ) : (
                 <Badge variant="destructive">Out of Stock</Badge>
@@ -503,10 +503,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   <SelectContent>
                     {product.variants.map((variant) => (
                       <SelectItem key={variant.id} value={variant.id}>
-                        {variant.variantType}: {variant.variantValue}
-                        {variant.priceAdjustment !== 0 && (
+                        {variant.variant_type}: {variant.variant_value}
+                        {variant.price_adjustment !== 0 && (
                           <span className="ml-2 text-sm text-muted-foreground">
-                            (+KSh {variant.priceAdjustment.toLocaleString()})
+                            (+KSh {variant.price_adjustment.toLocaleString()})
                           </span>
                         )}
                       </SelectItem>
@@ -531,7 +531,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <Input
                   type="number"
                   min="1"
-                  max={product.inventoryCount}
+                  max={product.inventory_count}
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-20 text-center"
@@ -540,9 +540,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    setQuantity(Math.min(product.inventoryCount, quantity + 1))
+                    setQuantity(Math.min(product.inventory_count, quantity + 1))
                   }
-                  disabled={quantity >= product.inventoryCount}
+                  disabled={quantity >= product.inventory_count}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -568,7 +568,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               <Button
                 size="lg"
                 className="flex-1"
-                disabled={product.inventoryCount === 0 || addingToCart}
+                disabled={product.inventory_count === 0 || addingToCart}
                 onClick={handleAddToCart}
               >
                 {addingToCart ? (
@@ -579,7 +579,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 ) : (
                   <>
                     <ShoppingCart className="mr-2 h-5 w-5" />
-                    {product.inventoryCount === 0 ? "Out of Stock" : "Add to Cart"}
+                    {product.inventory_count === 0 ? "Out of Stock" : "Add to Cart"}
                   </>
                 )}
               </Button>
@@ -615,7 +615,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   <div className="relative aspect-square overflow-hidden bg-muted">
                     {relatedProduct.images && relatedProduct.images[0] ? (
                       <Image
-                        src={relatedProduct.images[0].imageUrl}
+                        src={relatedProduct.images[0].image_url}
                         alt={relatedProduct.title}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"
@@ -639,7 +639,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-bold">
-                        KSh {relatedProduct.basePrice.toLocaleString()}
+                        KSh {relatedProduct.base_price.toLocaleString()}
                       </span>
                     </div>
                   </CardContent>
@@ -685,8 +685,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           {currentImage && (
             <div className="relative aspect-square w-full">
               <Image
-                src={currentImage.imageUrl}
-                alt={currentImage.altText || product.title}
+                src={currentImage.image_url}
+                alt={currentImage.alt_text || product.title}
                 fill
                 className="object-contain"
               />

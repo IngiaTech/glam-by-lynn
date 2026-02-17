@@ -49,7 +49,7 @@ export default function NewClassPage() {
     description: "",
     skillLevel: "beginner",
     topic: "bridal",
-    durationHours: 2,
+    durationDays: 1,
     priceFrom: "",
     priceTo: "",
     whatYouLearn: [""],
@@ -106,7 +106,7 @@ export default function NewClassPage() {
         title: formData.title,
         skillLevel: formData.skillLevel,
         topic: formData.topic,
-        durationHours: formData.durationHours,
+        durationDays: formData.durationDays,
         isActive: formData.isActive,
         isFeatured: formData.isFeatured,
         displayOrder: formData.displayOrder,
@@ -268,19 +268,19 @@ export default function NewClassPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="durationHours">
-                  Duration (hours) <span className="text-destructive">*</span>
+                <Label htmlFor="durationDays">
+                  Duration (days) <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="durationHours"
+                  id="durationDays"
                   type="number"
-                  min="0.5"
-                  step="0.5"
-                  value={formData.durationHours}
+                  min="1"
+                  step="1"
+                  value={formData.durationDays}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      durationHours: parseFloat(e.target.value) || 0,
+                      durationDays: parseFloat(e.target.value) || 0,
                     }))
                   }
                   required
