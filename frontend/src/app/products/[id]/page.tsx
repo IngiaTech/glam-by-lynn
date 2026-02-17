@@ -97,7 +97,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           if (relatedRes.ok) {
             const relatedData = await relatedRes.json();
             // Filter out current product
-            setRelatedProducts(relatedData.filter((p: Product) => p.id !== data.id).slice(0, 3));
+            const items = relatedData.items || relatedData;
+            setRelatedProducts(items.filter((p: Product) => p.id !== data.id).slice(0, 3));
           }
         }
       } catch (err) {
