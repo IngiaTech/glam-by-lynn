@@ -23,6 +23,10 @@ class FileStorageService:
     """Service for handling file uploads to S3 or local storage"""
 
     def __init__(self):
+        # Always initialize local storage as fallback
+        self.local_storage_path = Path("uploads")
+        self.local_storage_path.mkdir(exist_ok=True)
+
         self.use_s3 = S3_AVAILABLE and bool(settings.S3_BUCKET_NAME and settings.AWS_ACCESS_KEY_ID)
 
         if self.use_s3:
@@ -33,10 +37,6 @@ class FileStorageService:
                 region_name=settings.AWS_REGION
             )
             self.bucket_name = settings.S3_BUCKET_NAME
-        else:
-            # Local storage fallback
-            self.local_storage_path = Path("uploads")
-            self.local_storage_path.mkdir(exist_ok=True)
 
     def upload_file(
         self,
@@ -77,7 +77,7 @@ class FileStorageService:
             return self._upload_to_local(file, file_key)
 
     def _upload_to_s3(self, file: BinaryIO, file_key: str, content_type: str) -> str:
-        """Upload file to S3"""
+        """Upload file to S3, falls back to local storage on failure"""
         try:
             self.s3_client.upload_fileobj(
                 file,
@@ -93,8 +93,12 @@ class FileStorageService:
             url = f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{file_key}"
             return url
 
-        except ClientError as e:
-            raise Exception(f"Failed to upload to S3: {str(e)}")
+        except (ClientError, Exception) as e:
+            # Fall back to local storage if S3 fails
+            import logging
+            logging.getLogger(__name__).warning(f"S3 upload failed, falling back to local storage: {e}")
+            file.seek(0)
+            return self._upload_to_local(file, file_key)
 
     def _upload_to_local(self, file: BinaryIO, file_key: str) -> str:
         """Upload file to local storage"""
@@ -124,7 +128,7 @@ class FileStorageService:
             return self._delete_from_local(file_url)
 
     def _delete_from_s3(self, file_url: str) -> bool:
-        """Delete file from S3"""
+        """Delete file from S3, falls back to local deletion on failure"""
         try:
             # Extract key from URL
             # Format: https://bucket.s3.region.amazonaws.com/folder/file.ext
@@ -143,8 +147,9 @@ class FileStorageService:
             )
             return True
 
-        except ClientError:
-            return False
+        except (ClientError, Exception):
+            # Fall back to local deletion
+            return self._delete_from_local(file_url)
 
     def _delete_from_local(self, file_url: str) -> bool:
         """Delete file from local storage"""
