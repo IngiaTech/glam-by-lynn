@@ -124,6 +124,12 @@ export const API_ENDPOINTS = {
       EXPORT_CSV: "/api/admin/classes/enrollments/export/csv",
     },
   },
+  // Site Settings
+  SETTINGS: {
+    PUBLIC: "/api/settings/public",
+    ADMIN_LIST: "/api/admin/settings",
+    ADMIN_UPDATE: "/api/admin/settings",
+  },
 } as const;
 
 export const HTTP_METHODS = {

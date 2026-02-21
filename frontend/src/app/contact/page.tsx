@@ -5,13 +5,20 @@
 
 "use client";
 
+import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
 
 export default function ContactPage() {
+  const { settings: publicSettings } = usePublicSettings();
+
+  const hasSocialLinks = publicSettings.social_facebook || publicSettings.social_instagram || publicSettings.social_twitter || publicSettings.social_tiktok || publicSettings.social_youtube;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -170,6 +177,7 @@ export default function ContactPage() {
               </CardContent>
             </Card>
 
+            {hasSocialLinks && (
             <Card className="bg-muted/50">
               <CardContent className="p-6">
                 <h3 className="mb-2 font-semibold">Follow Us</h3>
@@ -177,18 +185,49 @@ export default function ContactPage() {
                   Stay updated with our latest work and beauty tips
                 </p>
                 <div className="flex gap-3">
-                  <Button variant="outline" size="sm" disabled>
-                    Instagram
-                  </Button>
-                  <Button variant="outline" size="sm" disabled>
-                    Facebook
-                  </Button>
-                  <Button variant="outline" size="sm" disabled>
-                    Pinterest
-                  </Button>
+                  {publicSettings.social_instagram && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={publicSettings.social_instagram} target="_blank" rel="noopener noreferrer">
+                        <Instagram className="mr-1.5 h-4 w-4" />
+                        Instagram
+                      </Link>
+                    </Button>
+                  )}
+                  {publicSettings.social_facebook && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={publicSettings.social_facebook} target="_blank" rel="noopener noreferrer">
+                        <Facebook className="mr-1.5 h-4 w-4" />
+                        Facebook
+                      </Link>
+                    </Button>
+                  )}
+                  {publicSettings.social_twitter && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={publicSettings.social_twitter} target="_blank" rel="noopener noreferrer">
+                        <Twitter className="mr-1.5 h-4 w-4" />
+                        Twitter
+                      </Link>
+                    </Button>
+                  )}
+                  {publicSettings.social_tiktok && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={publicSettings.social_tiktok} target="_blank" rel="noopener noreferrer">
+                        TikTok
+                      </Link>
+                    </Button>
+                  )}
+                  {publicSettings.social_youtube && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={publicSettings.social_youtube} target="_blank" rel="noopener noreferrer">
+                        <Youtube className="mr-1.5 h-4 w-4" />
+                        YouTube
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         </div>
       </main>

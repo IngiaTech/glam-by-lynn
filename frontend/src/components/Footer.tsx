@@ -6,11 +6,13 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Facebook, Instagram, Twitter, Youtube, CreditCard, Smartphone } from "lucide-react";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
   const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const { settings: publicSettings } = usePublicSettings();
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +42,8 @@ export function Footer() {
               Professional makeup services and premium beauty products for every occasion.
             </p>
 
-            {/* Newsletter Signup */}
+            {/* Newsletter Signup - only shown when enabled by admin */}
+            {publicSettings.enable_newsletter && (
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-[#FFB6C1]">Subscribe to our newsletter</h4>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
@@ -69,13 +72,16 @@ export function Footer() {
                 <p className="text-xs text-red-400">Failed to subscribe. Please try again.</p>
               )}
             </div>
+            )}
 
-            {/* Social Media Links */}
+            {/* Social Media Links - only shown when at least one URL is set */}
+            {(publicSettings.social_facebook || publicSettings.social_instagram || publicSettings.social_twitter || publicSettings.social_youtube) && (
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-[#FFB6C1]">Follow Us</h4>
               <div className="flex gap-3">
+                {publicSettings.social_facebook && (
                 <Link
-                  href="https://facebook.com"
+                  href={publicSettings.social_facebook}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white/70 hover:text-[#FFB6C1] transition-colors"
@@ -83,8 +89,10 @@ export function Footer() {
                 >
                   <Facebook className="h-5 w-5" />
                 </Link>
+                )}
+                {publicSettings.social_instagram && (
                 <Link
-                  href="https://instagram.com"
+                  href={publicSettings.social_instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white/70 hover:text-[#FFB6C1] transition-colors"
@@ -92,8 +100,10 @@ export function Footer() {
                 >
                   <Instagram className="h-5 w-5" />
                 </Link>
+                )}
+                {publicSettings.social_twitter && (
                 <Link
-                  href="https://twitter.com"
+                  href={publicSettings.social_twitter}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white/70 hover:text-[#FFB6C1] transition-colors"
@@ -101,8 +111,23 @@ export function Footer() {
                 >
                   <Twitter className="h-5 w-5" />
                 </Link>
+                )}
+                {publicSettings.social_tiktok && (
                 <Link
-                  href="https://youtube.com"
+                  href={publicSettings.social_tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/70 hover:text-[#FFB6C1] transition-colors"
+                  aria-label="TikTok"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.73a8.19 8.19 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.16z"/>
+                  </svg>
+                </Link>
+                )}
+                {publicSettings.social_youtube && (
+                <Link
+                  href={publicSettings.social_youtube}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white/70 hover:text-[#FFB6C1] transition-colors"
@@ -110,8 +135,10 @@ export function Footer() {
                 >
                   <Youtube className="h-5 w-5" />
                 </Link>
+                )}
               </div>
             </div>
+            )}
           </div>
 
           {/* Services */}

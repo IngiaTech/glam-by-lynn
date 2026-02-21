@@ -34,6 +34,7 @@ from app.models.makeup_class import (
     MakeupClass,
     ClassEnrollment,
 )
+from app.models.site_setting import SiteSetting
 
 __all__ = [
     # User
@@ -67,4 +68,6 @@ __all__ = [
     # Makeup Classes
     "MakeupClass",
     "ClassEnrollment",
+    # Site Settings
+    "SiteSetting",
 ]

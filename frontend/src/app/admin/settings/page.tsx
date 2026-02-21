@@ -19,15 +19,26 @@ import {
   Mail,
   Phone,
   MapPin,
+  ToggleLeft,
+  Loader2,
 } from "lucide-react";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminSettingsPage() {
   const { user, loading: authLoading, isAdmin } = useRequireAdmin();
+  const { session } = useAuth();
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  // Feature Toggles (persisted via API)
+  const [featureToggles, setFeatureToggles] = useState({
+    enable_newsletter: false,
+  });
 
   // Business Info
   const [businessInfo, setBusinessInfo] = useState({
@@ -76,6 +87,77 @@ export default function AdminSettingsPage() {
     notificationEmail: "admin@glambylynn.com",
   });
 
+  // Fetch saved settings from API on mount
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const token = (session as any)?.accessToken;
+        if (!token) return;
+        const response = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.ADMIN_LIST}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setFeatureToggles((prev) => ({
+            ...prev,
+            enable_newsletter: data.enable_newsletter ?? false,
+          }));
+          setSocialMedia((prev) => ({
+            ...prev,
+            facebook: data.social_facebook ?? "",
+            instagram: data.social_instagram ?? "",
+            twitter: data.social_twitter ?? "",
+            tiktok: data.social_tiktok ?? "",
+            youtube: data.social_youtube ?? "",
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      } finally {
+        setSettingsLoading(false);
+      }
+    }
+    if (!authLoading && isAdmin) {
+      loadSettings();
+    }
+  }, [authLoading, isAdmin, session]);
+
+  const handleSaveFeatureToggles = async () => {
+    setSaving(true);
+    setSaveError("");
+    setSaveSuccess("");
+
+    try {
+      const token = (session as any)?.accessToken;
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.ADMIN_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(featureToggles),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      setSaveSuccess("Feature toggles saved successfully");
+      setTimeout(() => setSaveSuccess(""), 3000);
+    } catch (err: any) {
+      console.error("Error saving feature toggles:", err);
+      setSaveError(extractErrorMessage(err, "Failed to save feature toggles"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveBusinessInfo = async () => {
     setSaving(true);
     setSaveError("");
@@ -104,8 +186,28 @@ export default function AdminSettingsPage() {
     setSaveSuccess("");
 
     try {
-      // TODO: Implement API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = (session as any)?.accessToken;
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.ADMIN_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            social_facebook: socialMedia.facebook,
+            social_instagram: socialMedia.instagram,
+            social_twitter: socialMedia.twitter,
+            social_tiktok: socialMedia.tiktok,
+            social_youtube: socialMedia.youtube,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save social media links");
+      }
 
       setSaveSuccess("Social media links saved successfully");
       setTimeout(() => setSaveSuccess(""), 3000);
@@ -210,6 +312,57 @@ export default function AdminSettingsPage() {
 
       {/* Settings Sections */}
       <div className="space-y-6">
+        {/* Feature Toggles Section */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ToggleLeft className="h-5 w-5" />
+                Feature Toggles
+              </CardTitle>
+              <CardDescription>
+                Enable or disable site features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {settingsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <div className="font-medium">Newsletter Subscription</div>
+                      <div className="text-sm text-muted-foreground">
+                        Show newsletter signup on the homepage and footer
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={featureToggles.enable_newsletter}
+                      onChange={(e) =>
+                        setFeatureToggles({
+                          ...featureToggles,
+                          enable_newsletter: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4"
+                    />
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSaveFeatureToggles} disabled={saving}>
+                      <Save className="mr-2 h-4 w-4" />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Business Info Section */}
         <div>
           <Card>

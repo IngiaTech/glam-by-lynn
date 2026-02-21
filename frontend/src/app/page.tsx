@@ -12,6 +12,7 @@ import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart } from "lucide-react";
 import { FadeInSection } from "@/components/animations/FadeInSection";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
 
 interface Product {
   id: string;
@@ -67,6 +68,7 @@ export default function Home() {
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [loading, setLoading] = useState(true);
+  const { settings: publicSettings } = usePublicSettings();
 
   useEffect(() => {
     async function fetchData() {
@@ -508,7 +510,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Newsletter Section */}
+        {/* Newsletter Section - only shown when enabled by admin */}
+        {publicSettings.enable_newsletter && (
         <section className="bg-gradient-to-br from-secondary/10 via-background to-muted/20 py-16 md:py-20">
           <div className="container mx-auto px-4">
             <FadeInSection direction="up" delay={0.2}>
@@ -559,6 +562,7 @@ export default function Home() {
             </FadeInSection>
           </div>
         </section>
+        )}
       </main>
 
       <Footer />
