@@ -146,23 +146,23 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-[#FFB6C1]">Services</h4>
             <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <Link href="/services#bridal" className="hover:text-[#FFB6C1] transition-colors">
-                  Bridal Makeup
+                <Link href="/services" className="hover:text-[#FFB6C1] transition-colors">
+                  Our Services
                 </Link>
               </li>
               <li>
-                <Link href="/services#events" className="hover:text-[#FFB6C1] transition-colors">
-                  Special Events
+                <Link href="/bookings/new" className="hover:text-[#FFB6C1] transition-colors">
+                  Book Appointment
                 </Link>
               </li>
               <li>
-                <Link href="/services#classes" className="hover:text-[#FFB6C1] transition-colors">
+                <Link href="/classes" className="hover:text-[#FFB6C1] transition-colors">
                   Makeup Classes
                 </Link>
               </li>
               <li>
-                <Link href="/services#consultations" className="hover:text-[#FFB6C1] transition-colors">
-                  Consultations
+                <Link href="/testimonials" className="hover:text-[#FFB6C1] transition-colors">
+                  Testimonials
                 </Link>
               </li>
             </ul>
@@ -178,18 +178,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=makeup" className="hover:text-[#FFB6C1] transition-colors">
-                  Makeup
+                <Link href="/cart" className="hover:text-[#FFB6C1] transition-colors">
+                  Cart
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=skincare" className="hover:text-[#FFB6C1] transition-colors">
-                  Skincare
+                <Link href="/wishlist" className="hover:text-[#FFB6C1] transition-colors">
+                  Wishlist
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=tools" className="hover:text-[#FFB6C1] transition-colors">
-                  Tools & Brushes
+                <Link href="/orders" className="hover:text-[#FFB6C1] transition-colors">
+                  My Orders
                 </Link>
               </li>
             </ul>
