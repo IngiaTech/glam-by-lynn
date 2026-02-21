@@ -102,7 +102,7 @@ export default function ServicesPage() {
                     key={pkg.id}
                     id={pkg.id}
                     data-testid="service-card"
-                    className={isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}
+                    className={`flex h-full flex-col ${isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}`}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -119,10 +119,10 @@ export default function ServicesPage() {
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="flex flex-1 flex-col space-y-6">
                       {/* Features */}
-                      <div>
-                        <h4 className="mb-3 font-semibold">What's Included:</h4>
+                      <div className="flex-1">
+                        <h4 className="mb-3 font-semibold">What&apos;s Included:</h4>
                         <ul className="space-y-2">
                           {features.map((feature, index) => (
                             <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -134,7 +134,7 @@ export default function ServicesPage() {
                       </div>
 
                       {/* Price and CTA */}
-                      <div className="flex flex-col gap-4 border-t border-border pt-6">
+                      <div className="mt-auto flex flex-col gap-4 border-t border-border pt-6">
                         <div>
                           <p className="text-sm text-muted-foreground">Pricing</p>
                           <p className="text-sm font-semibold">{pricingDescription}</p>
