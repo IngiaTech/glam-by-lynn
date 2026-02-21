@@ -251,7 +251,7 @@ export default function Home() {
                         )}
                       </div>
 
-                      <Button asChild className="mt-auto w-full group-hover:bg-secondary group-hover:text-secondary-foreground">
+                      <Button asChild className="mt-auto w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 active:text-secondary-foreground">
                         <Link href={`/bookings/new?packageId=${service.id}`}>
                           Book Now
                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
