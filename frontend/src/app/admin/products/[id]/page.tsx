@@ -321,7 +321,7 @@ export default function EditProduct() {
         if (image.id) {
           setDeletingImageId(image.id);
           await axios.delete(
-            `${apiUrl}/api/admin/images/${image.id}`,
+            `${apiUrl}/api/admin/products/images/${image.id}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

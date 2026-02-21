@@ -1,9 +1,12 @@
 """
 Glam by Lynn - Main FastAPI Application
 """
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.database import check_db_connection
@@ -127,6 +130,11 @@ app.include_router(booking_analytics.router, prefix="/api")  # Admin booking ana
 app.include_router(admin_classes.router, prefix="/api")  # Admin classes API
 app.include_router(admin_site_settings.router, prefix="/api")  # Admin site settings API
 app.include_router(public_site_settings.router, prefix="/api")  # Public site settings API
+
+# Serve uploaded files when using local storage (non-S3)
+uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
 if __name__ == "__main__":
