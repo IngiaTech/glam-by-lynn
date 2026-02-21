@@ -2,11 +2,15 @@
 File storage service
 Handles file uploads to AWS S3 or local storage
 """
+import io
+import logging
 import os
 import uuid
 from typing import Optional, BinaryIO
 from pathlib import Path
 import mimetypes
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 
@@ -71,16 +75,19 @@ class FileStorageService:
             if not content_type:
                 content_type = "application/octet-stream"
 
-        if self.use_s3:
-            return self._upload_to_s3(file, file_key, content_type)
-        else:
-            return self._upload_to_local(file, file_key)
+        # Read file content into memory so it can be retried on fallback
+        file_data = file.read()
 
-    def _upload_to_s3(self, file: BinaryIO, file_key: str, content_type: str) -> str:
+        if self.use_s3:
+            return self._upload_to_s3(file_data, file_key, content_type)
+        else:
+            return self._save_to_local(file_data, file_key)
+
+    def _upload_to_s3(self, file_data: bytes, file_key: str, content_type: str) -> str:
         """Upload file to S3, falls back to local storage on failure"""
         try:
             self.s3_client.upload_fileobj(
-                file,
+                io.BytesIO(file_data),
                 self.bucket_name,
                 file_key,
                 ExtraArgs={
@@ -95,21 +102,17 @@ class FileStorageService:
 
         except (ClientError, Exception) as e:
             # Fall back to local storage if S3 fails
-            import logging
-            logging.getLogger(__name__).warning(f"S3 upload failed, falling back to local storage: {e}")
-            file.seek(0)
-            return self._upload_to_local(file, file_key)
+            logger.warning(f"S3 upload failed, falling back to local storage: {e}")
+            return self._save_to_local(file_data, file_key)
 
-    def _upload_to_local(self, file: BinaryIO, file_key: str) -> str:
-        """Upload file to local storage"""
+    def _save_to_local(self, file_data: bytes, file_key: str) -> str:
+        """Save file to local storage"""
         file_path = self.local_storage_path / file_key
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(file_path, "wb") as f:
-            f.write(file.read())
+            f.write(file_data)
 
-        # Return local URL (relative path)
-        # In production, this should be served by nginx or similar
         return f"/uploads/{file_key}"
 
     def delete_file(self, file_url: str) -> bool:
