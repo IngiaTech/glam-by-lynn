@@ -217,8 +217,8 @@ export default function Home() {
             ) : featuredServices.length > 0 ? (
               <div className="grid gap-8 md:grid-cols-3">
                 {featuredServices.map((service, index) => (
-                  <FadeInSection key={service.id} direction="up" delay={0.2 + index * 0.1}>
-                    <Card className="group relative overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50">
+                  <FadeInSection key={service.id} direction="up" delay={0.2 + index * 0.1} className="h-full">
+                    <Card className="group relative flex h-full flex-col overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50">
                     <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full" />
                     <CardHeader className="relative">
                       <CardTitle className="text-xl mb-2">{service.name}</CardTitle>
@@ -229,29 +229,29 @@ export default function Home() {
                         <span className="text-sm text-muted-foreground">starting</span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground">{service.description}</p>
+                    <CardContent className="flex flex-1 flex-col space-y-4">
+                      <p className="text-muted-foreground line-clamp-3">{service.description}</p>
 
-                      <div className="space-y-2 text-sm">
+                      <div className="flex-1 space-y-2 text-sm">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-secondary" />
+                          <CheckCircle className="h-4 w-4 flex-shrink-0 text-secondary" />
                           <span>Duration: {Math.floor(service.duration_minutes / 60)}+ hours</span>
                         </div>
                         {service.includes_facial && (
                           <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-secondary" />
+                            <CheckCircle className="h-4 w-4 flex-shrink-0 text-secondary" />
                             <span>Includes facial treatment</span>
                           </div>
                         )}
                         {service.max_maids && (
                           <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-secondary" />
+                            <CheckCircle className="h-4 w-4 flex-shrink-0 text-secondary" />
                             <span>Up to {service.max_maids} bridesmaids</span>
                           </div>
                         )}
                       </div>
 
-                      <Button asChild className="w-full group-hover:bg-secondary group-hover:text-secondary-foreground">
+                      <Button asChild className="mt-auto w-full group-hover:bg-secondary group-hover:text-secondary-foreground">
                         <Link href={`/bookings/new?packageId=${service.id}`}>
                           Book Now
                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
