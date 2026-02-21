@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { resolveImageUrl } from "@/lib/utils";
 import axios from "axios";
 import { z } from "zod";
 
@@ -215,7 +216,7 @@ export default function NewCategory() {
                 <div className="mt-2">
                   <p className="text-sm text-muted-foreground mb-2">Preview:</p>
                   <img
-                    src={formData.image_url}
+                    src={resolveImageUrl(formData.image_url)}
                     alt="Image preview"
                     className="h-20 w-20 object-cover border border-border rounded"
                     onError={(e) => {

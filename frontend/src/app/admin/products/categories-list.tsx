@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { resolveImageUrl } from "@/lib/utils";
 
 interface Category {
   id: string;
@@ -182,7 +183,7 @@ export function CategoriesList() {
             <div className="flex items-center gap-3 flex-1">
               {category.image_url && (
                 <img
-                  src={category.image_url}
+                  src={resolveImageUrl(category.image_url)}
                   alt={category.name}
                   className="h-10 w-10 object-cover rounded"
                 />

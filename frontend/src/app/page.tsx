@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { resolveImageUrl } from "@/lib/utils";
 import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart } from "lucide-react";
 import { FadeInSection } from "@/components/animations/FadeInSection";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
@@ -405,7 +406,7 @@ export default function Home() {
                       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/20 to-muted">
                         {category.image_url ? (
                           <Image
-                            src={category.image_url}
+                            src={resolveImageUrl(category.image_url)}
                             alt={category.name}
                             fill
                             className="object-cover transition-transform group-hover:scale-105"

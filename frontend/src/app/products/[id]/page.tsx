@@ -50,6 +50,7 @@ import { getProductById } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { resolveImageUrl } from "@/lib/utils";
 import type { Product } from "@/types";
 
 interface ProductDetailPageProps {
@@ -333,7 +334,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <>
                   <div className="relative aspect-square">
                     <Image
-                      src={currentImage!.image_url}
+                      src={resolveImageUrl(currentImage!.image_url)}
                       alt={currentImage!.alt_text || product.title}
                       fill
                       className="object-cover"
@@ -401,7 +402,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     }`}
                   >
                     <Image
-                      src={img.image_url}
+                      src={resolveImageUrl(img.image_url)}
                       alt={img.alt_text || `${product.title} - ${index + 1}`}
                       fill
                       className="object-cover"
@@ -616,7 +617,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   <div className="relative aspect-square overflow-hidden bg-muted">
                     {relatedProduct.images && relatedProduct.images[0] ? (
                       <Image
-                        src={relatedProduct.images[0].image_url}
+                        src={resolveImageUrl(relatedProduct.images[0].image_url)}
                         alt={relatedProduct.title}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"
@@ -686,7 +687,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           {currentImage && (
             <div className="relative aspect-square w-full">
               <Image
-                src={currentImage.image_url}
+                src={resolveImageUrl(currentImage.image_url)}
                 alt={currentImage.alt_text || product.title}
                 fill
                 className="object-contain"

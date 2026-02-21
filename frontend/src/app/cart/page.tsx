@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { resolveImageUrl } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -243,7 +244,7 @@ export default function CartPage() {
                       >
                         {item.product.images && item.product.images[0] ? (
                           <Image
-                            src={item.product.images[0].imageUrl}
+                            src={resolveImageUrl(item.product.images[0].imageUrl)}
                             alt={item.product.title}
                             fill
                             className="object-cover"

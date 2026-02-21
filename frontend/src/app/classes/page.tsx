@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { MakeupClass, ClassEnrollmentCreate, PaginatedResponse } from "@/types";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { resolveImageUrl } from "@/lib/utils";
 import { Loader2, Clock, DollarSign, CheckCircle2, GraduationCap, X } from "lucide-react";
 
 const SKILL_LEVELS = [
@@ -268,7 +269,7 @@ export default function ClassesPage() {
                 {cls.imageUrl && (
                   <div className="relative h-48 overflow-hidden rounded-t-lg">
                     <img
-                      src={cls.imageUrl}
+                      src={resolveImageUrl(cls.imageUrl)}
                       alt={cls.title}
                       className="h-full w-full object-cover"
                     />

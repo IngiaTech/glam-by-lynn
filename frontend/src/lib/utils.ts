@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { API_BASE_URL } from "@/config/api"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -38,4 +39,14 @@ export function transformKeysToCamelCase<T = any>(data: any): T {
   }
 
   return data
+}
+
+/**
+ * Resolve an image URL — prefixes relative paths (local uploads) with the API base URL.
+ * Absolute URLs (S3, CDN) are returned as-is.
+ */
+export function resolveImageUrl(url: string | undefined | null, fallback = "/placeholder.png"): string {
+  if (!url) return fallback
+  if (url.startsWith("http://") || url.startsWith("https://")) return url
+  return `${API_BASE_URL}${url}`
 }

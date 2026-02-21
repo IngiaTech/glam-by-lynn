@@ -9,6 +9,7 @@ import { useState } from "react";
 import { X, Upload, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { resolveImageUrl } from "@/lib/utils";
 
 export interface ProductImage {
   id?: string;
@@ -182,7 +183,7 @@ export function ProductImageUpload({
               {/* Image Preview */}
               <div className="aspect-square relative bg-muted">
                 <Image
-                  src={image.preview || image.imageUrl || "/placeholder.png"}
+                  src={image.preview || resolveImageUrl(image.imageUrl)}
                   alt={image.altText || "Product image"}
                   fill
                   className="object-cover"

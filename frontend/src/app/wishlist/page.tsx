@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/config/api";
+import { resolveImageUrl } from "@/lib/utils";
 
 interface WishlistItem {
   id: string;
@@ -195,7 +196,7 @@ export default function WishlistPage() {
                   <div className="relative aspect-square overflow-hidden bg-muted">
                     {item.product.images && item.product.images[0] ? (
                       <Image
-                        src={item.product.images[0].imageUrl}
+                        src={resolveImageUrl(item.product.images[0].imageUrl)}
                         alt={item.product.title}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"
