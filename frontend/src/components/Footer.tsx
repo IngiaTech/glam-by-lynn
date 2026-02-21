@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Facebook, Instagram, Twitter, Youtube, CreditCard, Smartphone } from "lucide-react";
+import { Mail, Facebook, Instagram, Twitter, Youtube, Smartphone } from "lucide-react";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 
 export function Footer() {
@@ -250,15 +250,9 @@ export function Footer() {
                 <span className="text-xs font-semibold text-green-400">M-PESA</span>
               </div>
 
-              {/* Credit/Debit Cards */}
-              <div className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
-                <CreditCard className="h-4 w-4 text-white/70" />
-                <span className="text-xs font-medium text-white/70">Visa</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
-                <CreditCard className="h-4 w-4 text-white/70" />
-                <span className="text-xs font-medium text-white/70">Mastercard</span>
+              {/* Cash */}
+              <div className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5">
+                <span className="text-xs font-medium text-white/70">Cash</span>
               </div>
 
               {/* Bank Transfer */}
