@@ -104,7 +104,7 @@ export default function CheckoutPage() {
             const addresses: SavedAddress[] = [];
             const seen = new Set<string>();
 
-            for (const order of ordersData.items || []) {
+            for (const order of ordersData.orders || []) {
               if (
                 order.deliveryCounty &&
                 order.deliveryTown &&
@@ -232,25 +232,23 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      const subtotal = cartItems.reduce(
-        (sum, item) => sum + Number(item.product.basePrice) * item.quantity,
-        0
-      );
-
-      const orderData = {
-        guestName: fullName,
-        guestEmail: email,
-        guestPhone: phone,
-        deliveryCounty: finalCounty,
-        deliveryTown: finalTown,
-        deliveryAddress: finalAddress,
+      const orderData: Record<string, unknown> = {
+        deliveryInfo: {
+          county: finalCounty,
+          town: finalTown,
+          address: finalAddress,
+        },
         promoCode: promoCode || undefined,
-        items: cartItems.map((item) => ({
-          productId: item.productId,
-          productVariantId: item.productVariantId || undefined,
-          quantity: item.quantity,
-        })),
       };
+
+      // Include guest info for non-authenticated users
+      if (!authenticated) {
+        orderData.guestInfo = {
+          name: fullName,
+          email: email,
+          phone: phone,
+        };
+      }
 
       const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.CREATE}`, {
         method: "POST",
