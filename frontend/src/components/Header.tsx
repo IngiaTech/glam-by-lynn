@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
@@ -30,7 +31,6 @@ import {
   Heart,
   Settings,
   Calendar,
-  Sparkles,
 } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 
@@ -116,12 +116,15 @@ export function Header() {
         {/* Main header */}
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-[#FFB6C1]" />
-            <h1 className="text-xl font-bold md:text-2xl">
-              <span className="text-white">Glam by </span>
-              <span className="text-[#FFB6C1]">Lynn</span>
-            </h1>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/glam-by-lynn-logo.png"
+              alt="Glam by Lynn"
+              width={48}
+              height={48}
+              className="h-12 w-12"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -265,8 +268,13 @@ export function Header() {
               <SheetContent side="right" className="w-80">
                 <SheetHeader>
                   <SheetTitle>
-                    <span className="text-foreground">Glam by </span>
-                    <span className="text-secondary">Lynn</span>
+                    <Image
+                      src="/glam-by-lynn-logo.png"
+                      alt="Glam by Lynn"
+                      width={40}
+                      height={40}
+                      className="h-10 w-10"
+                    />
                   </SheetTitle>
                 </SheetHeader>
 
