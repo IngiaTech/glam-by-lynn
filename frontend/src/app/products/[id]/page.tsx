@@ -46,7 +46,7 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
-import { getProductById } from "@/lib/products";
+import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
@@ -82,13 +82,30 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [wishlistSuccess, setWishlistSuccess] = useState(false);
 
   useEffect(() => {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedParams.id);
+
     const fetchProduct = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const data = await getProductById(resolvedParams.id);
+        const data = isUUID
+          ? await getProductById(resolvedParams.id)
+          : await getProductBySlug(resolvedParams.id);
         setProduct(data);
+
+        // Fetch rating summary using the resolved product UUID
+        try {
+          const summary = await getProductRatingSummary(data.id);
+          setRatingSummary(summary);
+        } catch (ratingErr) {
+          console.error("Error fetching rating summary:", ratingErr);
+          setRatingSummary({
+            totalReviews: 0,
+            averageRating: 0,
+            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          });
+        }
 
         // Fetch related products (same category)
         if (data.category_id) {
@@ -111,25 +128,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     };
 
     fetchProduct();
-  }, [resolvedParams.id, refreshKey]);
-
-  // Fetch rating summary
-  useEffect(() => {
-    const fetchRatingSummary = async () => {
-      try {
-        const summary = await getProductRatingSummary(resolvedParams.id);
-        setRatingSummary(summary);
-      } catch (error) {
-        console.error("Error fetching rating summary:", error);
-        setRatingSummary({
-          totalReviews: 0,
-          averageRating: 0,
-          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        });
-      }
-    };
-
-    fetchRatingSummary();
   }, [resolvedParams.id, refreshKey]);
 
   // Check if product is in wishlist

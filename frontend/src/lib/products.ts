@@ -57,6 +57,17 @@ export async function getProductById(productId: string): Promise<Product> {
 }
 
 /**
+ * Fetch a single product by slug
+ */
+export async function getProductBySlug(slug: string): Promise<Product> {
+  const response = await axios.get<Product>(
+    `${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.BY_SLUG(slug)}`
+  );
+
+  return response.data;
+}
+
+/**
  * Fetch featured products
  */
 export async function getFeaturedProducts(
