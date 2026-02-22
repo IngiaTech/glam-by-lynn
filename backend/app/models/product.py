@@ -87,7 +87,7 @@ class Product(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     title = Column(String(500), nullable=False)
     slug = Column(String(500), unique=True, nullable=False, index=True)
-    description = Column(Text)
+    description = Column(Text, nullable=False)
     brand_id = Column(
         UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"), index=True
     )

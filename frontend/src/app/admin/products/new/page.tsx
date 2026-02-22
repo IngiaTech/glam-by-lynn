@@ -11,7 +11,7 @@ import { ProductVideoInput, ProductVideo } from "@/components/admin/ProductVideo
 
 const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(500, "Title too long"),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
   brand_id: z.string().optional(),
   category_id: z.string().optional(),
   base_price: z.number().min(0, "Price must be positive"),

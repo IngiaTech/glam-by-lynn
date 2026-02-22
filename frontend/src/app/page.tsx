@@ -21,7 +21,7 @@ interface Product {
   slug: string;
   description?: string;
   base_price: number;
-  images?: Array<{ url: string; alt_text?: string }>;
+  images?: Array<{ image_url: string; alt_text?: string; is_primary?: boolean; display_order?: number }>;
   brand?: { name: string };
   average_rating?: number;
   review_count?: number;
@@ -309,12 +309,12 @@ export default function Home() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {featuredProducts.map((product, index) => (
                   <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
-                    <Card className="group overflow-hidden transition-all hover:shadow-lg">
-                    <Link href={`/products/${product.slug}`}>
+                    <Card className="group flex h-full flex-col overflow-hidden transition-all hover:shadow-lg">
+                    <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
                       <div className="relative aspect-square overflow-hidden bg-muted">
                         {product.images && product.images[0] ? (
                           <Image
-                            src={product.images[0].url}
+                            src={resolveImageUrl(product.images[0].image_url)}
                             alt={product.images[0].alt_text || product.title}
                             fill
                             className="object-cover transition-transform group-hover:scale-105"
@@ -328,8 +328,8 @@ export default function Home() {
                           <Badge variant="secondary">Featured</Badge>
                         </div>
                       </div>
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2 text-lg">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="line-clamp-1 text-lg">
                           {product.title}
                         </CardTitle>
                         {product.brand && (
@@ -338,8 +338,11 @@ export default function Home() {
                           </p>
                         )}
                       </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
+                      <CardContent className="flex flex-1 flex-col">
+                        <p className="line-clamp-2 text-sm text-muted-foreground flex-1">
+                          {product.description}
+                        </p>
+                        <div className="mt-3 flex items-center justify-between">
                           <span className="text-2xl font-bold">
                             KSh {product.base_price.toLocaleString()}
                           </span>

@@ -20,7 +20,7 @@ def slugify(text: str) -> str:
 class ProductBase(BaseModel):
     """Base product schema with common fields"""
     title: str = Field(..., min_length=1, max_length=500, description="Product title")
-    description: Optional[str] = Field(None, description="Full product description")
+    description: str = Field(..., min_length=1, description="Full product description")
     brand_id: Optional[UUID] = Field(None, description="Brand ID")
     category_id: Optional[UUID] = Field(None, description="Category ID")
     base_price: Decimal = Field(..., ge=0, description="Base price before discount")
