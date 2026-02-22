@@ -310,7 +310,7 @@ export default function Home() {
                 {featuredProducts.map((product, index) => (
                   <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
                     <Card className="group flex h-full flex-col overflow-hidden transition-all hover:shadow-lg">
-                    <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
+                    <Link href={`/products/${product.id}`} className="flex flex-1 flex-col">
                       <div className="relative aspect-square overflow-hidden bg-muted">
                         {product.images && product.images[0] ? (
                           <Image
