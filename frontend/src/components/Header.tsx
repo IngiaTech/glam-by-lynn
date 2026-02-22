@@ -119,7 +119,7 @@ export function Header() {
             <img
               src="/glam-by-lynn-favicon.png"
               alt="Glam by Lynn"
-              className="h-6 w-6"
+              className="h-10 w-10"
             />
             <h1 className="text-xl font-bold md:text-2xl">
               <span className="text-white">Glam by </span>
