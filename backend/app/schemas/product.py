@@ -154,6 +154,14 @@ class ProductResponse(ProductBase):
     category: Optional[CategorySummary] = None
     images: List[ProductImageSummary] = Field(default_factory=list)
 
+    @field_validator("images", mode="before")
+    @classmethod
+    def resolve_dynamic_images(cls, v):
+        """Convert SQLAlchemy dynamic relationship (AppenderQuery) to a list."""
+        if hasattr(v, "all"):
+            return list(v.all())
+        return v or []
+
     @computed_field
     @property
     def final_price(self) -> Decimal:

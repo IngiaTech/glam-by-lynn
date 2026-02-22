@@ -4,7 +4,7 @@ Business logic for product management
 """
 from typing import Optional
 from uuid import UUID
-from sqlalchemy.orm import Session, joinedload, subqueryload
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, any_
 
 from app.models.product import Product, Brand, Category
@@ -29,7 +29,6 @@ def get_product_by_id(db: Session, product_id: UUID, load_relations: bool = True
         query = query.options(
             joinedload(Product.brand),
             joinedload(Product.category),
-            subqueryload(Product.images),
         )
 
     return query.filter(Product.id == product_id).first()
@@ -192,7 +191,6 @@ def get_products(
         query = query.options(
             joinedload(Product.brand),
             joinedload(Product.category),
-            subqueryload(Product.images),
         )
 
     # Apply filters
