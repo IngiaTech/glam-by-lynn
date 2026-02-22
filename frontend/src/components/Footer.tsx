@@ -34,16 +34,11 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand & Newsletter */}
           <div className="space-y-4 md:col-span-1">
-            <h3 className="flex items-center gap-2 text-lg font-bold">
-              <img
-                src="/glam-by-lynn-favicon.png"
-                alt="Glam by Lynn"
-              />
-              <span>
-                <span className="text-white">Glam by </span>
-                <span className="text-[#FFB6C1]">Lynn</span>
-              </span>
-            </h3>
+            <img
+              src="/glam-by-lynn-logo.png"
+              alt="Glam by Lynn"
+              className="h-20 w-auto sm:h-24"
+            />
             <p className="text-sm text-white/70">
               Professional makeup services and premium beauty products for every occasion.
             </p>
