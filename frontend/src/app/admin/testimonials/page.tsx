@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash2, Star, StarOff, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { extractErrorMessage } from "@/lib/error-utils";
 
 interface Testimonial {
@@ -54,6 +56,12 @@ export default function TestimonialsPage() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // Filters
   const [approvalFilter, setApprovalFilter] = useState<string>("all");
@@ -107,35 +115,38 @@ export default function TestimonialsPage() {
     fetchTestimonials();
   }, [isAdmin, approvalFilter, featuredFilter]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this testimonial?")) {
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Testimonial",
+      description: "Are you sure you want to delete this testimonial?",
+      onConfirm: async () => {
+        try {
+          setDeletingId(id);
 
-    try {
-      setDeletingId(id);
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/admin/testimonials/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
 
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/testimonials/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          await fetchTestimonials();
+        } catch (err: any) {
+          console.error("Error deleting testimonial:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete testimonial"));
+        } finally {
+          setDeletingId(null);
         }
-      );
-
-      await fetchTestimonials();
-    } catch (err: any) {
-      console.error("Error deleting testimonial:", err);
-      alert(extractErrorMessage(err, "Failed to delete testimonial"));
-    } finally {
-      setDeletingId(null);
-    }
+      },
+    });
   };
 
   const handleToggleFeatured = async (testimonial: Testimonial) => {
@@ -163,7 +174,7 @@ export default function TestimonialsPage() {
       await fetchTestimonials();
     } catch (err: any) {
       console.error("Error toggling featured status:", err);
-      alert(extractErrorMessage(err, "Failed to update testimonial"));
+      toast.error(extractErrorMessage(err, "Failed to update testimonial"));
     } finally {
       setTogglingId(null);
     }
@@ -194,7 +205,7 @@ export default function TestimonialsPage() {
       await fetchTestimonials();
     } catch (err: any) {
       console.error("Error toggling approval status:", err);
-      alert(extractErrorMessage(err, "Failed to update testimonial"));
+      toast.error(extractErrorMessage(err, "Failed to update testimonial"));
     } finally {
       setTogglingId(null);
     }
@@ -422,6 +433,17 @@ export default function TestimonialsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) =>
+          setConfirmDialog((prev) => ({ ...prev, open }))
+        }
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

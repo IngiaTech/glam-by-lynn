@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface ServicePackage {
   id: string;
@@ -54,6 +56,7 @@ export default function ServicePackagesManagement() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -117,33 +120,36 @@ export default function ServicePackagesManagement() {
       window.location.reload();
     } catch (err) {
       console.error("Error toggling package status:", err);
-      alert("Failed to update package status");
+      toast.error("Failed to update package status");
     }
   };
 
-  const handleDeletePackage = async (packageId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone if there are no associated bookings.`)) {
-      return;
-    }
+  const handleDeletePackage = (packageId: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Package",
+      description: `Are you sure you want to delete "${name}"? This action cannot be undone if there are no associated bookings.`,
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/services/${packageId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/services/${packageId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Refresh packages
-      window.location.reload();
-    } catch (err: any) {
-      console.error("Error deleting package:", err);
-      alert(extractErrorMessage(err, "Failed to delete package"));
-    }
+          // Refresh packages
+          window.location.reload();
+        } catch (err: any) {
+          console.error("Error deleting package:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete package"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -418,6 +424,15 @@ export default function ServicePackagesManagement() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({...prev, open}))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

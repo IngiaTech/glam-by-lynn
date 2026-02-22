@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface TransportLocation {
   id: string;
@@ -27,6 +29,7 @@ export default function LocationsManagement() {
   const [freeFilter, setFreeFilter] = useState<"all" | "free" | "paid">("all");
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -109,7 +112,7 @@ export default function LocationsManagement() {
       window.location.reload();
     } catch (err) {
       console.error("Error toggling location status:", err);
-      alert("Failed to update location status");
+      toast.error("Failed to update location status");
     }
   };
 
@@ -131,33 +134,36 @@ export default function LocationsManagement() {
       window.location.reload();
     } catch (err) {
       console.error("Error toggling free status:", err);
-      alert("Failed to update free status");
+      toast.error("Failed to update free status");
     }
   };
 
-  const handleDeleteLocation = async (locationId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This will fail if there are bookings using this location.`)) {
-      return;
-    }
+  const handleDeleteLocation = (locationId: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Location",
+      description: `Are you sure you want to delete "${name}"? This will fail if there are bookings using this location.`,
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/locations/${locationId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/locations/${locationId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Refresh locations
-      window.location.reload();
-    } catch (err: any) {
-      console.error("Error deleting location:", err);
-      alert(extractErrorMessage(err, "Failed to delete location"));
-    }
+          // Refresh locations
+          window.location.reload();
+        } catch (err: any) {
+          console.error("Error deleting location:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete location"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -366,6 +372,15 @@ export default function LocationsManagement() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({...prev, open}))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

@@ -20,7 +20,9 @@ import {
   ShoppingBag,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 
@@ -47,13 +49,19 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const { authenticated } = useAuth();
+  const { authenticated, session } = useAuth();
   const router = useRouter();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     if (!authenticated) {
@@ -68,7 +76,7 @@ export default function CartPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-        credentials: "include",
+        headers: { Authorization: `Bearer ${session?.accessToken}` },
       });
 
       if (res.ok) {
@@ -92,8 +100,10 @@ export default function CartPage() {
         `${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(itemId)}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
           body: JSON.stringify({ quantity: newQuantity }),
         }
       );
@@ -102,11 +112,11 @@ export default function CartPage() {
         await fetchCart();
       } else {
         const errorData = await res.json();
-        alert(errorData.detail || "Failed to update quantity");
+        toast.error(errorData.detail || "Failed to update quantity");
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
-      alert("Failed to update quantity");
+      toast.error("Failed to update quantity");
     } finally {
       setUpdatingItems((prev) => {
         const newSet = new Set(prev);
@@ -124,7 +134,7 @@ export default function CartPage() {
         `${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(itemId)}`,
         {
           method: "DELETE",
-          credentials: "include",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
         }
       );
 
@@ -132,11 +142,11 @@ export default function CartPage() {
         await fetchCart();
       } else {
         const errorData = await res.json();
-        alert(errorData.detail || "Failed to remove item");
+        toast.error(errorData.detail || "Failed to remove item");
       }
     } catch (error) {
       console.error("Error removing item:", error);
-      alert("Failed to remove item");
+      toast.error("Failed to remove item");
     } finally {
       setRemovingItems((prev) => {
         const newSet = new Set(prev);
@@ -146,24 +156,29 @@ export default function CartPage() {
     }
   };
 
-  const clearCart = async () => {
-    if (!confirm("Are you sure you want to clear your cart?")) return;
+  const clearCart = () => {
+    setConfirmDialog({
+      open: true,
+      title: "Clear Cart",
+      description: "Are you sure you want to clear your cart?",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${session?.accessToken}` },
+          });
 
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        setCartItems([]);
-      } else {
-        alert("Failed to clear cart");
-      }
-    } catch (error) {
-      console.error("Error clearing cart:", error);
-      alert("Failed to clear cart");
-    }
+          if (res.ok) {
+            setCartItems([]);
+          } else {
+            toast.error("Failed to clear cart");
+          }
+        } catch (error) {
+          console.error("Error clearing cart:", error);
+          toast.error("Failed to clear cart");
+        }
+      },
+    });
   };
 
   const getItemPrice = (item: CartItem): number => {
@@ -420,6 +435,17 @@ export default function CartPage() {
       </main>
 
       <Footer />
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) =>
+          setConfirmDialog((prev) => ({ ...prev, open }))
+        }
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

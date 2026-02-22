@@ -11,6 +11,8 @@ import {
   exportBookingsCSV,
 } from "@/lib/admin-bookings";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Booking } from "@/types";
 
 const STATUS_OPTIONS = [
@@ -30,6 +32,7 @@ export default function AdminBookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("");
@@ -122,16 +125,23 @@ export default function AdminBookingsPage() {
     }
   };
 
-  const handleCancelBooking = async (booking: Booking) => {
-    if (!session?.accessToken) return;
-    if (!confirm(`Cancel booking ${booking.bookingNumber}?`)) return;
+  const handleCancelBooking = (booking: Booking) => {
+    const token = session?.accessToken;
+    if (!token) return;
 
-    try {
-      await cancelAdminBooking(booking.id, "Admin cancelled", session?.accessToken);
-      await loadBookings();
-    } catch (err: any) {
-      setError(extractErrorMessage(err, "Failed to cancel booking"));
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Cancel Booking",
+      description: `Cancel booking ${booking.bookingNumber}?`,
+      onConfirm: async () => {
+        try {
+          await cancelAdminBooking(booking.id, "Admin cancelled", token);
+          await loadBookings();
+        } catch (err: any) {
+          setError(extractErrorMessage(err, "Failed to cancel booking"));
+        }
+      },
+    });
   };
 
   const handleExportCSV = async () => {
@@ -535,6 +545,15 @@ export default function AdminBookingsPage() {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog(prev => ({...prev, open}))}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          onConfirm={confirmDialog.onConfirm}
+          confirmLabel="Cancel Booking"
+        />
       </div>
     </div>
   );

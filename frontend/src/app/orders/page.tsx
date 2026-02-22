@@ -126,8 +126,7 @@ export default function OrderHistoryPage() {
         if (item.productId) {
           await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.accessToken}` },
             body: JSON.stringify({
               productId: item.productId,
               productVariantId: item.productVariantId || undefined,

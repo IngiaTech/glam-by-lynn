@@ -23,6 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { extractErrorMessage } from "@/lib/error-utils";
 
 interface PromoCode {
@@ -57,6 +59,12 @@ export default function PromoCodesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // Filters
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -110,35 +118,38 @@ export default function PromoCodesPage() {
     fetchPromoCodes();
   }, [isAdmin, activeFilter, searchTerm]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this promo code?")) {
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Promo Code",
+      description: "Are you sure you want to delete this promo code?",
+      onConfirm: async () => {
+        try {
+          setDeletingId(id);
 
-    try {
-      setDeletingId(id);
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/admin/promo-codes/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
 
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/promo-codes/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          await fetchPromoCodes();
+        } catch (err: any) {
+          console.error("Error deleting promo code:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete promo code"));
+        } finally {
+          setDeletingId(null);
         }
-      );
-
-      await fetchPromoCodes();
-    } catch (err: any) {
-      console.error("Error deleting promo code:", err);
-      alert(extractErrorMessage(err, "Failed to delete promo code"));
-    } finally {
-      setDeletingId(null);
-    }
+      },
+    });
   };
 
   const formatDiscount = (promoCode: PromoCode) => {
@@ -362,6 +373,17 @@ export default function PromoCodesPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) =>
+          setConfirmDialog((prev) => ({ ...prev, open }))
+        }
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

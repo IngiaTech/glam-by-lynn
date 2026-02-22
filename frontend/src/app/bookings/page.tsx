@@ -29,6 +29,8 @@ import {
   formatStatus,
   getStatusBadgeVariant,
 } from "@/lib/bookings";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAuth, useRequireAuth } from "@/hooks/useAuth";
 import {
   Loader2,
@@ -54,6 +56,7 @@ export default function BookingHistoryPage() {
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const pageSize = 10;
 
@@ -95,33 +98,36 @@ export default function BookingHistoryPage() {
     loadBookings();
   }, [session, page, statusFilter]);
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to cancel this booking?")) {
-      return;
-    }
+  const handleCancelBooking = (bookingId: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Cancel Booking",
+      description: "Are you sure you want to cancel this booking?",
+      onConfirm: async () => {
+        try {
+          setCancellingId(bookingId);
+          const token = session?.accessToken;
+          if (!token) {
+            toast.error("Authentication required. Please sign in to cancel bookings.");
+            return;
+          }
+          await cancelBooking(bookingId, token);
 
-    try {
-      setCancellingId(bookingId);
-      const token = session?.accessToken;
-      if (!token) {
-        alert("Authentication required. Please sign in to cancel bookings.");
-        return;
-      }
-      await cancelBooking(bookingId, token);
+          // Refresh bookings list
+          const data = await getUserBookings(token, page, pageSize, statusFilter || undefined);
+          setBookings(data.items);
+          setTotal(data.total);
+          setTotalPages(data.totalPages);
 
-      // Refresh bookings list
-      const data = await getUserBookings(token, page, pageSize, statusFilter || undefined);
-      setBookings(data.items);
-      setTotal(data.total);
-      setTotalPages(data.totalPages);
-
-      alert("Booking cancelled successfully");
-    } catch (err: any) {
-      console.error("Failed to cancel booking:", err);
-      alert(err.message || "Failed to cancel booking");
-    } finally {
-      setCancellingId(null);
-    }
+          toast.success("Booking cancelled successfully");
+        } catch (err: any) {
+          console.error("Failed to cancel booking:", err);
+          toast.error(err.message || "Failed to cancel booking");
+        } finally {
+          setCancellingId(null);
+        }
+      },
+    });
   };
 
   const canCancelBooking = (booking: Booking): boolean => {
@@ -347,6 +353,14 @@ export default function BookingHistoryPage() {
       </main>
 
       <Footer />
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+      />
     </div>
   );
 }

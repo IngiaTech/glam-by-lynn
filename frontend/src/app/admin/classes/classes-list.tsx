@@ -7,6 +7,8 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { MakeupClass, PaginatedResponse } from "@/types";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const SKILL_LEVELS = [
   { value: "beginner", label: "Beginner" },
@@ -44,6 +46,12 @@ export function ClassesList() {
 
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -109,31 +117,34 @@ export function ClassesList() {
       );
     } catch (err) {
       console.error("Error toggling class status:", err);
-      alert("Failed to update class status");
+      toast.error("Failed to update class status");
     }
   };
 
-  const handleDeleteClass = async (classId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"? This will also delete all enrollments. This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClass = (classId: string, title: string) => {
+    setConfirmDialog({
+      open: true,
+      title: `Delete "${title}"`,
+      description: `Are you sure you want to delete "${title}"? This will also delete all enrollments. This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const session = await fetch("/api/auth/session").then((res) => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const session = await fetch("/api/auth/session").then((res) => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(`${API_BASE_URL}${API_ENDPOINTS.ADMIN_CLASSES.DELETE(classId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-      await axios.delete(`${API_BASE_URL}${API_ENDPOINTS.ADMIN_CLASSES.DELETE(classId)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setClasses(classes.filter((c) => c.id !== classId));
-      setTotalClasses(totalClasses - 1);
-    } catch (err: unknown) {
-      console.error("Error deleting class:", err);
-      alert(extractErrorMessage(err, "Failed to delete class"));
-    }
+          setClasses(classes.filter((c) => c.id !== classId));
+          setTotalClasses(totalClasses - 1);
+        } catch (err: unknown) {
+          console.error("Error deleting class:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete class"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -410,6 +421,14 @@ export function ClassesList() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

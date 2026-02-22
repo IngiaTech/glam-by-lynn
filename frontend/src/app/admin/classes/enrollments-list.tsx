@@ -6,6 +6,8 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { ClassEnrollment, MakeupClass, PaginatedResponse } from "@/types";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const ENROLLMENT_STATUSES = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -33,6 +35,12 @@ export function EnrollmentsList() {
 
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // Fetch classes for filter dropdown
   useEffect(() => {
@@ -125,32 +133,35 @@ export function EnrollmentsList() {
       );
     } catch (err) {
       console.error("Error updating status:", err);
-      alert("Failed to update enrollment status");
+      toast.error("Failed to update enrollment status");
     }
   };
 
-  const handleDeleteEnrollment = async (enrollmentId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete enrollment for "${name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteEnrollment = (enrollmentId: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: `Delete enrollment for "${name}"`,
+      description: `Are you sure you want to delete enrollment for "${name}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const session = await fetch("/api/auth/session").then((res) => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const session = await fetch("/api/auth/session").then((res) => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${API_BASE_URL}${API_ENDPOINTS.ADMIN_CLASSES.ENROLLMENTS.DELETE(enrollmentId)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${API_BASE_URL}${API_ENDPOINTS.ADMIN_CLASSES.ENROLLMENTS.DELETE(enrollmentId)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setEnrollments(enrollments.filter((e) => e.id !== enrollmentId));
-      setTotalEnrollments(totalEnrollments - 1);
-    } catch (err: unknown) {
-      console.error("Error deleting enrollment:", err);
-      alert(extractErrorMessage(err, "Failed to delete enrollment"));
-    }
+          setEnrollments(enrollments.filter((e) => e.id !== enrollmentId));
+          setTotalEnrollments(totalEnrollments - 1);
+        } catch (err: unknown) {
+          console.error("Error deleting enrollment:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete enrollment"));
+        }
+      },
+    });
   };
 
   const handleExportCSV = async () => {
@@ -182,7 +193,7 @@ export function EnrollmentsList() {
       link.remove();
     } catch (err) {
       console.error("Error exporting CSV:", err);
-      alert("Failed to export CSV");
+      toast.error("Failed to export CSV");
     }
   };
 
@@ -442,6 +453,14 @@ export function EnrollmentsList() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   Star,
   Package,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
@@ -39,7 +40,7 @@ interface WishlistItem {
 }
 
 export default function WishlistPage() {
-  const { authenticated } = useAuth();
+  const { authenticated, session } = useAuth();
   const router = useRouter();
 
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
@@ -60,7 +61,7 @@ export default function WishlistPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/wishlist`, {
-        credentials: "include",
+        headers: { Authorization: `Bearer ${session?.accessToken}` },
       });
 
       if (res.ok) {
@@ -81,8 +82,10 @@ export default function WishlistPage() {
       // Add to cart
       const cartRes = await fetch(`${API_BASE_URL}/cart/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
         body: JSON.stringify({
           productId: item.product.id,
           quantity: 1,
@@ -94,11 +97,11 @@ export default function WishlistPage() {
         await removeFromWishlist(item.product.id, false);
       } else {
         const errorData = await cartRes.json();
-        alert(errorData.detail || "Failed to add to cart");
+        toast.error(errorData.detail || "Failed to add to cart");
       }
     } catch (error) {
       console.error("Error moving to cart:", error);
-      alert("Failed to move to cart");
+      toast.error("Failed to move to cart");
     } finally {
       setMovingToCart((prev) => {
         const newSet = new Set(prev);
@@ -116,20 +119,20 @@ export default function WishlistPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/wishlist/${productId}`, {
         method: "DELETE",
-        credentials: "include",
+        headers: { Authorization: `Bearer ${session?.accessToken}` },
       });
 
       if (res.ok) {
         await fetchWishlist();
       } else {
         if (showLoading) {
-          alert("Failed to remove from wishlist");
+          toast.error("Failed to remove from wishlist");
         }
       }
     } catch (error) {
       console.error("Error removing from wishlist:", error);
       if (showLoading) {
-        alert("Failed to remove from wishlist");
+        toast.error("Failed to remove from wishlist");
       }
     } finally {
       if (showLoading) {

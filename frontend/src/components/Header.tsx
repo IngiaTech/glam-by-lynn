@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -36,8 +36,26 @@ import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 export function Header() {
   const { user, authenticated, isAdmin, session } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [cartItemCount, setCartItemCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const navLinkClass = (href: string) =>
+    `text-sm font-semibold transition-colors px-3 py-1.5 rounded-md ${
+      isActive(href)
+        ? "text-[#FFB6C1] bg-[#FFB6C1]/10"
+        : "text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10"
+    }`;
+
+  const mobileNavLinkClass = (href: string) =>
+    `text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+      isActive(href)
+        ? "text-[#FFB6C1] bg-[#FFB6C1]/10"
+        : "hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10"
+    }`;
 
   // Validate session token periodically
   useEffect(() => {
@@ -93,9 +111,10 @@ export function Header() {
         setCartItemCount(0);
         return;
       }
+      if (!session?.accessToken) return;
       try {
         const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-          credentials: "include",
+          headers: { Authorization: `Bearer ${session.accessToken}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -107,7 +126,7 @@ export function Header() {
       }
     }
     fetchCartCount();
-  }, [authenticated]);
+  }, [authenticated, session?.accessToken]);
 
   return (
     <header className="sticky top-0 z-50 bg-black shadow-md shadow-black/20">
@@ -129,40 +148,24 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-6 lg:flex">
-            <Link
-              href="/"
-              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
-            >
+            <Link href="/" className={navLinkClass("/")}>
               Home
             </Link>
-            <Link
-              href="/services"
-              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
-            >
+            <Link href="/services" className={navLinkClass("/services")}>
               Services
             </Link>
-            <Link
-              href="/classes"
-              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
-            >
+            <Link href="/classes" className={navLinkClass("/classes")}>
               Classes
             </Link>
-            <Link
-              href="/products"
-              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
-            >
+            <Link href="/products" className={navLinkClass("/products")}>
               Products
             </Link>
-
-            <Link
-              href="/gallery"
-              className="text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
-            >
+            <Link href="/gallery" className={navLinkClass("/gallery")}>
               Gallery
             </Link>
             <Link
               href="/vision-2026"
-              className="flex items-center gap-1.5 text-sm font-semibold text-white transition-colors hover:text-[#FFB6C1] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
+              className={`flex items-center gap-1.5 ${navLinkClass("/vision-2026")}`}
             >
               Vision 2026
               <Badge className="text-xs bg-vision-gradient text-white border-0">New</Badge>
@@ -170,7 +173,11 @@ export function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="text-sm font-semibold text-[#FFB6C1] transition-colors hover:text-[#FF69B4] px-3 py-1.5 rounded-md hover:bg-[#FFB6C1]/10"
+                className={`text-sm font-semibold transition-colors px-3 py-1.5 rounded-md ${
+                  isActive("/admin")
+                    ? "text-[#FF69B4] bg-[#FFB6C1]/10"
+                    : "text-[#FFB6C1] hover:text-[#FF69B4] hover:bg-[#FFB6C1]/10"
+                }`}
               >
                 Admin
               </Link>
@@ -281,47 +288,45 @@ export function Header() {
                 </SheetHeader>
 
                 {/* Mobile Navigation */}
-                <nav className="flex flex-col gap-4">
+                <nav className="flex flex-col gap-2">
                   <Link
                     href="/"
-                    className="text-sm font-medium"
+                    className={mobileNavLinkClass("/")}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Home
                   </Link>
                   <Link
                     href="/services"
-                    className="text-sm font-medium"
+                    className={mobileNavLinkClass("/services")}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Services
                   </Link>
                   <Link
                     href="/classes"
-                    className="text-sm font-medium"
+                    className={mobileNavLinkClass("/classes")}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Classes
                   </Link>
                   <Link
                     href="/products"
-                    className="text-sm font-medium"
+                    className={mobileNavLinkClass("/products")}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Products
                   </Link>
-
                   <Link
                     href="/gallery"
-                    className="text-sm font-medium"
+                    className={mobileNavLinkClass("/gallery")}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Gallery
                   </Link>
-
                   <Link
                     href="/vision-2026"
-                    className="flex items-center gap-2 text-sm font-medium"
+                    className={`flex items-center gap-2 ${mobileNavLinkClass("/vision-2026")}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Vision 2026

@@ -49,6 +49,7 @@ import {
 import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 import type { Product } from "@/types";
@@ -60,7 +61,7 @@ interface ProductDetailPageProps {
 export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { authenticated } = useAuth();
+  const { authenticated, session } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -78,8 +79,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [addingToCart, setAddingToCart] = useState(false);
   const [addingToWishlist, setAddingToWishlist] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
-  const [cartSuccess, setCartSuccess] = useState(false);
-  const [wishlistSuccess, setWishlistSuccess] = useState(false);
 
   useEffect(() => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedParams.id);
@@ -137,7 +136,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
       try {
         const res = await fetch(`${API_BASE_URL}/wishlist`, {
-          credentials: "include",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
         if (res.ok) {
           const wishlist = await res.json();
@@ -169,8 +168,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     try {
       const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
         body: JSON.stringify({
           productId: product?.id,
           productVariantId: selectedVariant || undefined,
@@ -179,15 +180,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       });
 
       if (res.ok) {
-        setCartSuccess(true);
-        setTimeout(() => setCartSuccess(false), 3000);
+        toast.success("Added to cart!");
       } else {
         const errorData = await res.json();
-        alert(errorData.detail || "Failed to add to cart");
+        toast.error(errorData.detail || "Failed to add to cart");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add to cart");
+      toast.error("Failed to add to cart");
     } finally {
       setAddingToCart(false);
     }
@@ -202,30 +202,31 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     setAddingToWishlist(true);
     try {
       if (inWishlist) {
-        // Remove from wishlist
         const res = await fetch(`${API_BASE_URL}/wishlist/${product?.id}`, {
           method: "DELETE",
-          credentials: "include",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
         if (res.ok) {
           setInWishlist(false);
+          toast.success("Removed from wishlist");
         }
       } else {
-        // Add to wishlist
         const res = await fetch(`${API_BASE_URL}/wishlist`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
           body: JSON.stringify({ productId: product?.id }),
         });
         if (res.ok) {
           setInWishlist(true);
-          setWishlistSuccess(true);
-          setTimeout(() => setWishlistSuccess(false), 3000);
+          toast.success("Added to wishlist!");
         }
       }
     } catch (error) {
       console.error("Error toggling wishlist:", error);
+      toast.error("Failed to update wishlist");
     } finally {
       setAddingToWishlist(false);
     }
@@ -303,20 +304,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Success Messages */}
-        {cartSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-800">
-            <Check className="h-5 w-5" />
-            <span>Added to cart successfully!</span>
-          </div>
-        )}
-        {wishlistSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-md border border-secondary bg-secondary/10 px-4 py-3 text-secondary">
-            <Check className="h-5 w-5" />
-            <span>Added to wishlist!</span>
-          </div>
-        )}
-
         {/* Back Button */}
         <Button variant="ghost" onClick={() => router.back()} className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />

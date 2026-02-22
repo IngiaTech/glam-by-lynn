@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { extractErrorMessage } from "@/lib/error-utils";
 
 interface GalleryPost {
@@ -40,6 +42,12 @@ export default function GalleryManagement() {
   const [featuredFilter, setFeaturedFilter] = useState<"all" | "featured" | "not_featured">("all");
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -103,33 +111,36 @@ export default function GalleryManagement() {
       window.location.reload();
     } catch (err) {
       console.error("Error toggling featured status:", err);
-      alert("Failed to update featured status");
+      toast.error("Failed to update featured status");
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm("Are you sure you want to delete this gallery post? This action cannot be undone.")) {
-      return;
-    }
+  const handleDeletePost = (postId: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Gallery Post",
+      description: "Are you sure you want to delete this gallery post? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/gallery/${postId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/gallery/${postId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Refresh posts
-      window.location.reload();
-    } catch (err: any) {
-      console.error("Error deleting post:", err);
-      alert(extractErrorMessage(err, "Failed to delete post"));
-    }
+          // Refresh posts
+          window.location.reload();
+        } catch (err: any) {
+          console.error("Error deleting post:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete post"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -378,6 +389,17 @@ export default function GalleryManagement() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) =>
+          setConfirmDialog((prev) => ({ ...prev, open }))
+        }
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

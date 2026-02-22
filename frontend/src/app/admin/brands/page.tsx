@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Brand {
   id: string;
@@ -40,6 +42,7 @@ export default function BrandsManagement() {
 
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -106,33 +109,36 @@ export default function BrandsManagement() {
       ));
     } catch (err) {
       console.error("Error toggling brand status:", err);
-      alert("Failed to update brand status");
+      toast.error("Failed to update brand status");
     }
   };
 
-  const handleDeleteBrand = async (brandId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This will fail if there are products using this brand.`)) {
-      return;
-    }
+  const handleDeleteBrand = (brandId: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Brand",
+      description: `Are you sure you want to delete "${name}"? This will fail if there are products using this brand.`,
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/brands/${brandId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/brands/${brandId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setBrands(brands.filter(b => b.id !== brandId));
-      setTotalBrands(totalBrands - 1);
-    } catch (err: any) {
-      console.error("Error deleting brand:", err);
-      alert(extractErrorMessage(err, "Failed to delete brand"));
-    }
+          setBrands(brands.filter(b => b.id !== brandId));
+          setTotalBrands(totalBrands - 1);
+        } catch (err: any) {
+          console.error("Error deleting brand:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete brand"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -356,6 +362,15 @@ export default function BrandsManagement() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({...prev, open}))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

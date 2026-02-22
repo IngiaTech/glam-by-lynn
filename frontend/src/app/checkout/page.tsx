@@ -41,7 +41,7 @@ interface SavedAddress {
 }
 
 export default function CheckoutPage() {
-  const { user, authenticated } = useAuth();
+  const { user, authenticated, session } = useAuth();
   const router = useRouter();
 
   // State
@@ -85,7 +85,7 @@ export default function CheckoutPage() {
         if (authenticated) {
           // Fetch cart
           const cartRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-            credentials: "include",
+            headers: { Authorization: `Bearer ${session?.accessToken}` },
           });
 
           if (cartRes.ok) {
@@ -95,7 +95,7 @@ export default function CheckoutPage() {
 
           // Fetch saved addresses from previous orders
           const ordersRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.LIST}?limit=5`, {
-            credentials: "include",
+            headers: { Authorization: `Bearer ${session?.accessToken}` },
           });
 
           if (ordersRes.ok) {
@@ -170,7 +170,7 @@ export default function CheckoutPage() {
         `${API_BASE_URL}${API_ENDPOINTS.PROMO_CODES.VALIDATE}?code=${encodeURIComponent(
           promoCode
         )}&orderAmount=${subtotal}`,
-        { credentials: "include" }
+        { headers: { Authorization: `Bearer ${session?.accessToken}` } }
       );
 
       if (res.ok) {
@@ -253,8 +253,7 @@ export default function CheckoutPage() {
 
       const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.CREATE}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.accessToken}` },
         body: JSON.stringify(orderData),
       });
 
@@ -266,7 +265,7 @@ export default function CheckoutPage() {
         if (authenticated) {
           await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
             method: "DELETE",
-            credentials: "include",
+            headers: { Authorization: `Bearer ${session?.accessToken}` },
           });
         } else {
           localStorage.removeItem("guestCart");

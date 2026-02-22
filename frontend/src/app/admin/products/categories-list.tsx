@@ -6,6 +6,8 @@ import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { resolveImageUrl } from "@/lib/utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Category {
   id: string;
@@ -37,6 +39,12 @@ export function CategoriesList() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [error, setError] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -127,33 +135,36 @@ export function CategoriesList() {
       window.location.reload();
     } catch (err) {
       console.error("Error toggling category status:", err);
-      alert("Failed to update category status");
+      toast.error("Failed to update category status");
     }
   };
 
-  const handleDeleteCategory = async (categoryId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This will also delete all subcategories and fail if there are products using this category.`)) {
-      return;
-    }
+  const handleDeleteCategory = (categoryId: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      title: `Delete "${name}"`,
+      description: `Are you sure you want to delete "${name}"? This will also delete all subcategories and fail if there are products using this category.`,
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/categories/${categoryId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/categories/${categoryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Refresh categories
-      window.location.reload();
-    } catch (err: any) {
-      console.error("Error deleting category:", err);
-      alert(extractErrorMessage(err, "Failed to delete category"));
-    }
+          // Refresh categories
+          window.location.reload();
+        } catch (err: any) {
+          console.error("Error deleting category:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete category"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -346,6 +357,14 @@ export function CategoriesList() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

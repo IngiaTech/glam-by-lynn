@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Brand {
   id: string;
@@ -71,6 +73,12 @@ export function ProductsList() {
 
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // Fetch brands and categories for filters
   useEffect(() => {
@@ -182,34 +190,37 @@ export function ProductsList() {
       ));
     } catch (err) {
       console.error("Error toggling product status:", err);
-      alert("Failed to update product status");
+      toast.error("Failed to update product status");
     }
   };
 
-  const handleDeleteProduct = async (productId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteProduct = (productId: string, title: string) => {
+    setConfirmDialog({
+      open: true,
+      title: `Delete "${title}"`,
+      description: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const session = await fetch("/api/auth/session").then(res => res.json());
+          const token = session?.accessToken;
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const session = await fetch("/api/auth/session").then(res => res.json());
-      const token = session?.accessToken;
+          if (!token) return;
 
-      if (!token) return;
+          await axios.delete(
+            `${apiUrl}/api/admin/products/${productId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
 
-      await axios.delete(
-        `${apiUrl}/api/admin/products/${productId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Refresh products
-      setProducts(products.filter(p => p.id !== productId));
-      setTotalProducts(totalProducts - 1);
-    } catch (err: any) {
-      console.error("Error deleting product:", err);
-      alert(extractErrorMessage(err, "Failed to delete product"));
-    }
+          // Refresh products
+          setProducts(products.filter(p => p.id !== productId));
+          setTotalProducts(totalProducts - 1);
+        } catch (err: any) {
+          console.error("Error deleting product:", err);
+          toast.error(extractErrorMessage(err, "Failed to delete product"));
+        }
+      },
+    });
   };
 
   const handleClearFilters = () => {
@@ -534,6 +545,14 @@ export function ProductsList() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }
