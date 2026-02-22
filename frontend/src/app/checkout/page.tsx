@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { ShoppingCart, MapPin, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { resolveImageUrl } from "@/lib/utils";
 
 interface CartItem {
   id: string;
@@ -28,8 +29,8 @@ interface CartItem {
     id: string;
     title: string;
     slug: string;
-    basePrice: number;
-    images?: Array<{ url: string; alt_text?: string }>;
+    basePrice: number | string;
+    images?: Array<{ imageUrl: string; altText?: string }>;
   };
 }
 
@@ -162,7 +163,7 @@ export default function CheckoutPage() {
     setValidatingPromo(true);
     try {
       const subtotal = cartItems.reduce(
-        (sum, item) => sum + item.product.basePrice * item.quantity,
+        (sum, item) => sum + Number(item.product.basePrice) * item.quantity,
         0
       );
 
@@ -232,7 +233,7 @@ export default function CheckoutPage() {
 
     try {
       const subtotal = cartItems.reduce(
-        (sum, item) => sum + item.product.basePrice * item.quantity,
+        (sum, item) => sum + Number(item.product.basePrice) * item.quantity,
         0
       );
 
@@ -288,7 +289,7 @@ export default function CheckoutPage() {
   };
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.basePrice * item.quantity,
+    (sum, item) => sum + Number(item.product.basePrice) * item.quantity,
     0
   );
   const deliveryFee = 200; // Fixed for now
@@ -537,7 +538,7 @@ export default function CheckoutPage() {
                         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                           {item.product.images?.[0] ? (
                             <Image
-                              src={item.product.images[0].url}
+                              src={resolveImageUrl(item.product.images[0].imageUrl)}
                               alt={item.product.title}
                               fill
                               className="object-cover"
@@ -559,11 +560,11 @@ export default function CheckoutPage() {
                             {item.product.title}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            KSh {item.product.basePrice.toFixed(2)} × {item.quantity}
+                            KSh {Number(item.product.basePrice).toFixed(2)} × {item.quantity}
                           </p>
                         </div>
                         <div className="text-sm font-medium">
-                          KSh {(item.product.basePrice * item.quantity).toFixed(2)}
+                          KSh {(Number(item.product.basePrice) * item.quantity).toFixed(2)}
                         </div>
                       </div>
                     ))}

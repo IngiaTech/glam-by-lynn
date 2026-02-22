@@ -182,8 +182,8 @@ export default function CartPage() {
   };
 
   const getItemPrice = (item: CartItem): number => {
-    const basePrice = item.product.basePrice;
-    const variantAdjustment = item.productVariant?.priceAdjustment || 0;
+    const basePrice = Number(item.product.basePrice);
+    const variantAdjustment = Number(item.productVariant?.priceAdjustment || 0);
     return basePrice + variantAdjustment;
   };
 
