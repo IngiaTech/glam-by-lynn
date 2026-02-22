@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
@@ -116,15 +115,16 @@ export function Header() {
         {/* Main header */}
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/glam-by-lynn-logo.png"
+          <Link href="/" className="flex items-center gap-2">
+            <img
+              src="/glam-by-lynn-favicon.png"
               alt="Glam by Lynn"
-              width={48}
-              height={48}
-              className="h-12 w-12"
-              priority
+              className="h-6 w-6"
             />
+            <h1 className="text-xl font-bold md:text-2xl">
+              <span className="text-white">Glam by </span>
+              <span className="text-[#FFB6C1]">Lynn</span>
+            </h1>
           </Link>
 
           {/* Desktop Navigation */}
@@ -267,14 +267,16 @@ export function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-80">
                 <SheetHeader>
-                  <SheetTitle>
-                    <Image
-                      src="/glam-by-lynn-logo.png"
+                  <SheetTitle className="flex items-center gap-2">
+                    <img
+                      src="/glam-by-lynn-favicon.png"
                       alt="Glam by Lynn"
-                      width={40}
-                      height={40}
-                      className="h-10 w-10"
+                      className="h-6 w-6"
                     />
+                    <span>
+                      <span className="text-foreground">Glam by </span>
+                      <span className="text-secondary">Lynn</span>
+                    </span>
                   </SheetTitle>
                 </SheetHeader>
 
