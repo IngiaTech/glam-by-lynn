@@ -133,6 +133,17 @@ class CategorySummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ProductImageSummary(BaseModel):
+    """Lightweight image summary included in product responses"""
+    id: UUID
+    image_url: str
+    alt_text: Optional[str] = None
+    is_primary: bool = False
+    display_order: int = 0
+
+    model_config = {"from_attributes": True}
+
+
 class ProductResponse(ProductBase):
     """Schema for product response"""
     id: UUID
@@ -141,6 +152,7 @@ class ProductResponse(ProductBase):
     updated_at: datetime
     brand: Optional[BrandSummary] = None
     category: Optional[CategorySummary] = None
+    images: List[ProductImageSummary] = Field(default_factory=list)
 
     @computed_field
     @property
