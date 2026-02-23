@@ -21,6 +21,10 @@ import {
   MapPin,
   ToggleLeft,
   Loader2,
+  HardDrive,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
@@ -87,6 +91,25 @@ export default function AdminSettingsPage() {
     notificationEmail: "admin@glambylynn.com",
   });
 
+  // Image Storage Settings
+  const [storageProvider, setStorageProvider] = useState<"local" | "s3" | "cloudinary">("local");
+  const [s3Config, setS3Config] = useState({
+    bucket_name: "",
+    access_key_id: "",
+    secret_access_key: "",
+    region: "us-east-1",
+  });
+  const [cloudinaryConfig, setCloudinaryConfig] = useState({
+    cloud_name: "",
+    api_key: "",
+    api_secret: "",
+  });
+  const [storageSaving, setStorageSaving] = useState(false);
+  const [storageTesting, setStorageTesting] = useState(false);
+  const [storageTestResult, setStorageTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [storageSuccess, setStorageSuccess] = useState("");
+  const [storageError, setStorageError] = useState("");
+
   // Fetch saved settings from API on mount
   useEffect(() => {
     async function loadSettings() {
@@ -113,6 +136,31 @@ export default function AdminSettingsPage() {
             tiktok: data.social_tiktok ?? "",
             youtube: data.social_youtube ?? "",
           }));
+        }
+
+        // Load storage settings
+        const storageRes = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.STORAGE_GET}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (storageRes.ok) {
+          const storageData = await storageRes.json();
+          setStorageProvider(storageData.provider || "local");
+          if (storageData.s3) {
+            setS3Config({
+              bucket_name: storageData.s3.bucket_name || "",
+              access_key_id: storageData.s3.access_key_id || "",
+              secret_access_key: storageData.s3.secret_access_key || "",
+              region: storageData.s3.region || "us-east-1",
+            });
+          }
+          if (storageData.cloudinary) {
+            setCloudinaryConfig({
+              cloud_name: storageData.cloudinary.cloud_name || "",
+              api_key: storageData.cloudinary.api_key || "",
+              api_secret: storageData.cloudinary.api_secret || "",
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
@@ -276,6 +324,74 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const handleTestStorageConnection = async () => {
+    setStorageTesting(true);
+    setStorageTestResult(null);
+    setStorageError("");
+
+    try {
+      const token = (session as any)?.accessToken;
+      const body: any = { provider: storageProvider };
+      if (storageProvider === "s3") body.s3 = s3Config;
+      if (storageProvider === "cloudinary") body.cloudinary = cloudinaryConfig;
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.STORAGE_TEST}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) throw new Error("Test request failed");
+      const result = await response.json();
+      setStorageTestResult(result);
+    } catch (err: any) {
+      setStorageTestResult({ success: false, message: extractErrorMessage(err, "Connection test failed") });
+    } finally {
+      setStorageTesting(false);
+    }
+  };
+
+  const handleSaveStorageSettings = async () => {
+    setStorageSaving(true);
+    setStorageError("");
+    setStorageSuccess("");
+    setStorageTestResult(null);
+
+    try {
+      const token = (session as any)?.accessToken;
+      const body: any = { provider: storageProvider };
+      if (storageProvider === "s3") body.s3 = s3Config;
+      if (storageProvider === "cloudinary") body.cloudinary = cloudinaryConfig;
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.STORAGE_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to save storage settings");
+
+      setStorageSuccess("Storage settings saved successfully");
+      setTimeout(() => setStorageSuccess(""), 3000);
+    } catch (err: any) {
+      setStorageError(extractErrorMessage(err, "Failed to save storage settings"));
+    } finally {
+      setStorageSaving(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -355,6 +471,185 @@ export default function AdminSettingsPage() {
                     <Button onClick={handleSaveFeatureToggles} disabled={saving}>
                       <Save className="mr-2 h-4 w-4" />
                       {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Image Storage Section */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5" />
+                Image Storage
+              </CardTitle>
+              <CardDescription>
+                Configure where uploaded images are stored
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {settingsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  {/* Success / Error */}
+                  {storageSuccess && (
+                    <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-3 rounded text-sm">
+                      {storageSuccess}
+                    </div>
+                  )}
+                  {storageError && (
+                    <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded text-sm">
+                      {storageError}
+                    </div>
+                  )}
+
+                  {/* Provider Select */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Storage Provider</label>
+                    <select
+                      value={storageProvider}
+                      onChange={(e) => {
+                        setStorageProvider(e.target.value as "local" | "s3" | "cloudinary");
+                        setStorageTestResult(null);
+                      }}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                    >
+                      <option value="local">Local Storage (default)</option>
+                      <option value="s3">Amazon S3</option>
+                      <option value="cloudinary">Cloudinary</option>
+                    </select>
+                  </div>
+
+                  {/* Warning Banner */}
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>Switching providers does not migrate existing images. Old image URLs will continue to work as long as the files remain at their original location.</span>
+                  </div>
+
+                  {/* S3 Config */}
+                  {storageProvider === "s3" && (
+                    <div className="space-y-3 p-4 border rounded-lg">
+                      <h4 className="font-medium text-sm">Amazon S3 Configuration</h4>
+                      <div>
+                        <label className="block text-sm mb-1">Bucket Name</label>
+                        <input
+                          type="text"
+                          value={s3Config.bucket_name}
+                          onChange={(e) => setS3Config({ ...s3Config, bucket_name: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="my-bucket"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm mb-1">Access Key ID</label>
+                        <input
+                          type="text"
+                          value={s3Config.access_key_id}
+                          onChange={(e) => setS3Config({ ...s3Config, access_key_id: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="AKIA..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm mb-1">Secret Access Key</label>
+                        <input
+                          type="password"
+                          value={s3Config.secret_access_key}
+                          onChange={(e) => setS3Config({ ...s3Config, secret_access_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="Enter secret access key"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm mb-1">Region</label>
+                        <input
+                          type="text"
+                          value={s3Config.region}
+                          onChange={(e) => setS3Config({ ...s3Config, region: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="us-east-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cloudinary Config */}
+                  {storageProvider === "cloudinary" && (
+                    <div className="space-y-3 p-4 border rounded-lg">
+                      <h4 className="font-medium text-sm">Cloudinary Configuration</h4>
+                      <div>
+                        <label className="block text-sm mb-1">Cloud Name</label>
+                        <input
+                          type="text"
+                          value={cloudinaryConfig.cloud_name}
+                          onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, cloud_name: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="my-cloud"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm mb-1">API Key</label>
+                        <input
+                          type="text"
+                          value={cloudinaryConfig.api_key}
+                          onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, api_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="123456789"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm mb-1">API Secret</label>
+                        <input
+                          type="password"
+                          value={cloudinaryConfig.api_secret}
+                          onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, api_secret: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          placeholder="Enter API secret"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Test Connection Result */}
+                  {storageTestResult && (
+                    <div
+                      className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
+                        storageTestResult.success
+                          ? "bg-green-50 border border-green-200 text-green-800"
+                          : "bg-red-50 border border-red-200 text-red-800"
+                      }`}
+                    >
+                      {storageTestResult.success ? (
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      )}
+                      <span>{storageTestResult.message}</span>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleTestStorageConnection}
+                      disabled={storageTesting || storageSaving}
+                    >
+                      {storageTesting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      {storageTesting ? "Testing..." : "Test Connection"}
+                    </Button>
+                    <Button onClick={handleSaveStorageSettings} disabled={storageSaving || storageTesting}>
+                      <Save className="mr-2 h-4 w-4" />
+                      {storageSaving ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </>

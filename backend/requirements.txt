@@ -27,6 +27,10 @@ python-dateutil>=2.8.2
 
 # File storage
 boto3>=1.34.0
+cloudinary>=1.36.0
+
+# Encryption
+cryptography>=42.0.0
 
 # Testing
 pytest>=8.0.0

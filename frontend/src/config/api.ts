@@ -130,6 +130,9 @@ export const API_ENDPOINTS = {
     PUBLIC: "/api/settings/public",
     ADMIN_LIST: "/api/admin/settings",
     ADMIN_UPDATE: "/api/admin/settings",
+    STORAGE_GET: "/api/admin/settings/storage",
+    STORAGE_UPDATE: "/api/admin/settings/storage",
+    STORAGE_TEST: "/api/admin/settings/storage/test",
   },
 } as const;
 
