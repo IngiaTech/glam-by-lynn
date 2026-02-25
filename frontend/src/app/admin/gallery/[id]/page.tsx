@@ -6,6 +6,11 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 
 const galleryPostSchema = z.object({
   mediaType: z.enum(["image", "video"]),
@@ -257,15 +262,14 @@ export default function EditGalleryPost() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Media URLs</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Media URL <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="url"
                 value={formData.mediaUrl}
                 onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="https://example.com/image.jpg"
               />
               {errors.mediaUrl && <p className="text-red-500 text-sm mt-1">{errors.mediaUrl}</p>}
@@ -275,15 +279,12 @@ export default function EditGalleryPost() {
             </div>
 
             {formData.mediaType === "video" && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Thumbnail URL
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label>Thumbnail URL</Label>
+                <Input
                   type="url"
                   value={formData.thumbnailUrl}
                   onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="https://example.com/thumbnail.jpg"
                 />
                 {errors.thumbnailUrl && <p className="text-red-500 text-sm mt-1">{errors.thumbnailUrl}</p>}
@@ -329,15 +330,12 @@ export default function EditGalleryPost() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Content Details</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Caption
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label>Caption</Label>
+              <Textarea
                 value={formData.caption}
                 onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Describe this photo or video..."
               />
               {errors.caption && <p className="text-red-500 text-sm mt-1">{errors.caption}</p>}
@@ -346,49 +344,47 @@ export default function EditGalleryPost() {
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Tags
-              </label>
+            <div className="space-y-2">
+              <Label>Tags</Label>
               <div className="flex gap-2">
-                <input
+                <Input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                  className="flex-1"
                   placeholder="Enter a tag and press Enter"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={handleAddTag}
-                  className="px-4 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90"
                 >
                   Add
-                </button>
+                </Button>
               </div>
               {formData.tags && formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {formData.tags.map((tag, index) => (
                     <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-muted text-foreground rounded-full text-sm">
                       #{tag}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => handleRemoveTag(tag)}
-                        className="text-muted-foreground hover:text-foreground"
                       >
                         ×
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Source Type
-              </label>
+            <div className="space-y-2">
+              <Label>Source Type</Label>
               <div className="grid grid-cols-3 gap-3">
                 {SOURCE_TYPES.map((source) => (
                   <label
@@ -417,16 +413,13 @@ export default function EditGalleryPost() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Display Order
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label>Display Order</Label>
+                <Input
                   type="number"
                   min="0"
                   value={formData.displayOrder}
                   onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   Lower numbers appear first
@@ -434,36 +427,34 @@ export default function EditGalleryPost() {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Switch
                 id="isFeatured"
                 checked={formData.isFeatured}
-                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
               />
-              <label htmlFor="isFeatured" className="ml-2 text-sm text-foreground">
-                ⭐ Featured (display prominently on homepage)
-              </label>
+              <Label htmlFor="isFeatured">
+                Featured (display prominently on homepage)
+              </Label>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push("/admin/gallery")}
-            className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            variant="secondary"
             disabled={submitting}
-            className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

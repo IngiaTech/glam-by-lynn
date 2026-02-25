@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 import { z } from "zod";
 
@@ -297,61 +302,50 @@ export default function NewServicePackage() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Basic Information</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Package Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              </Label>
+              <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="e.g., Premium Bridal Package"
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Description
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Describe what's included in this package..."
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Duration (minutes)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label>Duration (minutes)</Label>
+                <Input
                   type="number"
                   min="1"
                   value={formData.duration_minutes || ""}
                   onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="e.g., 120"
                 />
                 {errors.duration_minutes && <p className="text-red-500 text-sm mt-1">{errors.duration_minutes}</p>}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Display Order
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label>Display Order</Label>
+                <Input
                   type="number"
                   min="0"
                   value={formData.display_order}
                   onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 />
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   Lower numbers appear first
                 </p>
               </div>
@@ -366,16 +360,15 @@ export default function NewServicePackage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {relevantFields.showBridePrice && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <Label>
                   Bride Price (KES)
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   min="0"
                   step="0.01"
                   value={formData.base_bride_price || ""}
                   onChange={(e) => setFormData({ ...formData, base_bride_price: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="0.00"
                 />
                 {errors.base_bride_price && <p className="text-red-500 text-sm mt-1">{errors.base_bride_price}</p>}
@@ -384,16 +377,15 @@ export default function NewServicePackage() {
 
             {relevantFields.showMaidPrice && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <Label>
                   Maid Price (KES per person)
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   min="0"
                   step="0.01"
                   value={formData.base_maid_price || ""}
                   onChange={(e) => setFormData({ ...formData, base_maid_price: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="0.00"
                 />
                 {errors.base_maid_price && <p className="text-red-500 text-sm mt-1">{errors.base_maid_price}</p>}
@@ -402,16 +394,15 @@ export default function NewServicePackage() {
 
             {relevantFields.showMotherPrice && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <Label>
                   Mother Price (KES)
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   min="0"
                   step="0.01"
                   value={formData.base_mother_price || ""}
                   onChange={(e) => setFormData({ ...formData, base_mother_price: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="0.00"
                 />
                 {errors.base_mother_price && <p className="text-red-500 text-sm mt-1">{errors.base_mother_price}</p>}
@@ -420,16 +411,15 @@ export default function NewServicePackage() {
 
             {relevantFields.showOtherPrice && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <Label>
                   {formData.package_type === "classes" ? "Class Price (KES)" : "Other Attendee Price (KES)"}
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   min="0"
                   step="0.01"
                   value={formData.base_other_price || ""}
                   onChange={(e) => setFormData({ ...formData, base_other_price: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   placeholder="0.00"
                 />
                 {errors.base_other_price && <p className="text-red-500 text-sm mt-1">{errors.base_other_price}</p>}
@@ -441,30 +431,30 @@ export default function NewServicePackage() {
             <div className="mt-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">Maid Range Configuration</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="space-y-2">
+                  <Label htmlFor="minMaids">
                     Minimum Maids
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="minMaids"
                     type="number"
                     min="0"
                     value={formData.min_maids}
                     onChange={(e) => setFormData({ ...formData, min_maids: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   />
                   {errors.min_maids && <p className="text-red-500 text-sm mt-1">{errors.min_maids}</p>}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="space-y-2">
+                  <Label htmlFor="maxMaids">
                     Maximum Maids
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="maxMaids"
                     type="number"
                     min="1"
                     value={formData.max_maids || ""}
                     onChange={(e) => setFormData({ ...formData, max_maids: e.target.value ? parseInt(e.target.value) : undefined })}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                     placeholder="e.g., 10"
                   />
                   {errors.max_maids && <p className="text-red-500 text-sm mt-1">{errors.max_maids}</p>}
@@ -478,33 +468,29 @@ export default function NewServicePackage() {
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Additional Options</h2>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {relevantFields.showFacial && (
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2">
+                <Switch
                   id="includes_facial"
                   checked={formData.includes_facial}
-                  onChange={(e) => setFormData({ ...formData, includes_facial: e.target.checked })}
-                  className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                  onCheckedChange={(checked) => setFormData({ ...formData, includes_facial: checked })}
                 />
-                <label htmlFor="includes_facial" className="ml-2 text-sm text-foreground">
+                <Label htmlFor="includes_facial" className="font-normal">
                   Includes facial treatment
-                </label>
+                </Label>
               </div>
             )}
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Switch
                 id="is_active"
                 checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
-              <label htmlFor="is_active" className="ml-2 text-sm text-foreground">
+              <Label htmlFor="is_active" className="font-normal">
                 Active (visible to customers)
-              </label>
+              </Label>
             </div>
           </div>
         </div>
@@ -532,20 +518,16 @@ export default function NewServicePackage() {
         )}
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push("/admin/services")}
-            className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={submitting}>
             {submitting ? "Creating..." : "Create Package"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -8,6 +8,12 @@ import axios from "axios";
 import { z } from "zod";
 import { ProductImageUpload, ProductImage } from "@/components/admin/ProductImageUpload";
 import { ProductVideoInput, ProductVideo } from "@/components/admin/ProductVideoInput";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(500, "Title too long"),
@@ -268,80 +274,77 @@ export default function NewProduct() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Basic Information</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Title <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Product name"
               />
               {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Description
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Product description"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Brand
-                </label>
-                <select
-                  value={formData.brand_id}
-                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              <div className="space-y-2">
+                <Label>Brand</Label>
+                <Select
+                  value={formData.brand_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, brand_id: value === "none" ? "" : value })}
                 >
-                  <option value="">Select Brand</option>
-                  {brands.map((brand) => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select Brand</SelectItem>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Category
-                </label>
-                <select
-                  value={formData.category_id}
-                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={formData.category_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value === "none" ? "" : value })}
                 >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select Category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                SKU
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label>SKU</Label>
+              <Input
                 type="text"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Stock keeping unit"
               />
             </div>
@@ -353,53 +356,53 @@ export default function NewProduct() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Pricing</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Base Price (KES) <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.base_price || ""}
                 onChange={(e) => setFormData({ ...formData, base_price: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
               {errors.base_price && <p className="text-red-500 text-sm mt-1">{errors.base_price}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Discount Type
-                </label>
-                <select
-                  value={formData.discount_type || ""}
-                  onChange={(e) => setFormData({
+              <div className="space-y-2">
+                <Label>Discount Type</Label>
+                <Select
+                  value={formData.discount_type || "none"}
+                  onValueChange={(value) => setFormData({
                     ...formData,
-                    discount_type: e.target.value as "percentage" | "fixed" | undefined
+                    discount_type: value === "none" ? undefined : value as "percentage" | "fixed"
                   })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 >
-                  <option value="">No Discount</option>
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed Amount</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No Discount" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Discount</SelectItem>
+                    <SelectItem value="percentage">Percentage</SelectItem>
+                    <SelectItem value="fixed">Fixed Amount</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {formData.discount_type && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="space-y-2">
+                  <Label>
                     Discount Value {formData.discount_type === "percentage" && "(%)"}
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="number"
                     min="0"
                     step="0.01"
                     max={formData.discount_type === "percentage" ? "100" : undefined}
                     value={formData.discount_value || ""}
                     onChange={(e) => setFormData({ ...formData, discount_value: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                   />
                   {errors.discount_value && <p className="text-red-500 text-sm mt-1">{errors.discount_value}</p>}
                 </div>
@@ -413,30 +416,26 @@ export default function NewProduct() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Inventory</h2>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Inventory Count <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="number"
                 min="0"
                 value={formData.inventory_count || ""}
                 onChange={(e) => setFormData({ ...formData, inventory_count: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
               {errors.inventory_count && <p className="text-red-500 text-sm mt-1">{errors.inventory_count}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Low Stock Threshold
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label>Low Stock Threshold</Label>
+              <Input
                 type="number"
                 min="0"
                 value={formData.low_stock_threshold || ""}
                 onChange={(e) => setFormData({ ...formData, low_stock_threshold: parseInt(e.target.value) || 10 })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
             </div>
           </div>
@@ -448,21 +447,20 @@ export default function NewProduct() {
 
           <div className="space-y-4">
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                className="flex-1"
                 placeholder="Add a tag"
               />
-              <button
+              <Button
                 type="button"
                 onClick={addTag}
-                className="px-4 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90"
               >
                 Add
-              </button>
+              </Button>
             </div>
 
             {formData.tags && formData.tags.length > 0 && (
@@ -512,29 +510,23 @@ export default function NewProduct() {
           <h2 className="text-xl font-semibold text-foreground mb-4">SEO Metadata</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Meta Title
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label>Meta Title</Label>
+              <Input
                 type="text"
                 maxLength={255}
                 value={formData.meta_title}
                 onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="SEO title"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Meta Description
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label>Meta Description</Label>
+              <Textarea
                 value={formData.meta_description}
                 onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="SEO description"
               />
             </div>
@@ -546,54 +538,45 @@ export default function NewProduct() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Status</h2>
 
           <div className="space-y-4">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Switch
                 id="is_active"
                 checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
-              <label htmlFor="is_active" className="ml-2 text-sm text-foreground">
-                Active (visible to customers)
-              </label>
+              <Label htmlFor="is_active">Active (visible to customers)</Label>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Switch
                 id="is_featured"
                 checked={formData.is_featured}
-                onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
               />
-              <label htmlFor="is_featured" className="ml-2 text-sm text-foreground">
-                Featured product
-              </label>
+              <Label htmlFor="is_featured">Featured product</Label>
             </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push("/admin/products")}
-            className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={submitting || uploadingMedia}
-            className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
           >
             {uploadingMedia
               ? "Uploading images..."
               : submitting
               ? "Creating product..."
               : "Create Product"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

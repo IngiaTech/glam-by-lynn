@@ -8,6 +8,10 @@ import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ENROLLMENT_STATUSES = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -252,12 +256,12 @@ export function EnrollmentsList() {
             Manage class enrollment requests
           </p>
         </div>
-        <button
+        <Button
           onClick={handleExportCSV}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
+          className="bg-secondary hover:bg-secondary/90 text-foreground"
         >
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -265,55 +269,57 @@ export function EnrollmentsList() {
         <h3 className="text-lg font-semibold text-foreground mb-4">Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Class Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Class
-            </label>
-            <select
-              value={selectedClass}
-              onChange={(e) => {
-                setSelectedClass(e.target.value);
+          <div className="space-y-2">
+            <Label>Class</Label>
+            <Select
+              value={selectedClass || "all"}
+              onValueChange={(value) => {
+                setSelectedClass(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Classes</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.title}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(value) => {
+                setStatusFilter(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Statuses</option>
-              {ENROLLMENT_STATUSES.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {ENROLLMENT_STATUSES.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Email Search */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Email Search
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Email Search</Label>
+            <Input
               type="text"
               value={emailSearch}
               onChange={(e) => {
@@ -321,18 +327,18 @@ export function EnrollmentsList() {
                 setCurrentPage(1);
               }}
               placeholder="Search by email..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             />
           </div>
 
           {/* Clear Filters */}
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              className="w-full"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -396,28 +402,34 @@ export function EnrollmentsList() {
                         {enrollment.makeupClass?.title || "N/A"}
                       </td>
                       <td className="px-6 py-4">
-                        <select
+                        <Select
                           value={enrollment.status}
-                          onChange={(e) => handleStatusChange(enrollment.id, e.target.value)}
-                          className="px-2 py-1 border border-border rounded text-sm bg-background focus:outline-none focus:ring-2 focus:ring-secondary"
+                          onValueChange={(value) => handleStatusChange(enrollment.id, value)}
                         >
-                          {ENROLLMENT_STATUSES.map((status) => (
-                            <option key={status.value} value={status.value}>
-                              {status.label}
-                            </option>
-                          ))}
-                        </select>
+                          <SelectTrigger className="w-[130px] h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ENROLLMENT_STATUSES.map((status) => (
+                              <SelectItem key={status.value} value={status.value}>
+                                {status.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         {formatDate(enrollment.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteEnrollment(enrollment.id, enrollment.fullName)}
                           className="text-red-600 hover:text-red-800"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -431,23 +443,25 @@ export function EnrollmentsList() {
                 Showing {enrollments.length} of {totalEnrollments} enrollments
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Previous
-                </button>
+                </Button>
                 <span className="px-4 py-1 text-sm text-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>

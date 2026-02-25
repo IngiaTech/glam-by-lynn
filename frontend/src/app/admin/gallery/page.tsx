@@ -7,6 +7,9 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { extractErrorMessage } from "@/lib/error-utils";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface GalleryPost {
   id: string;
@@ -182,71 +185,78 @@ export default function GalleryManagement() {
             Manage portfolio images and videos
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
           onClick={() => router.push("/admin/gallery/new")}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
         >
           Upload Media
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="bg-card border border-border rounded-lg p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Media Type
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Media Type</Label>
+            <Select
               value={mediaTypeFilter}
-              onChange={(e) => setMediaTypeFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              onValueChange={(value) => setMediaTypeFilter(value as any)}
             >
-              <option value="all">All Media</option>
-              <option value="image">Images</option>
-              <option value="video">Videos</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Media" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Media</SelectItem>
+                <SelectItem value="image">Images</SelectItem>
+                <SelectItem value="video">Videos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Source
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Source</Label>
+            <Select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              onValueChange={(value) => setSourceFilter(value as any)}
             >
-              <option value="all">All Sources</option>
-              <option value="instagram">Instagram</option>
-              <option value="tiktok">TikTok</option>
-              <option value="original">Original</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Sources" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="tiktok">TikTok</SelectItem>
+                <SelectItem value="original">Original</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Featured
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Featured</Label>
+            <Select
               value={featuredFilter}
-              onChange={(e) => setFeaturedFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              onValueChange={(value) => setFeaturedFilter(value as any)}
             >
-              <option value="all">All Posts</option>
-              <option value="featured">Featured</option>
-              <option value="not_featured">Not Featured</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Posts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Posts</SelectItem>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="not_featured">Not Featured</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -337,24 +347,29 @@ export default function GalleryManagement() {
 
                     {/* Actions */}
                     <div className="mt-3 flex gap-2">
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        className="flex-1"
                         onClick={() => router.push(`/admin/gallery/${post.id}`)}
-                        className="flex-1 px-3 py-1.5 text-xs bg-secondary text-foreground rounded hover:bg-secondary/90"
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        className="flex-1"
                         onClick={() => handleToggleFeatured(post.id, post.isFeatured)}
-                        className="flex-1 px-3 py-1.5 text-xs border border-border rounded hover:bg-muted"
                       >
                         {post.isFeatured ? "Unfeature" : "Feature"}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="xs"
                         onClick={() => handleDeletePost(post.id)}
-                        className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -366,24 +381,26 @@ export default function GalleryManagement() {
               <div className="text-sm text-muted-foreground">
                 Showing {posts.length} of {totalPosts} posts
               </div>
-              <div className="flex gap-2">
-                <button
+              <div className="flex gap-2 items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-border rounded text-sm text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
-                </button>
+                </Button>
                 <span className="px-3 py-1 text-sm text-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-border rounded text-sm text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>

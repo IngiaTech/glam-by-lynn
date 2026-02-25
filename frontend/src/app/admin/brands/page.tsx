@@ -7,6 +7,10 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Brand {
   id: string;
@@ -171,23 +175,23 @@ export default function BrandsManagement() {
             Manage product brands
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
           onClick={() => router.push("/admin/brands/new")}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
         >
           Add Brand
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="bg-card border border-border rounded-lg p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-2">
+            <Label>
               Search
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={search}
               onChange={(e) => {
@@ -195,35 +199,39 @@ export default function BrandsManagement() {
                 setCurrentPage(1);
               }}
               placeholder="Search brands..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-2">
+            <Label>
               Status
-            </label>
-            <select
+            </Label>
+            <Select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "active" | "inactive");
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              className="w-full"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -308,24 +316,30 @@ export default function BrandsManagement() {
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
+                            variant="link"
+                            size="sm"
                             onClick={() => router.push(`/admin/brands/${brand.id}`)}
                             className="text-secondary hover:text-secondary/80"
                           >
                             Edit
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
                             onClick={() => handleToggleActive(brand.id, brand.is_active)}
                             className="text-foreground hover:text-foreground/80"
                           >
                             {brand.is_active ? "Deactivate" : "Activate"}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
                             onClick={() => handleDeleteBrand(brand.id, brand.name)}
                             className="text-red-600 hover:text-red-800"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -340,23 +354,25 @@ export default function BrandsManagement() {
                 Showing {brands.length} of {totalBrands} brands
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Previous
-                </button>
+                </Button>
                 <span className="px-4 py-1 text-sm text-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>

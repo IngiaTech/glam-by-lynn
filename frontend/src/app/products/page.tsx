@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Grid, List, X, Search, Filter } from "lucide-react";
 import { getProducts, type ProductFilters } from "@/lib/products";
 import type { Product, Brand, Category } from "@/types";
@@ -342,12 +343,10 @@ export default function ProductsPage() {
 
               {/* In Stock Only */}
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Switch
                   id="inStock"
                   checked={filters.inStockOnly ?? true}
-                  onChange={(e) => updateFilter("inStockOnly", e.target.checked)}
-                  className="rounded border-gray-300"
+                  onCheckedChange={(checked) => updateFilter("inStockOnly", checked)}
                 />
                 <Label htmlFor="inStock" className="cursor-pointer">
                   In stock only
@@ -447,12 +446,14 @@ export default function ProductsPage() {
                 {getActiveFilters().map((filter, index) => (
                   <Badge key={index} variant="secondary" className="gap-1">
                     {filter.label}: {filter.value}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => removeFilter(filter.key)}
-                      className="ml-1 hover:text-destructive"
+                      className="ml-1 hover:text-destructive h-auto p-0"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </Badge>
                 ))}
               </div>

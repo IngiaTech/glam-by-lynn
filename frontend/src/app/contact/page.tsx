@@ -11,6 +11,9 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 
@@ -52,50 +55,23 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <form className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="mb-1 block text-sm font-medium">
-                    Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="Your name"
-                    disabled
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" placeholder="Your name" disabled />
                 </div>
-                <div>
-                  <label htmlFor="email" className="mb-1 block text-sm font-medium">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="your.email@example.com"
-                    disabled
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="your.email@example.com" disabled />
                 </div>
-                <div>
-                  <label htmlFor="subject" className="mb-1 block text-sm font-medium">
-                    Subject
-                  </label>
-                  <input
-                    id="subject"
-                    type="text"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="How can we help?"
-                    disabled
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input id="subject" placeholder="How can we help?" disabled />
                 </div>
-                <div>
-                  <label htmlFor="message" className="mb-1 block text-sm font-medium">
-                    Message
-                  </label>
-                  <textarea
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
                     id="message"
                     rows={6}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Tell us about your event or ask any questions..."
                     disabled
                   />

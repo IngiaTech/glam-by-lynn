@@ -7,6 +7,10 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Brand {
   id: string;
@@ -257,12 +261,11 @@ export function ProductsList() {
             Manage your product catalog
           </p>
         </div>
-        <button
+        <Button
           onClick={() => router.push("/admin/products/new")}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
         >
           Add Product
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -270,11 +273,9 @@ export function ProductsList() {
         <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Search
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label>Search</Label>
+            <Input
               type="text"
               value={search}
               onChange={(e) => {
@@ -282,101 +283,109 @@ export function ProductsList() {
                 setCurrentPage(1);
               }}
               placeholder="Search products..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             />
           </div>
 
           {/* Brand Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Brand
-            </label>
-            <select
-              value={selectedBrand}
-              onChange={(e) => {
-                setSelectedBrand(e.target.value);
+          <div className="space-y-2">
+            <Label>Brand</Label>
+            <Select
+              value={selectedBrand || "all"}
+              onValueChange={(value) => {
+                setSelectedBrand(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Brands" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Category Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Category
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={selectedCategory || "all"}
+              onValueChange={(value) => {
+                setSelectedCategory(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Status
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "active" | "inactive");
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Stock Level Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Stock Level
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Stock Level</Label>
+            <Select
               value={stockFilter}
-              onChange={(e) => {
-                setStockFilter(e.target.value as any);
+              onValueChange={(value) => {
+                setStockFilter(value as "all" | "in_stock" | "low_stock" | "out_of_stock");
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="all">All Stock Levels</option>
-              <option value="in_stock">In Stock</option>
-              <option value="low_stock">Low Stock</option>
-              <option value="out_of_stock">Out of Stock</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Stock Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stock Levels</SelectItem>
+                <SelectItem value="in_stock">In Stock</SelectItem>
+                <SelectItem value="low_stock">Low Stock</SelectItem>
+                <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Clear Filters Button */}
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              className="w-full"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -523,23 +532,25 @@ export function ProductsList() {
                 Showing {products.length} of {totalProducts} products
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Previous
-                </button>
+                </Button>
                 <span className="px-4 py-1 text-sm text-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>

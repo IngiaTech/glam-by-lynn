@@ -13,6 +13,10 @@ import {
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Booking } from "@/types";
 
 const STATUS_OPTIONS = [
@@ -199,75 +203,78 @@ export default function AdminBookingsPage() {
             <h1 className="text-3xl font-bold">Booking Management</h1>
             <p className="text-muted-foreground mt-1">Manage all customer bookings</p>
           </div>
-          <button
+          <Button
             onClick={handleExportCSV}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            className="bg-green-600 text-white hover:bg-green-700"
             disabled={loading}
           >
             Export CSV
-          </button>
+          </Button>
         </div>
 
         {/* Filters */}
         <div className="bg-card p-4 rounded-lg border mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) => {
+                  setStatusFilter(value === "all" ? "" : value);
                   setPage(1);
                 }}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
               >
-                <option value="">All Statuses</option>
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Start Date</label>
-              <input
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   setPage(1);
                 }}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">End Date</label>
-              <input
+            <div className="space-y-2">
+              <Label>End Date</Label>
+              <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value);
                   setPage(1);
                 }}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
               />
             </div>
 
             <div className="flex items-end">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => {
                   setStatusFilter("");
                   setStartDate("");
                   setEndDate("");
                   setPage(1);
                 }}
-                className="w-full px-4 py-2 border rounded hover:bg-accent transition-colors"
+                className="w-full"
               >
                 Clear Filters
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -308,15 +315,16 @@ export default function AdminBookingsPage() {
                     {bookings.map((booking) => (
                       <tr key={booking.id} className="border-t hover:bg-accent/5">
                         <td className="px-4 py-3">
-                          <button
+                          <Button
+                            variant="link"
                             onClick={() => {
                               setSelectedBooking(booking);
                               setShowDetailsModal(true);
                             }}
-                            className="text-secondary hover:underline font-medium"
+                            className="text-secondary p-0 h-auto font-medium"
                           >
                             {booking.bookingNumber}
-                          </button>
+                          </Button>
                         </td>
                         <td className="px-4 py-3">
                           <div>
@@ -333,41 +341,49 @@ export default function AdminBookingsPage() {
                           <div className="text-sm text-muted-foreground">{booking.bookingTime}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <select
+                          <Select
                             value={booking.status}
-                            onChange={(e) => handleStatusChange(booking, e.target.value)}
-                            className="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-secondary"
+                            onValueChange={(value) => handleStatusChange(booking, value)}
                           >
-                            {STATUS_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-[140px] h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="px-4 py-3">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDepositToggle(booking)}
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
                               booking.depositPaid
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
+                                ? "bg-green-100 text-green-800 hover:bg-green-200"
+                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                             }`}
                           >
                             {booking.depositPaid ? "Paid" : "Unpaid"}
-                          </button>
+                          </Button>
                         </td>
                         <td className="px-4 py-3 font-medium">
                           KES {(booking.totalAmount || 0).toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleCancelBooking(booking)}
-                            className="px-3 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200 text-sm"
+                            className="bg-red-100 text-red-800 hover:bg-red-200"
                             disabled={booking.status === "cancelled"}
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -382,23 +398,23 @@ export default function AdminBookingsPage() {
                 Showing {bookings.length} of {total} bookings
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-4 py-2 border rounded hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
-                </button>
+                </Button>
                 <div className="px-4 py-2">
                   Page {page} of {totalPages}
                 </div>
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setPage(page + 1)}
                   disabled={page === totalPages}
-                  className="px-4 py-2 border rounded hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>
@@ -411,12 +427,13 @@ export default function AdminBookingsPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold">Booking Details</h2>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowDetailsModal(false)}
-                    className="text-muted-foreground hover:text-foreground"
                   >
                     ✕
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="space-y-4">
@@ -534,12 +551,13 @@ export default function AdminBookingsPage() {
                 </div>
 
                 <div className="mt-6 flex gap-3">
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 px-4 py-2 border rounded hover:bg-accent transition-colors"
+                    className="flex-1"
                   >
                     Close
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -6,6 +6,10 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import axios from "axios";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const locationSchema = z.object({
   locationName: z.string().min(1, "Location name is required").max(255, "Name too long"),
@@ -187,96 +191,88 @@ export default function EditLocation() {
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Location Information</h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="locationName">
                 Location Name <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
+                id="locationName"
                 type="text"
                 value={formData.locationName}
                 onChange={(e) => setFormData({ ...formData, locationName: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="e.g., Nairobi CBD, Kitui Town"
               />
               {errors.locationName && <p className="text-red-500 text-sm mt-1">{errors.locationName}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="county">
                 County
-              </label>
-              <input
+              </Label>
+              <Input
+                id="county"
                 type="text"
                 value={formData.county}
                 onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="e.g., Nairobi, Kitui"
               />
               {errors.county && <p className="text-red-500 text-sm mt-1">{errors.county}</p>}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 Optional: Specify the county or region
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="transportCost">
                 Transport Cost (KES)
-              </label>
-              <input
+              </Label>
+              <Input
+                id="transportCost"
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.transportCost}
                 onChange={(e) => setFormData({ ...formData, transportCost: parseFloat(e.target.value) || 0 })}
                 disabled={formData.isFree}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="0.00"
               />
               {errors.transportCost && <p className="text-red-500 text-sm mt-1">{errors.transportCost}</p>}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 Cost for transport to this location
               </p>
             </div>
 
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  type="checkbox"
-                  id="isFree"
-                  checked={formData.isFree}
-                  onChange={(e) => handleFreeToggle(e.target.checked)}
-                  className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
-                />
-              </div>
-              <div className="ml-3">
-                <label htmlFor="isFree" className="text-sm font-medium text-foreground">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="isFree">
                   Free Transport Location
-                </label>
+                </Label>
                 <p className="text-sm text-muted-foreground">
                   Mark this location as free (transport cost will be set to 0)
                 </p>
               </div>
+              <Switch
+                id="isFree"
+                checked={formData.isFree}
+                onCheckedChange={(checked) => handleFreeToggle(checked)}
+              />
             </div>
 
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
-                />
-              </div>
-              <div className="ml-3">
-                <label htmlFor="isActive" className="text-sm font-medium text-foreground">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="isActive">
                   Active
-                </label>
+                </Label>
                 <p className="text-sm text-muted-foreground">
                   Location will be visible to customers when booking
                 </p>
               </div>
+              <Switch
+                id="isActive"
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              />
             </div>
           </div>
         </div>
@@ -315,20 +311,20 @@ export default function EditLocation() {
         </div>
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push("/admin/locations")}
-            className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            variant="secondary"
             disabled={submitting}
-            className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

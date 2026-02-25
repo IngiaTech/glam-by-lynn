@@ -9,6 +9,9 @@ import {
   unblockTimeSlot,
 } from "@/lib/admin-calendar";
 import type { CalendarAvailability } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface TimeSlot {
   hour: number;
@@ -261,27 +264,27 @@ export default function AdminCalendarPage() {
   const renderControls = () => (
     <div className="flex items-center justify-between mb-6 bg-card p-4 rounded-lg border">
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="outline"
           onClick={() => navigateDate("prev")}
-          className="px-3 py-2 border rounded hover:bg-accent transition-colors"
           disabled={loading}
         >
-          ← Previous
-        </button>
-        <button
+          &larr; Previous
+        </Button>
+        <Button
+          variant="outline"
           onClick={goToToday}
-          className="px-4 py-2 border rounded hover:bg-accent transition-colors"
           disabled={loading}
         >
           Today
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => navigateDate("next")}
-          className="px-3 py-2 border rounded hover:bg-accent transition-colors"
           disabled={loading}
         >
-          Next →
-        </button>
+          Next &rarr;
+        </Button>
       </div>
 
       <div className="text-lg font-semibold">
@@ -308,39 +311,27 @@ export default function AdminCalendarPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant={view === "day" ? "secondary" : "outline"}
           onClick={() => setView("day")}
-          className={`px-4 py-2 rounded transition-colors ${
-            view === "day"
-              ? "bg-secondary text-secondary-foreground"
-              : "border hover:bg-accent"
-          }`}
           disabled={loading}
         >
           Day
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={view === "week" ? "secondary" : "outline"}
           onClick={() => setView("week")}
-          className={`px-4 py-2 rounded transition-colors ${
-            view === "week"
-              ? "bg-secondary text-secondary-foreground"
-              : "border hover:bg-accent"
-          }`}
           disabled={loading}
         >
           Week
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={view === "month" ? "secondary" : "outline"}
           onClick={() => setView("month")}
-          className={`px-4 py-2 rounded transition-colors ${
-            view === "month"
-              ? "bg-secondary text-secondary-foreground"
-              : "border hover:bg-accent"
-          }`}
           disabled={loading}
         >
           Month
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -550,38 +541,40 @@ export default function AdminCalendarPage() {
                 Date: {selectedDateTime.date} at {selectedDateTime.timeSlot}
               </p>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="blockReason">
                   Reason (optional)
-                </label>
-                <textarea
+                </Label>
+                <Textarea
+                  id="blockReason"
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
                   rows={3}
                   placeholder="e.g., Personal appointment, Holiday, etc."
                 />
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={handleBlockSlot}
                   disabled={loading}
-                  className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                  variant="destructive"
+                  className="flex-1"
                 >
                   {loading ? "Blocking..." : "Block Slot"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setShowBlockModal(false);
                     setSelectedDateTime(null);
                     setBlockReason("");
                   }}
                   disabled={loading}
-                  className="flex-1 border py-2 rounded hover:bg-accent transition-colors disabled:opacity-50"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -615,20 +608,21 @@ export default function AdminCalendarPage() {
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => handleUnblockSlot(selectedSlot.id)}
                   disabled={loading}
-                  className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-green-600 text-white hover:bg-green-700"
                 >
                   {loading ? "Unblocking..." : "Unblock Slot"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setSelectedSlot(null)}
                   disabled={loading}
-                  className="flex-1 border py-2 rounded hover:bg-accent transition-colors disabled:opacity-50"
+                  className="flex-1"
                 >
                   Close
-                </button>
+                </Button>
               </div>
             </div>
           </div>

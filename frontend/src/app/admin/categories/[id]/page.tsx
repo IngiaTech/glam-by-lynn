@@ -7,6 +7,12 @@ import { extractErrorMessage } from "@/lib/error-utils";
 import { resolveImageUrl } from "@/lib/utils";
 import axios from "axios";
 import { z } from "zod";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name too long"),
@@ -188,63 +194,64 @@ export default function EditCategory() {
           <h2 className="text-xl font-semibold text-foreground mb-4">Category Information</h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Name <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Category name"
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Description
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="Category description"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Parent Category
-              </label>
-              <select
-                value={formData.parent_category_id}
-                onChange={(e) => setFormData({ ...formData, parent_category_id: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              </Label>
+              <Select
+                value={formData.parent_category_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, parent_category_id: value === "none" ? "" : value })}
               >
-                <option value="">None (Top Level)</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (Top Level)</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-sm text-muted-foreground mt-1">
                 Select a parent category to create a subcategory
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Image URL
-              </label>
-              <input
+              </Label>
+              <Input
                 type="url"
                 value={formData.image_url}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
                 placeholder="https://example.com/image.png"
               />
               {errors.image_url && <p className="text-red-500 text-sm mt-1">{errors.image_url}</p>}
@@ -263,52 +270,49 @@ export default function EditCategory() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <Label>
                 Display Order
-              </label>
-              <input
+              </Label>
+              <Input
                 type="number"
                 min="0"
                 value={formData.display_order}
                 onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Lower numbers appear first
               </p>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Switch
                 id="is_active"
                 checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-secondary focus:ring-secondary border-border rounded"
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
-              <label htmlFor="is_active" className="ml-2 text-sm text-foreground">
+              <Label htmlFor="is_active">
                 Active (visible in product filters)
-              </label>
+              </Label>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push("/admin/categories")}
-            className="px-6 py-2 border border-border rounded-lg text-foreground hover:bg-muted"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            variant="secondary"
             disabled={submitting}
-            className="px-6 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/90 disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

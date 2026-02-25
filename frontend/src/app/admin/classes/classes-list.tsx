@@ -9,6 +9,9 @@ import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SKILL_LEVELS = [
   { value: "beginner", label: "Beginner" },
@@ -197,12 +200,12 @@ export function ClassesList() {
             Manage your makeup training classes
           </p>
         </div>
-        <button
+        <Button
           onClick={() => router.push("/admin/classes/new")}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
+          className="bg-secondary hover:bg-secondary/90 text-foreground"
         >
           Add Class
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -210,76 +213,83 @@ export function ClassesList() {
         <h3 className="text-lg font-semibold text-foreground mb-4">Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Skill Level Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Skill Level
-            </label>
-            <select
-              value={selectedLevel}
-              onChange={(e) => {
-                setSelectedLevel(e.target.value);
+          <div className="space-y-2">
+            <Label>Skill Level</Label>
+            <Select
+              value={selectedLevel || "all"}
+              onValueChange={(value) => {
+                setSelectedLevel(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Levels</option>
-              {SKILL_LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>
-                  {level.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                {SKILL_LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Topic Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Topic
-            </label>
-            <select
-              value={selectedTopic}
-              onChange={(e) => {
-                setSelectedTopic(e.target.value);
+          <div className="space-y-2">
+            <Label>Topic</Label>
+            <Select
+              value={selectedTopic || "all"}
+              onValueChange={(value) => {
+                setSelectedTopic(value === "all" ? "" : value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="">All Topics</option>
-              {TOPICS.map((topic) => (
-                <option key={topic.value} value={topic.value}>
-                  {topic.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Topics" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Topics</SelectItem>
+                {TOPICS.map((topic) => (
+                  <SelectItem key={topic.value} value={topic.value}>
+                    {topic.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Status
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as "all" | "active" | "inactive");
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "active" | "inactive");
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Clear Filters */}
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              className="w-full"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -367,24 +377,30 @@ export function ClassesList() {
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => router.push(`/admin/classes/${cls.id}`)}
                             className="text-secondary hover:text-secondary/80"
                           >
                             Edit
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleToggleActive(cls.id, cls.isActive)}
                             className="text-foreground hover:text-foreground/80"
                           >
                             {cls.isActive ? "Deactivate" : "Activate"}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDeleteClass(cls.id, cls.title)}
                             className="text-red-600 hover:text-red-800"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -399,23 +415,25 @@ export function ClassesList() {
                 Showing {classes.length} of {totalClasses} classes
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Previous
-                </button>
+                </Button>
                 <span className="px-4 py-1 text-sm text-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-border rounded hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           </>

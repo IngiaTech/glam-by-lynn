@@ -7,6 +7,16 @@ import { useRequireAdmin } from "@/hooks/useAuth";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TransportLocation {
   id: string;
@@ -200,68 +210,77 @@ export default function LocationsManagement() {
             Manage locations and transport pricing
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
           onClick={() => router.push("/admin/locations/new")}
-          className="bg-secondary hover:bg-secondary/90 text-foreground px-6 py-2 rounded-lg font-medium transition-colors"
         >
           Add Location
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="bg-card border border-border rounded-lg p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-2">
+            <Label htmlFor="locationSearch">
               Search
-            </label>
-            <input
+            </Label>
+            <Input
+              id="locationSearch"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search locations..."
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-2">
+            <Label htmlFor="statusFilter">
               Status
-            </label>
-            <select
+            </Label>
+            <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              onValueChange={(value) => setStatusFilter(value as "all" | "active" | "inactive")}
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <SelectTrigger id="statusFilter" className="w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="space-y-2">
+            <Label htmlFor="freeFilter">
               Transport Cost
-            </label>
-            <select
+            </Label>
+            <Select
               value={freeFilter}
-              onChange={(e) => setFreeFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+              onValueChange={(value) => setFreeFilter(value as "all" | "free" | "paid")}
             >
-              <option value="all">All Locations</option>
-              <option value="free">Free Transport</option>
-              <option value="paid">Paid Transport</option>
-            </select>
+              <SelectTrigger id="freeFilter" className="w-full">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="free">Free Transport</SelectItem>
+                <SelectItem value="paid">Paid Transport</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">
-            <button
+            <Button
+              variant="outline"
               onClick={handleClearFilters}
-              className="w-full px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              className="w-full"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -316,16 +335,18 @@ export default function LocationsManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={() => handleToggleFree(location.id, location.isFree)}
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded cursor-pointer ${
+                        className={
                           location.isFree
                             ? "bg-green-100 text-green-800 hover:bg-green-200"
                             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                        }`}
+                        }
                       >
                         {location.isFree ? "Yes" : "No"}
-                      </button>
+                      </Button>
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -340,24 +361,29 @@ export default function LocationsManagement() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button
+                        <Button
+                          variant="link"
+                          size="sm"
                           onClick={() => router.push(`/admin/locations/${location.id}`)}
-                          className="text-secondary hover:text-secondary/80 text-sm"
+                          className="text-secondary hover:text-secondary/80"
                         >
                           Edit
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleToggleActive(location.id, location.isActive)}
-                          className="text-foreground hover:text-foreground/80 text-sm"
                         >
                           {location.isActive ? "Deactivate" : "Activate"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteLocation(location.id, location.locationName)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
