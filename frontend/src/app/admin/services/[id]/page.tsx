@@ -413,7 +413,7 @@ export default function EditServicePackage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {relevantFields.showBridePrice && (
-              <div>
+              <div className="space-y-2">
                 <Label>
                   Bride Price (KES)
                 </Label>
@@ -430,7 +430,7 @@ export default function EditServicePackage() {
             )}
 
             {relevantFields.showMaidPrice && (
-              <div>
+              <div className="space-y-2">
                 <Label>
                   Maid Price (KES per person)
                 </Label>
@@ -447,7 +447,7 @@ export default function EditServicePackage() {
             )}
 
             {relevantFields.showMotherPrice && (
-              <div>
+              <div className="space-y-2">
                 <Label>
                   Mother Price (KES)
                 </Label>
@@ -464,7 +464,7 @@ export default function EditServicePackage() {
             )}
 
             {relevantFields.showOtherPrice && (
-              <div>
+              <div className="space-y-2">
                 <Label>
                   {formData.package_type === "classes" ? "Class Price (KES)" : "Other Attendee Price (KES)"}
                 </Label>

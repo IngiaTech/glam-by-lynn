@@ -267,7 +267,7 @@ export default function EditTestimonialPage() {
             <CardTitle>Customer Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="customerName">
                 Customer Name <span className="text-destructive">*</span>
               </Label>
@@ -285,7 +285,7 @@ export default function EditTestimonialPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="customerPhotoUrl">Customer Photo URL</Label>
               <Input
                 id="customerPhotoUrl"
@@ -304,7 +304,7 @@ export default function EditTestimonialPage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
@@ -326,7 +326,7 @@ export default function EditTestimonialPage() {
             <CardTitle>Testimonial Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label>
                 Rating <span className="text-destructive">*</span>
               </Label>
@@ -353,7 +353,7 @@ export default function EditTestimonialPage() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="testimonialText">
                 Testimonial <span className="text-destructive">*</span>
               </Label>
@@ -379,7 +379,7 @@ export default function EditTestimonialPage() {
             <CardTitle>Related Items (Optional)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="relatedServiceId">Related Service</Label>
               <Select
                 value={formData.relatedServiceId || "none"}
@@ -404,7 +404,7 @@ export default function EditTestimonialPage() {
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="relatedProductId">Related Product</Label>
               <Select
                 value={formData.relatedProductId || "none"}
@@ -468,7 +468,7 @@ export default function EditTestimonialPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="displayOrder">Display Order</Label>
               <Input
                 id="displayOrder"

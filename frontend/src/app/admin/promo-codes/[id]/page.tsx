@@ -240,7 +240,7 @@ export default function EditPromoCodePage() {
             <CardTitle>Code Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="code">
                 Promo Code <span className="text-destructive">*</span>
               </Label>
@@ -262,7 +262,7 @@ export default function EditPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -278,7 +278,7 @@ export default function EditPromoCodePage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label>Usage Statistics</Label>
               <div className="rounded-md border p-4">
                 <p className="text-sm text-muted-foreground">
@@ -315,7 +315,7 @@ export default function EditPromoCodePage() {
             <CardTitle>Discount Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="discountType">
                 Discount Type <span className="text-destructive">*</span>
               </Label>
@@ -335,7 +335,7 @@ export default function EditPromoCodePage() {
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="discountValue">
                 Discount Value <span className="text-destructive">*</span>
               </Label>
@@ -366,7 +366,7 @@ export default function EditPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="minOrderAmount">Minimum Order Amount (KSh)</Label>
               <Input
                 id="minOrderAmount"
@@ -387,7 +387,7 @@ export default function EditPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="maxDiscountAmount">Maximum Discount Amount (KSh)</Label>
               <Input
                 id="maxDiscountAmount"
@@ -415,7 +415,7 @@ export default function EditPromoCodePage() {
             <CardTitle>Usage & Validity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="usageLimit">Usage Limit</Label>
               <Input
                 id="usageLimit"
@@ -435,7 +435,7 @@ export default function EditPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="validFrom">Valid From</Label>
               <Input
                 id="validFrom"
@@ -453,7 +453,7 @@ export default function EditPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="validUntil">Valid Until</Label>
               <Input
                 id="validUntil"

@@ -190,7 +190,7 @@ export default function NewClassPage() {
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="title">
                 Title <span className="text-destructive">*</span>
               </Label>
@@ -205,7 +205,7 @@ export default function NewClassPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -219,7 +219,7 @@ export default function NewClassPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="skillLevel">
                   Skill Level <span className="text-destructive">*</span>
                 </Label>
@@ -242,7 +242,7 @@ export default function NewClassPage() {
                 </Select>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="topic">
                   Topic <span className="text-destructive">*</span>
                 </Label>
@@ -267,7 +267,7 @@ export default function NewClassPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="durationDays">
                   Duration (days) <span className="text-destructive">*</span>
                 </Label>
@@ -287,7 +287,7 @@ export default function NewClassPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="priceFrom">Price From (KSh)</Label>
                 <Input
                   id="priceFrom"
@@ -301,7 +301,7 @@ export default function NewClassPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="priceTo">Price To (KSh)</Label>
                 <Input
                   id="priceTo"
@@ -316,7 +316,7 @@ export default function NewClassPage() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="imageUrl">Image URL</Label>
               <Input
                 id="imageUrl"
@@ -445,7 +445,7 @@ export default function NewClassPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="displayOrder">Display Order</Label>
               <Input
                 id="displayOrder"

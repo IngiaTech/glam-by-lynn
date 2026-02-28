@@ -277,7 +277,7 @@ export default function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="adminFilter">Admin Status</Label>
               <Select
                 value={adminFilter}

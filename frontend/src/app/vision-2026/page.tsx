@@ -384,7 +384,7 @@ export default function Vision2026Page() {
             <Card>
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="name">Full Name *</Label>
                     <Input
                       id="name"
@@ -395,7 +395,7 @@ export default function Vision2026Page() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -411,7 +411,7 @@ export default function Vision2026Page() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -426,7 +426,7 @@ export default function Vision2026Page() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="serviceInterest">Service Interest</Label>
                     <Input
                       id="serviceInterest"
@@ -436,7 +436,7 @@ export default function Vision2026Page() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="message">Message (Optional)</Label>
                     <Textarea
                       id="message"

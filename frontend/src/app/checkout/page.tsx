@@ -356,7 +356,7 @@ export default function CheckoutPage() {
                   <CardTitle>Contact Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
                     <Input
                       id="fullName"
@@ -365,7 +365,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input
                       id="phone"
@@ -449,7 +449,7 @@ export default function CheckoutPage() {
 
                   {addressMode === "new" && (
                     <div className="space-y-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="county">County</Label>
                         <Input
                           id="county"
@@ -459,7 +459,7 @@ export default function CheckoutPage() {
                           placeholder="e.g., Nairobi"
                         />
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="town">Town/City</Label>
                         <Input
                           id="town"
@@ -469,7 +469,7 @@ export default function CheckoutPage() {
                           placeholder="e.g., Westlands"
                         />
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="address">Street Address</Label>
                         <Textarea
                           id="address"

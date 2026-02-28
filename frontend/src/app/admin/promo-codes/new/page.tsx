@@ -147,7 +147,7 @@ export default function NewPromoCodePage() {
             <CardTitle>Code Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="code">
                 Promo Code <span className="text-destructive">*</span>
               </Label>
@@ -179,7 +179,7 @@ export default function NewPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -202,7 +202,7 @@ export default function NewPromoCodePage() {
             <CardTitle>Discount Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="discountType">
                 Discount Type <span className="text-destructive">*</span>
               </Label>
@@ -222,7 +222,7 @@ export default function NewPromoCodePage() {
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="discountValue">
                 Discount Value <span className="text-destructive">*</span>
               </Label>
@@ -253,7 +253,7 @@ export default function NewPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="minOrderAmount">Minimum Order Amount (KSh)</Label>
               <Input
                 id="minOrderAmount"
@@ -274,7 +274,7 @@ export default function NewPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="maxDiscountAmount">Maximum Discount Amount (KSh)</Label>
               <Input
                 id="maxDiscountAmount"
@@ -302,7 +302,7 @@ export default function NewPromoCodePage() {
             <CardTitle>Usage & Validity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="usageLimit">Usage Limit</Label>
               <Input
                 id="usageLimit"
@@ -322,7 +322,7 @@ export default function NewPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="validFrom">Valid From</Label>
               <Input
                 id="validFrom"
@@ -340,7 +340,7 @@ export default function NewPromoCodePage() {
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="validUntil">Valid Until</Label>
               <Input
                 id="validUntil"
