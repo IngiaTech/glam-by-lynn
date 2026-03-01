@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.gallery import GalleryListResponse, GalleryPostResponse
 from app.services.gallery_service import get_published_gallery_posts
+from app.services.instagram_service import maybe_trigger_sync
 
 router = APIRouter(prefix="/gallery", tags=["gallery"])
 
@@ -39,6 +40,9 @@ def list_gallery_posts(
     Returns posts ordered by featured status, display order, and publication date.
     Only returns posts with published_at <= current time.
     """
+    # Trigger background Instagram sync if stale (non-blocking)
+    maybe_trigger_sync(db)
+
     posts, total = get_published_gallery_posts(
         db=db,
         page=page,

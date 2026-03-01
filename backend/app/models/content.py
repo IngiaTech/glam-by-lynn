@@ -81,6 +81,8 @@ class GalleryPost(Base):
     source_type = Column(String(20), index=True)
     is_featured = Column(Boolean, default=False, index=True)
     display_order = Column(Integer, default=0)
+    external_id = Column(String(100), unique=True, nullable=True, index=True)
+    external_permalink = Column(String(500), nullable=True)
     published_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(

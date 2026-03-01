@@ -18,6 +18,7 @@ class GalleryPostResponse(BaseModel):
     source_type: Optional[str] = Field(None, alias="sourceType")
     is_featured: bool = Field(..., alias="isFeatured")
     display_order: int = Field(..., alias="displayOrder")
+    external_permalink: Optional[str] = Field(None, alias="externalPermalink")
     published_at: datetime = Field(..., alias="publishedAt")
 
     class Config:

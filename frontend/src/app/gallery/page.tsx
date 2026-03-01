@@ -405,10 +405,12 @@ export default function GalleryPage() {
               />
             )}
 
-            {/* Caption */}
-            {lightboxPost.caption && (
+            {/* Caption & Meta */}
+            {(lightboxPost.caption || lightboxPost.externalPermalink) && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-4 text-white">
-                <p className="text-sm md:text-base">{lightboxPost.caption}</p>
+                {lightboxPost.caption && (
+                  <p className="text-sm md:text-base">{lightboxPost.caption}</p>
+                )}
                 <div className="flex items-center gap-3 mt-2">
                   {lightboxPost.sourceType && (
                     <div className="flex items-center gap-1 text-xs">
@@ -424,6 +426,18 @@ export default function GalleryPage() {
                         </span>
                       ))}
                     </div>
+                  )}
+                  {lightboxPost.externalPermalink && (
+                    <a
+                      href={lightboxPost.externalPermalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors ml-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Instagram className="h-3 w-3" />
+                      View on Instagram
+                    </a>
                   )}
                 </div>
               </div>

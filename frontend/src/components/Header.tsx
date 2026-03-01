@@ -338,21 +338,21 @@ export function Header() {
                       <hr className="my-2" />
                       <Link
                         href="/orders"
-                        className="text-sm font-medium"
+                        className={mobileNavLinkClass("/orders")}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         My Orders
                       </Link>
                       <Link
                         href="/bookings"
-                        className="text-sm font-medium"
+                        className={mobileNavLinkClass("/bookings")}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         My Bookings
                       </Link>
                       <Link
                         href="/wishlist"
-                        className="text-sm font-medium"
+                        className={mobileNavLinkClass("/wishlist")}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Wishlist
@@ -365,7 +365,7 @@ export function Header() {
                       <hr className="my-2" />
                       <Link
                         href="/admin"
-                        className="text-sm font-medium text-secondary"
+                        className={mobileNavLinkClass("/admin")}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Admin Dashboard

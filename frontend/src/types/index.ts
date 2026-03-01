@@ -257,6 +257,7 @@ export interface GalleryPost {
   sourceType?: "instagram" | "tiktok" | "original";
   isFeatured: boolean;
   displayOrder: number;
+  externalPermalink?: string;
   publishedAt: string;
 }
 

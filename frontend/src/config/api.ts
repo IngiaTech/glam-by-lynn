@@ -133,6 +133,9 @@ export const API_ENDPOINTS = {
     STORAGE_GET: "/api/admin/settings/storage",
     STORAGE_UPDATE: "/api/admin/settings/storage",
     STORAGE_TEST: "/api/admin/settings/storage/test",
+    INSTAGRAM_GET: "/api/admin/settings/instagram",
+    INSTAGRAM_UPDATE: "/api/admin/settings/instagram",
+    INSTAGRAM_SYNC: "/api/admin/settings/instagram/sync",
   },
 } as const;
 

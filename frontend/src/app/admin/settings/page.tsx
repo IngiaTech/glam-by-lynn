@@ -31,6 +31,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Instagram,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
@@ -116,6 +119,18 @@ export default function AdminSettingsPage() {
   const [storageSuccess, setStorageSuccess] = useState("");
   const [storageError, setStorageError] = useState("");
 
+  // Instagram Integration
+  const [instagramEnabled, setInstagramEnabled] = useState(false);
+  const [instagramUserId, setInstagramUserId] = useState("");
+  const [instagramAccessToken, setInstagramAccessToken] = useState("");
+  const [instagramTokenSet, setInstagramTokenSet] = useState(false);
+  const [instagramLastSync, setInstagramLastSync] = useState<string | null>(null);
+  const [instagramTokenExpires, setInstagramTokenExpires] = useState<string | null>(null);
+  const [instagramSaving, setInstagramSaving] = useState(false);
+  const [instagramSyncing, setInstagramSyncing] = useState(false);
+  const [instagramSuccess, setInstagramSuccess] = useState("");
+  const [instagramError, setInstagramError] = useState("");
+
   // Fetch saved settings from API on mount
   useEffect(() => {
     async function loadSettings() {
@@ -142,6 +157,20 @@ export default function AdminSettingsPage() {
             tiktok: data.social_tiktok ?? "",
             youtube: data.social_youtube ?? "",
           }));
+        }
+
+        // Load Instagram settings
+        const igRes = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.INSTAGRAM_GET}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (igRes.ok) {
+          const igData = await igRes.json();
+          setInstagramEnabled(igData.enabled ?? false);
+          setInstagramUserId(igData.user_id ?? "");
+          setInstagramTokenSet(igData.access_token_set ?? false);
+          setInstagramLastSync(igData.last_sync ?? null);
+          setInstagramTokenExpires(igData.token_expires_at ?? null);
         }
 
         // Load storage settings
@@ -392,6 +421,71 @@ export default function AdminSettingsPage() {
       setStorageError(extractErrorMessage(err, "Failed to save storage settings"));
     } finally {
       setStorageSaving(false);
+    }
+  };
+
+  const handleSaveInstagramSettings = async () => {
+    setInstagramSaving(true);
+    setInstagramError("");
+    setInstagramSuccess("");
+
+    try {
+      const token = (session as any)?.accessToken;
+      const body: any = { enabled: instagramEnabled };
+      if (instagramUserId) body.user_id = instagramUserId;
+      if (instagramAccessToken) body.access_token = instagramAccessToken;
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.INSTAGRAM_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to save Instagram settings");
+
+      const data = await response.json();
+      setInstagramTokenSet(data.access_token_set);
+      setInstagramAccessToken(""); // Clear the input after save
+      setInstagramSuccess("Instagram settings saved successfully");
+      setTimeout(() => setInstagramSuccess(""), 3000);
+    } catch (err: any) {
+      setInstagramError(extractErrorMessage(err, "Failed to save Instagram settings"));
+    } finally {
+      setInstagramSaving(false);
+    }
+  };
+
+  const handleInstagramSync = async () => {
+    setInstagramSyncing(true);
+    setInstagramError("");
+    setInstagramSuccess("");
+
+    try {
+      const token = (session as any)?.accessToken;
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.INSTAGRAM_SYNC}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) throw new Error("Sync failed");
+
+      const data = await response.json();
+      setInstagramLastSync(new Date().toISOString());
+      setInstagramSuccess(data.message);
+      setTimeout(() => setInstagramSuccess(""), 5000);
+    } catch (err: any) {
+      setInstagramError(extractErrorMessage(err, "Instagram sync failed"));
+    } finally {
+      setInstagramSyncing(false);
     }
   };
 
@@ -647,6 +741,140 @@ export default function AdminSettingsPage() {
                   <Button onClick={handleSaveStorageSettings} disabled={storageSaving || storageTesting}>
                     <Save className="mr-2 h-4 w-4" />
                     {storageSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Instagram Integration Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Instagram className="h-5 w-5" />
+              Instagram Integration
+            </CardTitle>
+            <CardDescription>
+              Sync posts from your Instagram Business account to the gallery
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {settingsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {instagramSuccess && (
+                  <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-3 rounded text-sm">
+                    {instagramSuccess}
+                  </div>
+                )}
+                {instagramError && (
+                  <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded text-sm">
+                    {instagramError}
+                  </div>
+                )}
+
+                {/* Enable/Disable Toggle */}
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <div className="font-medium">Enable Instagram Sync</div>
+                    <div className="text-sm text-muted-foreground">
+                      Automatically sync Instagram posts to the gallery
+                    </div>
+                  </div>
+                  <Switch
+                    checked={instagramEnabled}
+                    onCheckedChange={setInstagramEnabled}
+                  />
+                </div>
+
+                {/* Configuration Fields */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <h4 className="font-medium text-sm">Instagram API Configuration</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram-user-id">Instagram User ID</Label>
+                    <Input
+                      id="instagram-user-id"
+                      value={instagramUserId}
+                      onChange={(e) => setInstagramUserId(e.target.value)}
+                      placeholder="17841400123456789"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your Instagram Business or Creator account numeric ID
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram-access-token">Access Token</Label>
+                    <Input
+                      id="instagram-access-token"
+                      type="password"
+                      value={instagramAccessToken}
+                      onChange={(e) => setInstagramAccessToken(e.target.value)}
+                      placeholder={instagramTokenSet ? "Token is set (enter new value to update)" : "Enter long-lived access token"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Generate a long-lived token from the{" "}
+                      <a
+                        href="https://developers.facebook.com/tools/explorer/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-secondary underline inline-flex items-center gap-1"
+                      >
+                        Facebook Graph API Explorer
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      . Tokens are valid for 60 days and auto-refresh during sync.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status Info */}
+                {(instagramLastSync || instagramTokenExpires) && (
+                  <div className="space-y-2 p-4 bg-muted/50 rounded-lg text-sm">
+                    {instagramLastSync && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Last Sync</span>
+                        <span>{new Date(instagramLastSync).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {instagramTokenExpires && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Token Expires</span>
+                        <span className={
+                          new Date(instagramTokenExpires) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                            ? "text-amber-600 font-medium"
+                            : ""
+                        }>
+                          {new Date(instagramTokenExpires).toLocaleDateString()}
+                          {new Date(instagramTokenExpires) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) && (
+                            <span className="ml-1">(expiring soon)</span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleInstagramSync}
+                    disabled={instagramSyncing || instagramSaving || !instagramEnabled}
+                  >
+                    {instagramSyncing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {instagramSyncing ? "Syncing..." : "Sync Now"}
+                  </Button>
+                  <Button onClick={handleSaveInstagramSettings} disabled={instagramSaving || instagramSyncing}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {instagramSaving ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </>
