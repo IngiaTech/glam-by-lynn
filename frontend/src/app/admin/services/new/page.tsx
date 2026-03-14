@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import axios from "axios";
 import { z } from "zod";
 
@@ -69,6 +76,9 @@ export default function NewServicePackage() {
     display_order: 0,
   });
 
+  const [durationValue, setDurationValue] = useState<number | undefined>(undefined);
+  const [durationUnit, setDurationUnit] = useState<"minutes" | "hours" | "days">("minutes");
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -123,6 +133,21 @@ export default function NewServicePackage() {
           showFacial: true,
         };
     }
+  };
+
+  const toMinutes = (value: number | undefined, unit: string): number | undefined => {
+    if (value === undefined) return undefined;
+    switch (unit) {
+      case "hours": return value * 60;
+      case "days": return value * 1440;
+      default: return value;
+    }
+  };
+
+  const handleDurationChange = (value: number | undefined, unit: string) => {
+    setDurationValue(value);
+    setDurationUnit(unit as "minutes" | "hours" | "days");
+    setFormData({ ...formData, duration_minutes: toMinutes(value, unit) });
   };
 
   const relevantFields = getRelevantFields(formData.package_type);
@@ -326,14 +351,33 @@ export default function NewServicePackage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Duration (minutes)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.duration_minutes || ""}
-                  onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
-                  placeholder="e.g., 120"
-                />
+                <Label>Duration</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    step={durationUnit === "hours" ? "0.5" : "1"}
+                    value={durationValue ?? ""}
+                    onChange={(e) => handleDurationChange(e.target.value ? parseFloat(e.target.value) : undefined, durationUnit)}
+                    placeholder={durationUnit === "days" ? "e.g., 3" : durationUnit === "hours" ? "e.g., 2.5" : "e.g., 90"}
+                    className="flex-1"
+                  />
+                  <Select value={durationUnit} onValueChange={(unit) => handleDurationChange(durationValue, unit)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutes">Minutes</SelectItem>
+                      <SelectItem value="hours">Hours</SelectItem>
+                      <SelectItem value="days">Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.duration_minutes && durationUnit !== "minutes" && (
+                  <p className="text-xs text-muted-foreground">
+                    = {formData.duration_minutes.toLocaleString()} minutes
+                  </p>
+                )}
                 {errors.duration_minutes && <p className="text-red-500 text-sm mt-1">{errors.duration_minutes}</p>}
               </div>
 

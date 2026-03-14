@@ -103,14 +103,24 @@ export function getPackageFeatures(pkg: ServicePackage): string[] {
 
   // Duration
   if (pkg.duration_minutes) {
-    const hours = Math.floor(pkg.duration_minutes / 60);
-    const minutes = pkg.duration_minutes % 60;
-    if (hours > 0 && minutes > 0) {
-      features.push(`${hours}h ${minutes}min session`);
-    } else if (hours > 0) {
-      features.push(`${hours} hour session`);
+    if (pkg.duration_minutes >= 1440) {
+      const days = Math.floor(pkg.duration_minutes / 1440);
+      const remainHours = Math.floor((pkg.duration_minutes % 1440) / 60);
+      if (remainHours > 0) {
+        features.push(`${days} day${days > 1 ? "s" : ""} ${remainHours}h session`);
+      } else {
+        features.push(`${days} day${days > 1 ? "s" : ""} session`);
+      }
     } else {
-      features.push(`${minutes} minute session`);
+      const hours = Math.floor(pkg.duration_minutes / 60);
+      const minutes = pkg.duration_minutes % 60;
+      if (hours > 0 && minutes > 0) {
+        features.push(`${hours}h ${minutes}min session`);
+      } else if (hours > 0) {
+        features.push(`${hours} hour session`);
+      } else {
+        features.push(`${minutes} minute session`);
+      }
     }
   }
 

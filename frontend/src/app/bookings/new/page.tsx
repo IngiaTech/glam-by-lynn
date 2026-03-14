@@ -408,9 +408,10 @@ function BookingFormContent() {
                         {pkg.duration_minutes && (
                           <Badge variant="outline" className="text-xs">
                             <Clock className="mr-1 h-3 w-3" />
-                            {Math.floor(pkg.duration_minutes / 60)}h
-                            {pkg.duration_minutes % 60 > 0 &&
-                              ` ${pkg.duration_minutes % 60}m`}
+                            {pkg.duration_minutes >= 1440
+                              ? `${Math.floor(pkg.duration_minutes / 1440)}d${Math.floor((pkg.duration_minutes % 1440) / 60) > 0 ? ` ${Math.floor((pkg.duration_minutes % 1440) / 60)}h` : ""}`
+                              : `${Math.floor(pkg.duration_minutes / 60)}h${pkg.duration_minutes % 60 > 0 ? ` ${pkg.duration_minutes % 60}m` : ""}`
+                            }
                           </Badge>
                         )}
                         {pkg.includes_facial && (

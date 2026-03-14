@@ -180,6 +180,12 @@ export default function ServicePackagesManagement() {
 
   const formatDuration = (minutes?: number) => {
     if (!minutes) return "N/A";
+    if (minutes >= 1440) {
+      const days = Math.floor(minutes / 1440);
+      const remainHours = Math.floor((minutes % 1440) / 60);
+      if (remainHours > 0) return `${days}d ${remainHours}h`;
+      return `${days}d`;
+    }
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
