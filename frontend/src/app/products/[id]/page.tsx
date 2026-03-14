@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -37,6 +38,7 @@ import {
   AlertCircle,
   ArrowLeft,
   ShoppingCart,
+  ShoppingBag,
   Heart,
   Minus,
   Plus,
@@ -45,6 +47,7 @@ import {
   ChevronRight,
   Check,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
@@ -593,45 +596,52 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           <div className="mt-16">
             <h2 className="mb-6 text-2xl font-bold">Related Products</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {relatedProducts.map((relatedProduct) => (
-                <Card
-                  key={relatedProduct.id}
-                  className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg"
-                  onClick={() => router.push(`/products/${relatedProduct.id}`)}
-                >
-                  <div className="relative aspect-square overflow-hidden bg-muted">
-                    {relatedProduct.images && relatedProduct.images[0] ? (
-                      <Image
-                        src={resolveImageUrl(relatedProduct.images[0].image_url)}
-                        alt={relatedProduct.title}
-                        fill
-                        className="object-cover transition-transform group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <ShoppingCart className="h-12 w-12 text-muted-foreground/30" />
-                      </div>
-                    )}
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2 text-lg">
-                      {relatedProduct.title}
-                    </CardTitle>
-                    {relatedProduct.brand && (
-                      <p className="text-sm text-muted-foreground">
-                        {relatedProduct.brand.name}
-                      </p>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold">
-                        KSh {relatedProduct.base_price.toLocaleString()}
-                      </span>
+              {relatedProducts.map((rp) => {
+                const rpImage = rp.images?.find((img) => img.is_primary) || rp.images?.[0];
+                return (
+                  <Link
+                    key={rp.id}
+                    href={`/products/${rp.id}`}
+                    className="group flex flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-fuchsia-50 to-pink-50">
+                      {rpImage ? (
+                        <Image
+                          src={resolveImageUrl(rpImage.image_url)}
+                          alt={rpImage.alt_text || rp.title}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ShoppingBag className="h-16 w-16 text-fuchsia-200" />
+                        </div>
+                      )}
+                      {rp.is_featured && (
+                        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                          <Sparkles className="h-3 w-3" />
+                          Featured
+                        </span>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div className="flex flex-1 flex-col p-5">
+                      <span className="mb-1 text-xs font-medium uppercase tracking-wider text-fuchsia-500">
+                        {rp.category?.name || "Beauty"}
+                      </span>
+                      <h3 className="mb-1 text-base font-semibold line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
+                        {rp.title}
+                      </h3>
+                      {rp.brand && (
+                        <p className="mb-3 text-xs text-muted-foreground">{rp.brand.name}</p>
+                      )}
+                      <p className="mt-auto text-xl font-bold">
+                        KSh {parseFloat(rp.base_price.toString()).toLocaleString()}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
