@@ -11,7 +11,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
-import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart } from "lucide-react";
+import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart, Eye } from "lucide-react";
 import { FadeInSection } from "@/components/animations/FadeInSection";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 
@@ -227,19 +227,29 @@ export default function Home() {
                       <CardTitle className="text-xl mb-2">{service.name}</CardTitle>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-secondary">
-                          KSh {parseFloat(service.base_bride_price).toLocaleString()}
+                          {(() => {
+                            const price = parseFloat(service.base_bride_price || service.base_other_price || service.base_maid_price || service.base_mother_price || "");
+                            return isNaN(price) ? "Contact for pricing" : `KSh ${price.toLocaleString()}`;
+                          })()}
                         </span>
-                        <span className="text-sm text-muted-foreground">starting</span>
+                        {!isNaN(parseFloat(service.base_bride_price || service.base_other_price || service.base_maid_price || service.base_mother_price || "")) && (
+                          <span className="text-sm text-muted-foreground">starting</span>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="flex flex-1 flex-col space-y-4">
                       <p className="text-muted-foreground line-clamp-3">{service.description}</p>
 
                       <div className="flex-1 space-y-2 text-sm">
+                        {service.duration_minutes && (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 flex-shrink-0 text-secondary" />
-                          <span>Duration: {Math.floor(service.duration_minutes / 60)}+ hours</span>
+                          <span>Duration: {service.duration_minutes >= 1440
+                            ? `${Math.floor(service.duration_minutes / 1440)}+ days`
+                            : `${Math.floor(service.duration_minutes / 60)}+ hours`}
+                          </span>
                         </div>
+                        )}
                         {service.includes_facial && (
                           <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 flex-shrink-0 text-secondary" />
@@ -297,74 +307,93 @@ export default function Home() {
             {loading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <div className="aspect-square animate-pulse bg-muted" />
-                    <CardHeader>
-                      <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-                    </CardHeader>
-                  </Card>
+                  <div key={i} className="rounded-3xl overflow-hidden border border-border/30 bg-white">
+                    <div className="aspect-square animate-pulse bg-gradient-to-br from-fuchsia-50 to-pink-50" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                      <div className="h-5 w-full animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : featuredProducts.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {featuredProducts.map((product, index) => (
-                  <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
-                    <Card className="group flex h-full flex-col overflow-hidden transition-all hover:shadow-lg">
-                    <Link href={`/products/${product.id}`} className="flex flex-1 flex-col">
-                      <div className="relative aspect-square overflow-hidden bg-muted">
-                        {product.images && product.images[0] ? (
-                          <Image
-                            src={resolveImageUrl(product.images[0].image_url)}
-                            alt={product.images[0].alt_text || product.title}
-                            fill
-                            className="object-cover transition-transform group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <Heart className="h-12 w-12 text-muted-foreground/30" />
-                          </div>
-                        )}
-                        <div className="absolute right-2 top-2">
-                          <Badge variant="secondary">Featured</Badge>
-                        </div>
-                      </div>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="line-clamp-1 text-lg">
-                          {product.title}
-                        </CardTitle>
-                        {product.brand && (
-                          <p className="text-sm text-muted-foreground">
-                            {product.brand.name}
-                          </p>
-                        )}
-                      </CardHeader>
-                      <CardContent className="flex flex-1 flex-col">
-                        <p className="line-clamp-2 text-sm text-muted-foreground flex-1">
-                          {product.description}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-2xl font-bold">
-                            KSh {product.base_price.toLocaleString()}
-                          </span>
-                          {product.average_rating && (
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 fill-secondary text-secondary" />
-                              <span className="text-sm font-medium">
-                                {product.average_rating.toFixed(1)}
-                              </span>
-                              {product.review_count && (
-                                <span className="text-sm text-muted-foreground">
-                                  ({product.review_count})
-                                </span>
-                              )}
+                {featuredProducts.map((product, index) => {
+                  const primaryImage = product.images?.find((img) => img.is_primary) || product.images?.[0];
+                  return (
+                    <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="group flex h-full flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
+                      >
+                        {/* Image */}
+                        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-fuchsia-50 to-pink-50">
+                          {primaryImage ? (
+                            <Image
+                              src={resolveImageUrl(primaryImage.image_url)}
+                              alt={primaryImage.alt_text || product.title}
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-110"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <ShoppingBag className="h-16 w-16 text-fuchsia-200" />
                             </div>
                           )}
+
+                          {/* Quick-view overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/10 group-hover:opacity-100">
+                            <span className="flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-medium text-foreground shadow-lg translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                              <Eye className="h-4 w-4" />
+                              Quick View
+                            </span>
+                          </div>
+
+                          {/* Featured badge */}
+                          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                            <Sparkles className="h-3 w-3" />
+                            Featured
+                          </span>
                         </div>
-                      </CardContent>
-                    </Link>
-                    </Card>
-                  </FadeInSection>
-                ))}
+
+                        {/* Info */}
+                        <div className="flex flex-1 flex-col p-5">
+                          <h3 className="mb-1 text-base font-semibold text-foreground line-clamp-1 group-hover:text-fuchsia-700 transition-colors">
+                            {product.title}
+                          </h3>
+                          {product.brand && (
+                            <p className="mb-2 text-xs text-muted-foreground">{product.brand.name}</p>
+                          )}
+                          {product.description && (
+                            <p className="mb-3 text-sm text-muted-foreground line-clamp-2 flex-1">
+                              {product.description}
+                            </p>
+                          )}
+                          <div className="mt-auto flex items-center justify-between">
+                            <span className="text-xl font-bold text-foreground">
+                              KSh {product.base_price.toLocaleString()}
+                            </span>
+                            {product.average_rating != null && product.average_rating > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4 fill-secondary text-secondary" />
+                                <span className="text-sm font-medium">
+                                  {product.average_rating.toFixed(1)}
+                                </span>
+                                {product.review_count != null && product.review_count > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({product.review_count})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </FadeInSection>
+                  );
+                })}
               </div>
             ) : (
               <div className="py-12 text-center text-muted-foreground">
