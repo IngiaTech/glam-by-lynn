@@ -24,7 +24,7 @@ import {
 import { MakeupClass, ClassEnrollmentCreate, PaginatedResponse } from "@/types";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
-import { Loader2, Clock, DollarSign, CheckCircle2, GraduationCap, X } from "lucide-react";
+import { Loader2, Clock, Tag, CheckCircle2, GraduationCap, X } from "lucide-react";
 
 const SKILL_LEVELS = [
   { value: "beginner", label: "Beginner", color: "bg-green-500" },
@@ -300,7 +300,7 @@ export default function ClassesPage() {
                       <span>{cls.durationDays} {cls.durationDays === 1 ? "day" : "days"}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
+                      <Tag className="h-4 w-4" />
                       <span>{formatPrice(cls.priceFrom, cls.priceTo)}</span>
                     </div>
                   </div>
