@@ -713,9 +713,22 @@ export default function ProductsPage() {
                               </p>
                             )}
                           </div>
-                          <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">
-                            {formatPrice(product)}
-                          </p>
+                          <div className="flex-shrink-0 text-right">
+                            {hasDiscount(product) ? (
+                              <>
+                                <p className="text-sm font-medium text-gray-400 line-through">
+                                  KSh {parseFloat(product.base_price.toString()).toLocaleString()}
+                                </p>
+                                <p className="font-black text-xl text-[#1a0f1c]">
+                                  {formatPrice(product)}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="font-black text-xl text-[#1a0f1c]">
+                                {formatPrice(product)}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         {/* CTA */}

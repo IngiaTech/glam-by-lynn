@@ -493,7 +493,7 @@ export default function Home() {
                     <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
                       <Link
                         href={`/products/${product.id}`}
-                        className="group flex h-full flex-col rounded-[2rem] border border-pink-50 bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-pink-100 hover:-translate-y-2"
+                        className="group relative flex h-full flex-col rounded-[2rem] border border-pink-50 bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-pink-100 hover:-translate-y-2"
                       >
                         {/* Badges */}
                         <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
@@ -566,9 +566,22 @@ export default function Home() {
                                 <p className="mt-1 text-xs text-gray-400">{product.brand.name}</p>
                               )}
                             </div>
-                            <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">
-                              {formatProductPrice(product)}
-                            </p>
+                            <div className="flex-shrink-0 text-right">
+                              {productHasDiscount(product) ? (
+                                <>
+                                  <p className="text-sm font-medium text-gray-400 line-through">
+                                    KSh {parseFloat(product.base_price.toString()).toLocaleString()}
+                                  </p>
+                                  <p className="font-black text-xl text-[#1a0f1c]">
+                                    {formatProductPrice(product)}
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="font-black text-xl text-[#1a0f1c]">
+                                  {formatProductPrice(product)}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
                           <div className="pt-2 mt-auto">

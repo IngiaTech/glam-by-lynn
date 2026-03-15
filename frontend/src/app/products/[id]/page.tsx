@@ -812,9 +812,22 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                             <p className="mt-1 text-xs text-gray-400">{rp.brand.name}</p>
                           )}
                         </div>
-                        <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">
-                          {formatRelatedPrice(rp)}
-                        </p>
+                        <div className="flex-shrink-0 text-right">
+                          {relatedHasDiscount(rp) ? (
+                            <>
+                              <p className="text-sm font-medium text-gray-400 line-through">
+                                KSh {parseFloat(rp.base_price.toString()).toLocaleString()}
+                              </p>
+                              <p className="font-black text-xl text-[#1a0f1c]">
+                                {formatRelatedPrice(rp)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="font-black text-xl text-[#1a0f1c]">
+                              {formatRelatedPrice(rp)}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="pt-2 mt-auto">
