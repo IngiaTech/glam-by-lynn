@@ -452,7 +452,7 @@ export default function Home() {
                             Featured
                           </span>
                           {isOutOfStock && (
-                            <span className="inline-flex items-center rounded-full bg-rose-500 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-white shadow-lg">
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-gray-500">
                               Sold Out
                             </span>
                           )}
