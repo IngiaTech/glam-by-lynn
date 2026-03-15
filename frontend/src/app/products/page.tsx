@@ -532,17 +532,20 @@ export default function ProductsPage() {
 
             {/* Product Grid */}
             {loading ? (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="rounded-3xl overflow-hidden border border-border/30 bg-white">
-                    <Skeleton className="aspect-[4/5] w-full" />
+                  <div key={i} className="rounded-[2rem] overflow-hidden border border-pink-50 bg-white">
+                    <Skeleton className="h-64 w-full" />
                     <div className="p-6 space-y-3">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-5 w-full" />
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-5 w-24 mt-2" />
-                      <Skeleton className="h-[1px] w-full" />
-                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-5 w-3/4" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                      <Skeleton className="h-12 w-full rounded-2xl mt-2" />
                     </div>
                   </div>
                 ))}
@@ -559,7 +562,7 @@ export default function ProductsPage() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredProducts.map((product) => {
                   const isOutOfStock = product.inventory_count <= 0;
                   const image = getPrimaryImage(product);
@@ -569,144 +572,137 @@ export default function ProductsPage() {
                     <Link
                       key={product.id}
                       href={`/products/${product.id}`}
-                      className="group relative flex flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
+                      className="group relative flex flex-col rounded-[2rem] border border-pink-50 bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-pink-100 hover:-translate-y-2"
                     >
+                      {/* Badges */}
+                      <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
+                        {product.is_featured && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-pink-600 shadow-sm">
+                            <Sparkles className="h-3 w-3" />
+                            Featured
+                          </span>
+                        )}
+                        {isOutOfStock && (
+                          <span className="inline-flex items-center rounded-full bg-rose-500 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-white shadow-lg">
+                            Sold Out
+                          </span>
+                        )}
+                        {hasDiscount(product) && !isOutOfStock && (
+                          <span className="inline-flex items-center rounded-full bg-rose-500 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-white shadow-lg">
+                            {product.discount_type === "percentage"
+                              ? `${product.discount_value}% OFF`
+                              : `KSh ${product.discount_value} OFF`}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Wishlist Button */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleToggleWishlist(product);
+                        }}
+                        disabled={togglingWishlistId === product.id}
+                        className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-colors hover:text-pink-500"
+                        aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                      >
+                        {togglingWishlistId === product.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-pink-500" />
+                        ) : (
+                          <Heart
+                            className={`h-4 w-4 transition-colors ${
+                              isInWishlist
+                                ? "fill-pink-500 text-pink-500"
+                                : "text-gray-400 hover:text-pink-500"
+                            }`}
+                          />
+                        )}
+                      </button>
+
                       {/* Image */}
-                      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-fuchsia-50/60 to-pink-50/40">
+                      <div className="relative h-64 overflow-hidden bg-gray-50">
                         {image ? (
                           <Image
                             src={resolveImageUrl(image.image_url)}
                             alt={image.alt_text || product.title}
                             fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
                             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
-                            <ShoppingBag className="h-10 w-10 text-fuchsia-200/60" />
+                            <ShoppingBag className="h-10 w-10 text-gray-200" />
                           </div>
                         )}
 
                         {/* Quick-view overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/10 group-hover:opacity-100">
-                          <span className="flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-medium text-foreground shadow-lg translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                          <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-xl translate-y-4 transition-transform duration-300 group-hover:translate-y-0">
                             <Eye className="h-4 w-4" />
                             Quick View
                           </span>
                         </div>
-
-                        {/* Badges */}
-                        <div className="absolute left-3 top-3 flex flex-col gap-2">
-                          {product.is_featured && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                              <Sparkles className="h-3 w-3" />
-                              Featured
-                            </span>
-                          )}
-                          {isOutOfStock && (
-                            <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-                              Sold Out
-                            </span>
-                          )}
-                          {hasDiscount(product) && !isOutOfStock && (
-                            <span className="inline-flex items-center rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                              {product.discount_type === "percentage"
-                                ? `${product.discount_value}% OFF`
-                                : `KSh ${product.discount_value} OFF`}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Wishlist Button */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleToggleWishlist(product);
-                          }}
-                          disabled={togglingWishlistId === product.id}
-                          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-md transition-all hover:scale-110 hover:bg-white"
-                          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-                        >
-                          {togglingWishlistId === product.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
-                          ) : (
-                            <Heart
-                              className={`h-4 w-4 transition-colors ${
-                                isInWishlist
-                                  ? "fill-fuchsia-500 text-fuchsia-500"
-                                  : "text-gray-500 hover:text-fuchsia-500"
-                              }`}
-                            />
-                          )}
-                        </button>
                       </div>
 
-                      {/* Content — vertical reading path: Category → Name → Brand → Price → CTA */}
-                      <div className="flex flex-1 flex-col p-6">
-                        {/* Eyebrow: Category */}
-                        <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-fuchsia-500">
-                          {product.category?.name || "Beauty"}
-                        </span>
-
-                        {/* Title */}
-                        <h3 className="text-[15px] font-bold leading-tight text-[#1a0f1c] line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
-                          {product.title}
-                        </h3>
-
-                        {/* Sub-text: Brand */}
-                        {product.brand && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {product.brand.name}
-                          </p>
-                        )}
-
-                        {/* Price */}
-                        <div className="mt-auto pt-4">
-                          <p className="text-xl font-extrabold text-[#1a0f1c]">
+                      {/* Content */}
+                      <div className="flex flex-1 flex-col p-6 space-y-3">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-pink-400">
+                              {product.category?.name || "Beauty"}
+                            </span>
+                            <h3 className="font-bold text-lg leading-tight text-[#1a0f1c] line-clamp-2 group-hover:text-pink-600 transition-colors">
+                              {product.title}
+                            </h3>
+                            {product.brand && (
+                              <p className="mt-1 text-xs text-gray-400">
+                                Brand: {product.brand.name}
+                              </p>
+                            )}
+                          </div>
+                          <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">
                             {formatPrice(product)}
                           </p>
-                          {!isOutOfStock && product.inventory_count <= 5 && product.inventory_count > 0 && (
-                            <p className="mt-0.5 text-xs text-amber-600 font-medium">
-                              Only {product.inventory_count} left
-                            </p>
-                          )}
                         </div>
 
-                        {/* Divider */}
-                        <div className="my-4 border-t border-gray-100" />
-
                         {/* CTA */}
-                        {isOutOfStock ? (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toast.info("We\u2019ll notify you when this item is back in stock!");
-                            }}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white py-3 text-sm font-semibold text-gray-400 transition-all hover:border-fuchsia-200 hover:text-fuchsia-500 hover:scale-[1.02]"
-                          >
-                            <Bell className="h-4 w-4" />
-                            Notify Me
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleAddToCart(product);
-                            }}
-                            disabled={addingToCartId === product.id}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a0f1c] py-3 text-sm font-semibold text-white shadow-lg shadow-pink-200/50 transition-all hover:bg-fuchsia-600 hover:shadow-fuchsia-300/50 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
-                          >
-                            {addingToCartId === product.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <ShoppingBag className="h-4 w-4" />
-                            )}
-                            Add to Bag
-                          </button>
-                        )}
+                        <div className="pt-2 mt-auto">
+                          {isOutOfStock ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toast.info("We\u2019ll notify you when this item is back in stock!");
+                                }}
+                                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-gray-100 py-3 text-sm font-bold text-gray-400 transition-all hover:border-pink-200 hover:text-pink-500"
+                              >
+                                Notify Me
+                              </button>
+                              <p className="mt-2 text-center text-[10px] font-medium italic text-rose-400">
+                                Restocking soon
+                              </p>
+                            </>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAddToCart(product);
+                              }}
+                              disabled={addingToCartId === product.id}
+                              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-pink-500 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-pink-600 active:scale-95 disabled:opacity-60 disabled:active:scale-100"
+                            >
+                              {addingToCartId === product.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <ShoppingBag className="h-4 w-4" />
+                              )}
+                              Add to Bag
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </Link>
                   );
