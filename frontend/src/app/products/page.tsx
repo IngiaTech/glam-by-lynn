@@ -535,12 +535,14 @@ export default function ProductsPage() {
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="rounded-3xl overflow-hidden border border-border/30 bg-white">
-                    <Skeleton className="aspect-square w-full" />
-                    <div className="p-5 space-y-3">
-                      <Skeleton className="h-4 w-20" />
+                    <Skeleton className="aspect-[4/5] w-full" />
+                    <div className="p-6 space-y-3">
+                      <Skeleton className="h-3 w-16" />
                       <Skeleton className="h-5 w-full" />
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-10 w-full rounded-xl" />
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-5 w-24 mt-2" />
+                      <Skeleton className="h-[1px] w-full" />
+                      <Skeleton className="h-12 w-full rounded-xl" />
                     </div>
                   </div>
                 ))}
@@ -570,7 +572,7 @@ export default function ProductsPage() {
                       className="group relative flex flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
                     >
                       {/* Image */}
-                      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-fuchsia-50 to-pink-50">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-fuchsia-50/60 to-pink-50/40">
                         {image ? (
                           <Image
                             src={resolveImageUrl(image.image_url)}
@@ -581,7 +583,7 @@ export default function ProductsPage() {
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
-                            <ShoppingBag className="h-16 w-16 text-fuchsia-200" />
+                            <ShoppingBag className="h-10 w-10 text-fuchsia-200/60" />
                           </div>
                         )}
 
@@ -640,69 +642,71 @@ export default function ProductsPage() {
                         </button>
                       </div>
 
-                      {/* Info */}
-                      <div className="flex flex-1 flex-col p-5">
-                        {/* Category */}
-                        <span className="mb-1 text-xs font-medium uppercase tracking-wider text-fuchsia-500">
+                      {/* Content — vertical reading path: Category → Name → Brand → Price → CTA */}
+                      <div className="flex flex-1 flex-col p-6">
+                        {/* Eyebrow: Category */}
+                        <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-fuchsia-500">
                           {product.category?.name || "Beauty"}
                         </span>
 
                         {/* Title */}
-                        <h3 className="mb-1 text-base font-semibold text-foreground line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
+                        <h3 className="text-[15px] font-bold leading-tight text-[#1a0f1c] line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
                           {product.title}
                         </h3>
 
-                        {/* Brand */}
+                        {/* Sub-text: Brand */}
                         {product.brand && (
-                          <p className="mb-3 text-xs text-muted-foreground">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {product.brand.name}
                           </p>
                         )}
 
-                        {/* Price + CTA */}
-                        <div className="mt-auto flex items-end justify-between gap-2">
-                          <div>
-                            <p className="text-xl font-bold text-foreground">
-                              {formatPrice(product)}
+                        {/* Price */}
+                        <div className="mt-auto pt-4">
+                          <p className="text-xl font-extrabold text-[#1a0f1c]">
+                            {formatPrice(product)}
+                          </p>
+                          {!isOutOfStock && product.inventory_count <= 5 && product.inventory_count > 0 && (
+                            <p className="mt-0.5 text-xs text-amber-600 font-medium">
+                              Only {product.inventory_count} left
                             </p>
-                            {!isOutOfStock && product.inventory_count <= 5 && product.inventory_count > 0 && (
-                              <p className="text-xs text-amber-600 font-medium">
-                                Only {product.inventory_count} left
-                              </p>
-                            )}
-                          </div>
-
-                          {isOutOfStock ? (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                toast.info("We'll notify you when this item is back in stock!");
-                              }}
-                              className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-fuchsia-300 hover:text-fuchsia-600"
-                            >
-                              <Bell className="h-4 w-4" />
-                              Notify Me
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleAddToCart(product);
-                              }}
-                              disabled={addingToCartId === product.id}
-                              className="flex items-center gap-1.5 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-all hover:bg-fuchsia-600 hover:shadow-lg hover:shadow-fuchsia-500/25 disabled:opacity-60"
-                            >
-                              {addingToCartId === product.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <ShoppingBag className="h-4 w-4" />
-                              )}
-                              Add to Bag
-                            </button>
                           )}
                         </div>
+
+                        {/* Divider */}
+                        <div className="my-4 border-t border-gray-100" />
+
+                        {/* CTA */}
+                        {isOutOfStock ? (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toast.info("We\u2019ll notify you when this item is back in stock!");
+                            }}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white py-3 text-sm font-semibold text-gray-400 transition-all hover:border-fuchsia-200 hover:text-fuchsia-500 hover:scale-[1.02]"
+                          >
+                            <Bell className="h-4 w-4" />
+                            Notify Me
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAddToCart(product);
+                            }}
+                            disabled={addingToCartId === product.id}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a0f1c] py-3 text-sm font-semibold text-white shadow-lg shadow-pink-200/50 transition-all hover:bg-fuchsia-600 hover:shadow-fuchsia-300/50 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
+                          >
+                            {addingToCartId === product.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShoppingBag className="h-4 w-4" />
+                            )}
+                            Add to Bag
+                          </button>
+                        )}
                       </div>
                     </Link>
                   );

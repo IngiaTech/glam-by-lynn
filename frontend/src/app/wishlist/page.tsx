@@ -97,11 +97,11 @@ export default function WishlistPage() {
         await removeFromWishlist(item.product.id, false);
       } else {
         const errorData = await cartRes.json();
-        toast.error(errorData.detail || "Failed to add to cart");
+        toast.error(errorData.detail || "Failed to add to bag");
       }
     } catch (error) {
       console.error("Error moving to cart:", error);
-      toast.error("Failed to move to cart");
+      toast.error("Failed to move to bag");
     } finally {
       setMovingToCart((prev) => {
         const newSet = new Set(prev);
@@ -279,7 +279,7 @@ export default function WishlistPage() {
                     ) : (
                       <>
                         <ShoppingCart className="mr-2 h-4 w-4" />
-                        Add to Cart
+                        Add to Bag
                       </>
                     )}
                   </Button>

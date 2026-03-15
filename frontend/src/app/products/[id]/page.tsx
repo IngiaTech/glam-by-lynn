@@ -48,6 +48,8 @@ import {
   Check,
   Loader2,
   Sparkles,
+  Bell,
+  Eye,
 } from "lucide-react";
 import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
@@ -82,6 +84,11 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [addingToCart, setAddingToCart] = useState(false);
   const [addingToWishlist, setAddingToWishlist] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
+
+  // Related product card interactions
+  const [relatedAddingToCartId, setRelatedAddingToCartId] = useState<string | null>(null);
+  const [relatedWishlistIds, setRelatedWishlistIds] = useState<Set<string>>(new Set());
+  const [relatedTogglingWishlistId, setRelatedTogglingWishlistId] = useState<string | null>(null);
 
   useEffect(() => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedParams.id);
@@ -132,7 +139,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     fetchProduct();
   }, [resolvedParams.id, refreshKey]);
 
-  // Check if product is in wishlist
+  // Check wishlist for current and related products
   useEffect(() => {
     const checkWishlist = async () => {
       if (!authenticated || !product) return;
@@ -143,7 +150,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         });
         if (res.ok) {
           const wishlist = await res.json();
-          setInWishlist(wishlist.some((item: any) => item.productId === product.id));
+          const ids = new Set(wishlist.map((item: any) => item.productId));
+          setInWishlist(ids.has(product.id));
+          setRelatedWishlistIds(ids as Set<string>);
         }
       } catch (error) {
         console.error("Error checking wishlist:", error);
@@ -183,14 +192,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       });
 
       if (res.ok) {
-        toast.success("Added to cart!");
+        toast.success("Added to bag!");
       } else {
         const errorData = await res.json();
-        toast.error(errorData.detail || "Failed to add to cart");
+        toast.error(errorData.detail || "Failed to add to bag");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toast.error("Failed to add to cart");
+      toast.error("Failed to add to bag");
     } finally {
       setAddingToCart(false);
     }
@@ -248,6 +257,81 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       prev === product.images!.length - 1 ? 0 : prev + 1
     );
   };
+
+  const handleRelatedAddToCart = async (rp: Product) => {
+    if (!authenticated) {
+      router.push(`/auth/signin?redirect=/products/${rp.id}`);
+      return;
+    }
+    setRelatedAddingToCartId(rp.id);
+    try {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+        body: JSON.stringify({ productId: rp.id, quantity: 1 }),
+      });
+      if (res.ok) {
+        toast.success(`${rp.title} added to bag`);
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || "Failed to add to bag");
+      }
+    } catch {
+      toast.error("Failed to add to bag");
+    } finally {
+      setRelatedAddingToCartId(null);
+    }
+  };
+
+  const handleRelatedToggleWishlist = async (rp: Product) => {
+    if (!authenticated) {
+      router.push(`/auth/signin?redirect=/products/${rp.id}`);
+      return;
+    }
+    const isIn = relatedWishlistIds.has(rp.id);
+    setRelatedTogglingWishlistId(rp.id);
+    try {
+      if (isIn) {
+        const res = await fetch(`${API_BASE_URL}/wishlist/${rp.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
+        });
+        if (res.ok) {
+          setRelatedWishlistIds((prev) => { const next = new Set(prev); next.delete(rp.id); return next; });
+          toast.success("Removed from wishlist");
+        }
+      } else {
+        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+          body: JSON.stringify({ productId: rp.id }),
+        });
+        if (res.ok) {
+          setRelatedWishlistIds((prev) => new Set(prev).add(rp.id));
+          toast.success("Added to wishlist!");
+        }
+      }
+    } catch {
+      toast.error("Failed to update wishlist");
+    } finally {
+      setRelatedTogglingWishlistId(null);
+    }
+  };
+
+  const formatRelatedPrice = (rp: Product) => {
+    const price = rp.final_price ?? rp.base_price;
+    if (!price) return "Contact for price";
+    return `KSh ${parseFloat(price.toString()).toLocaleString()}`;
+  };
+
+  const relatedHasDiscount = (rp: Product) =>
+    rp.discount_type && rp.discount_value && rp.discount_value > 0;
 
   if (loading) {
     return (
@@ -569,7 +653,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 ) : (
                   <>
                     <ShoppingCart className="mr-2 h-5 w-5" />
-                    {product.inventory_count === 0 ? "Out of Stock" : "Add to Cart"}
+                    {product.inventory_count === 0 ? "Out of Stock" : "Add to Bag"}
                   </>
                 )}
               </Button>
@@ -598,13 +682,17 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((rp) => {
                 const rpImage = rp.images?.find((img) => img.is_primary) || rp.images?.[0];
+                const rpOutOfStock = rp.inventory_count <= 0;
+                const rpInWishlist = relatedWishlistIds.has(rp.id);
+
                 return (
                   <Link
                     key={rp.id}
                     href={`/products/${rp.id}`}
                     className="group flex flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
                   >
-                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-fuchsia-50 to-pink-50">
+                    {/* Image */}
+                    <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-fuchsia-50/60 to-pink-50/40">
                       {rpImage ? (
                         <Image
                           src={resolveImageUrl(rpImage.image_url)}
@@ -615,29 +703,100 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">
-                          <ShoppingBag className="h-16 w-16 text-fuchsia-200" />
+                          <ShoppingBag className="h-10 w-10 text-fuchsia-200/60" />
                         </div>
                       )}
-                      {rp.is_featured && (
-                        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                          <Sparkles className="h-3 w-3" />
-                          Featured
+
+                      {/* Quick-view overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/10 group-hover:opacity-100">
+                        <span className="flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-medium text-foreground shadow-lg translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                          <Eye className="h-4 w-4" />
+                          Quick View
                         </span>
-                      )}
+                      </div>
+
+                      {/* Badges */}
+                      <div className="absolute left-3 top-3 flex flex-col gap-2">
+                        {rp.is_featured && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                            <Sparkles className="h-3 w-3" />
+                            Featured
+                          </span>
+                        )}
+                        {rpOutOfStock && (
+                          <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+                            Sold Out
+                          </span>
+                        )}
+                        {relatedHasDiscount(rp) && !rpOutOfStock && (
+                          <span className="inline-flex items-center rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                            {rp.discount_type === "percentage"
+                              ? `${rp.discount_value}% OFF`
+                              : `KSh ${rp.discount_value} OFF`}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Wishlist */}
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRelatedToggleWishlist(rp); }}
+                        disabled={relatedTogglingWishlistId === rp.id}
+                        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-md transition-all hover:scale-110 hover:bg-white"
+                        aria-label={rpInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                      >
+                        {relatedTogglingWishlistId === rp.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
+                        ) : (
+                          <Heart className={`h-4 w-4 transition-colors ${rpInWishlist ? "fill-fuchsia-500 text-fuchsia-500" : "text-gray-500 hover:text-fuchsia-500"}`} />
+                        )}
+                      </button>
                     </div>
-                    <div className="flex flex-1 flex-col p-5">
-                      <span className="mb-1 text-xs font-medium uppercase tracking-wider text-fuchsia-500">
+
+                    {/* Content */}
+                    <div className="flex flex-1 flex-col p-6">
+                      <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-fuchsia-500">
                         {rp.category?.name || "Beauty"}
                       </span>
-                      <h3 className="mb-1 text-base font-semibold line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
+                      <h3 className="text-[15px] font-bold leading-tight text-[#1a0f1c] line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
                         {rp.title}
                       </h3>
                       {rp.brand && (
-                        <p className="mb-3 text-xs text-muted-foreground">{rp.brand.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{rp.brand.name}</p>
                       )}
-                      <p className="mt-auto text-xl font-bold">
-                        KSh {parseFloat(rp.base_price.toString()).toLocaleString()}
-                      </p>
+
+                      <div className="mt-auto pt-4">
+                        <p className="text-xl font-extrabold text-[#1a0f1c]">
+                          {formatRelatedPrice(rp)}
+                        </p>
+                        {!rpOutOfStock && rp.inventory_count <= 5 && rp.inventory_count > 0 && (
+                          <p className="mt-0.5 text-xs text-amber-600 font-medium">Only {rp.inventory_count} left</p>
+                        )}
+                      </div>
+
+                      <div className="my-4 border-t border-gray-100" />
+
+                      {rpOutOfStock ? (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast.info("We\u2019ll notify you when this item is back in stock!"); }}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white py-3 text-sm font-semibold text-gray-400 transition-all hover:border-fuchsia-200 hover:text-fuchsia-500 hover:scale-[1.02]"
+                        >
+                          <Bell className="h-4 w-4" />
+                          Notify Me
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRelatedAddToCart(rp); }}
+                          disabled={relatedAddingToCartId === rp.id}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a0f1c] py-3 text-sm font-semibold text-white shadow-lg shadow-pink-200/50 transition-all hover:bg-fuchsia-600 hover:shadow-fuchsia-300/50 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
+                        >
+                          {relatedAddingToCartId === rp.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ShoppingBag className="h-4 w-4" />
+                          )}
+                          Add to Bag
+                        </button>
+                      )}
                     </div>
                   </Link>
                 );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
-import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart, Eye } from "lucide-react";
+import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart, Eye, Bell, Loader2 } from "lucide-react";
 import { FadeInSection } from "@/components/animations/FadeInSection";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -21,8 +24,14 @@ interface Product {
   slug: string;
   description?: string;
   base_price: number;
+  final_price?: number;
+  discount_type?: "percentage" | "fixed";
+  discount_value?: number;
+  inventory_count: number;
+  is_featured: boolean;
   images?: Array<{ image_url: string; alt_text?: string; is_primary?: boolean; display_order?: number }>;
   brand?: { name: string };
+  category?: { id: string; name: string };
   average_rating?: number;
   review_count?: number;
 }
@@ -62,6 +71,9 @@ interface ServicePackage {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { authenticated, session } = useAuth();
+
   const [featuredServices, setFeaturedServices] = useState<ServicePackage[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -70,6 +82,11 @@ export default function Home() {
   const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [loading, setLoading] = useState(true);
   const { settings: publicSettings } = usePublicSettings();
+
+  // Product card interaction state
+  const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
+  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const [togglingWishlistId, setTogglingWishlistId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -110,6 +127,98 @@ export default function Home() {
 
     fetchData();
   }, []);
+
+  // Load wishlist for authenticated users
+  useEffect(() => {
+    const loadWishlist = async () => {
+      if (!authenticated || !session?.accessToken) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+          headers: { Authorization: `Bearer ${session.accessToken}` },
+        });
+        if (res.ok) {
+          const items = await res.json();
+          setWishlistIds(new Set(items.map((item: any) => item.productId)));
+        }
+      } catch { /* silently fail */ }
+    };
+    loadWishlist();
+  }, [authenticated, session?.accessToken]);
+
+  const handleAddToCart = useCallback(async (product: Product) => {
+    if (!authenticated) {
+      router.push("/auth/signin?redirect=/");
+      return;
+    }
+    setAddingToCartId(product.id);
+    try {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+      if (res.ok) {
+        toast.success(`${product.title} added to bag`);
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || "Failed to add to bag");
+      }
+    } catch {
+      toast.error("Failed to add to bag");
+    } finally {
+      setAddingToCartId(null);
+    }
+  }, [authenticated, session?.accessToken, router]);
+
+  const handleToggleWishlist = useCallback(async (product: Product) => {
+    if (!authenticated) {
+      router.push("/auth/signin?redirect=/");
+      return;
+    }
+    const isInWishlist = wishlistIds.has(product.id);
+    setTogglingWishlistId(product.id);
+    try {
+      if (isInWishlist) {
+        const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
+        });
+        if (res.ok) {
+          setWishlistIds((prev) => { const next = new Set(prev); next.delete(product.id); return next; });
+          toast.success("Removed from wishlist");
+        }
+      } else {
+        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+          body: JSON.stringify({ productId: product.id }),
+        });
+        if (res.ok) {
+          setWishlistIds((prev) => new Set(prev).add(product.id));
+          toast.success("Added to wishlist!");
+        }
+      }
+    } catch {
+      toast.error("Failed to update wishlist");
+    } finally {
+      setTogglingWishlistId(null);
+    }
+  }, [authenticated, session?.accessToken, wishlistIds, router]);
+
+  const formatProductPrice = (product: Product) => {
+    const price = product.final_price ?? product.base_price;
+    if (!price) return "Contact for price";
+    return `KSh ${parseFloat(price.toString()).toLocaleString()}`;
+  };
+
+  const productHasDiscount = (product: Product) =>
+    product.discount_type && product.discount_value && product.discount_value > 0;
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,11 +417,11 @@ export default function Home() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="rounded-3xl overflow-hidden border border-border/30 bg-white">
-                    <div className="aspect-square animate-pulse bg-gradient-to-br from-fuchsia-50 to-pink-50" />
-                    <div className="p-5 space-y-3">
-                      <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                    <div className="aspect-[4/5] animate-pulse bg-gradient-to-br from-fuchsia-50/60 to-pink-50/40" />
+                    <div className="p-6 space-y-3">
                       <div className="h-5 w-full animate-pulse rounded bg-muted" />
-                      <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                      <div className="h-5 w-24 animate-pulse rounded bg-muted" />
                     </div>
                   </div>
                 ))}
@@ -321,6 +430,9 @@ export default function Home() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {featuredProducts.map((product, index) => {
                   const primaryImage = product.images?.find((img) => img.is_primary) || product.images?.[0];
+                  const isOutOfStock = product.inventory_count <= 0;
+                  const isInWishlist = wishlistIds.has(product.id);
+
                   return (
                     <FadeInSection key={product.id} direction="up" delay={0.2 + (index % 3) * 0.1}>
                       <Link
@@ -328,7 +440,7 @@ export default function Home() {
                         className="group flex h-full flex-col rounded-3xl border border-border/30 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/10 hover:-translate-y-1"
                       >
                         {/* Image */}
-                        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-fuchsia-50 to-pink-50">
+                        <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-fuchsia-50/60 to-pink-50/40">
                           {primaryImage ? (
                             <Image
                               src={resolveImageUrl(primaryImage.image_url)}
@@ -339,7 +451,7 @@ export default function Home() {
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center">
-                              <ShoppingBag className="h-16 w-16 text-fuchsia-200" />
+                              <ShoppingBag className="h-10 w-10 text-fuchsia-200/60" />
                             </div>
                           )}
 
@@ -351,44 +463,111 @@ export default function Home() {
                             </span>
                           </div>
 
-                          {/* Featured badge */}
-                          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                            <Sparkles className="h-3 w-3" />
-                            Featured
-                          </span>
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex flex-1 flex-col p-5">
-                          <h3 className="mb-1 text-base font-semibold text-foreground line-clamp-1 group-hover:text-fuchsia-700 transition-colors">
-                            {product.title}
-                          </h3>
-                          {product.brand && (
-                            <p className="mb-2 text-xs text-muted-foreground">{product.brand.name}</p>
-                          )}
-                          {product.description && (
-                            <p className="mb-3 text-sm text-muted-foreground line-clamp-2 flex-1">
-                              {product.description}
-                            </p>
-                          )}
-                          <div className="mt-auto flex items-center justify-between">
-                            <span className="text-xl font-bold text-foreground">
-                              KSh {product.base_price.toLocaleString()}
+                          {/* Badges */}
+                          <div className="absolute left-3 top-3 flex flex-col gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                              <Sparkles className="h-3 w-3" />
+                              Featured
                             </span>
-                            {product.average_rating != null && product.average_rating > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 fill-secondary text-secondary" />
-                                <span className="text-sm font-medium">
-                                  {product.average_rating.toFixed(1)}
-                                </span>
-                                {product.review_count != null && product.review_count > 0 && (
-                                  <span className="text-xs text-muted-foreground">
-                                    ({product.review_count})
-                                  </span>
-                                )}
-                              </div>
+                            {isOutOfStock && (
+                              <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+                                Sold Out
+                              </span>
+                            )}
+                            {productHasDiscount(product) && !isOutOfStock && (
+                              <span className="inline-flex items-center rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                                {product.discount_type === "percentage"
+                                  ? `${product.discount_value}% OFF`
+                                  : `KSh ${product.discount_value} OFF`}
+                              </span>
                             )}
                           </div>
+
+                          {/* Wishlist Button */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleToggleWishlist(product);
+                            }}
+                            disabled={togglingWishlistId === product.id}
+                            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-md transition-all hover:scale-110 hover:bg-white"
+                            aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                          >
+                            {togglingWishlistId === product.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
+                            ) : (
+                              <Heart
+                                className={`h-4 w-4 transition-colors ${
+                                  isInWishlist
+                                    ? "fill-fuchsia-500 text-fuchsia-500"
+                                    : "text-gray-500 hover:text-fuchsia-500"
+                                }`}
+                              />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex flex-1 flex-col p-6">
+                          <span className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-fuchsia-500">
+                            {product.category?.name || "Beauty"}
+                          </span>
+
+                          <h3 className="text-[15px] font-bold leading-tight text-[#1a0f1c] line-clamp-2 group-hover:text-fuchsia-700 transition-colors">
+                            {product.title}
+                          </h3>
+
+                          {product.brand && (
+                            <p className="mt-1 text-xs text-muted-foreground">{product.brand.name}</p>
+                          )}
+
+                          {/* Price */}
+                          <div className="mt-auto pt-4">
+                            <p className="text-xl font-extrabold text-[#1a0f1c]">
+                              {formatProductPrice(product)}
+                            </p>
+                            {!isOutOfStock && product.inventory_count <= 5 && product.inventory_count > 0 && (
+                              <p className="mt-0.5 text-xs text-amber-600 font-medium">
+                                Only {product.inventory_count} left
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Divider */}
+                          <div className="my-4 border-t border-gray-100" />
+
+                          {/* CTA */}
+                          {isOutOfStock ? (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toast.info("We\u2019ll notify you when this item is back in stock!");
+                              }}
+                              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white py-3 text-sm font-semibold text-gray-400 transition-all hover:border-fuchsia-200 hover:text-fuchsia-500 hover:scale-[1.02]"
+                            >
+                              <Bell className="h-4 w-4" />
+                              Notify Me
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAddToCart(product);
+                              }}
+                              disabled={addingToCartId === product.id}
+                              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a0f1c] py-3 text-sm font-semibold text-white shadow-lg shadow-pink-200/50 transition-all hover:bg-fuchsia-600 hover:shadow-fuchsia-300/50 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
+                            >
+                              {addingToCartId === product.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <ShoppingBag className="h-4 w-4" />
+                              )}
+                              Add to Bag
+                            </button>
+                          )}
                         </div>
                       </Link>
                     </FadeInSection>
