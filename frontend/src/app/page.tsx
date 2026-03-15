@@ -513,7 +513,7 @@ export default function Home() {
                                 {product.title}
                               </h3>
                               {product.brand && (
-                                <p className="mt-1 text-xs text-gray-400">Brand: {product.brand.name}</p>
+                                <p className="mt-1 text-xs text-gray-400">{product.brand.name}</p>
                               )}
                             </div>
                             <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">

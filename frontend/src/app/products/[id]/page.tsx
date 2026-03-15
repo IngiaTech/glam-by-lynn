@@ -761,7 +761,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                             {rp.title}
                           </h3>
                           {rp.brand && (
-                            <p className="mt-1 text-xs text-gray-400">Brand: {rp.brand.name}</p>
+                            <p className="mt-1 text-xs text-gray-400">{rp.brand.name}</p>
                           )}
                         </div>
                         <p className="font-black text-xl text-[#1a0f1c] flex-shrink-0">

@@ -657,7 +657,7 @@ export default function ProductsPage() {
                             </h3>
                             {product.brand && (
                               <p className="mt-1 text-xs text-gray-400">
-                                Brand: {product.brand.name}
+                                {product.brand.name}
                               </p>
                             )}
                           </div>
