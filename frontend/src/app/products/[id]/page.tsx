@@ -87,6 +87,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
   // Related product card interactions
   const [relatedAddingToCartId, setRelatedAddingToCartId] = useState<string | null>(null);
+  const [relatedCartMap, setRelatedCartMap] = useState<Map<string, { cartItemId: string; quantity: number }>>(new Map());
+  const [relatedUpdatingCartId, setRelatedUpdatingCartId] = useState<string | null>(null);
   const [relatedWishlistIds, setRelatedWishlistIds] = useState<Set<string>>(new Set());
   const [relatedTogglingWishlistId, setRelatedTogglingWishlistId] = useState<string | null>(null);
 
@@ -139,11 +141,27 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     fetchProduct();
   }, [resolvedParams.id, refreshKey]);
 
-  // Check wishlist for current and related products
+  // Load wishlist and cart for current and related products
+  const loadRelatedCart = async () => {
+    if (!authenticated || !session?.accessToken) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const map = new Map<string, { cartItemId: string; quantity: number }>();
+        for (const item of data.items || []) {
+          map.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
+        }
+        setRelatedCartMap(map);
+      }
+    } catch { /* silently fail */ }
+  };
+
   useEffect(() => {
     const checkWishlist = async () => {
       if (!authenticated || !product) return;
-
       try {
         const res = await fetch(`${API_BASE_URL}/wishlist`, {
           headers: { Authorization: `Bearer ${session?.accessToken}` },
@@ -158,8 +176,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         console.error("Error checking wishlist:", error);
       }
     };
-
     checkWishlist();
+    loadRelatedCart();
   }, [authenticated, product]);
 
   const handleReviewSubmitted = () => {
@@ -275,6 +293,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       });
       if (res.ok) {
         toast.success(`${rp.title} added to bag`);
+        await loadRelatedCart();
       } else {
         const err = await res.json();
         toast.error(err.detail || "Failed to add to bag");
@@ -283,6 +302,35 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       toast.error("Failed to add to bag");
     } finally {
       setRelatedAddingToCartId(null);
+    }
+  };
+
+  const handleRelatedUpdateQuantity = async (productId: string, delta: number) => {
+    const entry = relatedCartMap.get(productId);
+    if (!entry) return;
+    const newQty = entry.quantity + delta;
+    setRelatedUpdatingCartId(productId);
+    try {
+      if (newQty < 1) {
+        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(entry.cartItemId)}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
+        });
+      } else {
+        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(entry.cartItemId)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+          body: JSON.stringify({ quantity: newQty }),
+        });
+      }
+      await loadRelatedCart();
+    } catch {
+      toast.error("Failed to update quantity");
+    } finally {
+      setRelatedUpdatingCartId(null);
     }
   };
 
@@ -780,6 +828,37 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                             </button>
                             <p className="mt-2 text-center text-[10px] font-medium italic text-rose-400">Restocking soon</p>
                           </>
+                        ) : relatedCartMap.has(rp.id) ? (
+                          <div
+                            className="flex w-full items-center rounded-2xl border-2 border-pink-200 bg-pink-50 overflow-hidden"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          >
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRelatedUpdateQuantity(rp.id, -1); }}
+                              disabled={relatedUpdatingCartId === rp.id}
+                              className="flex items-center justify-center px-4 py-3 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <div className="flex-1 flex items-center justify-center border-x border-pink-200 py-3">
+                              {relatedUpdatingCartId === rp.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-pink-600" />
+                              ) : (
+                                <span className="text-sm font-bold text-pink-800">
+                                  {relatedCartMap.get(rp.id)!.quantity} in bag
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRelatedUpdateQuantity(rp.id, 1); }}
+                              disabled={relatedUpdatingCartId === rp.id}
+                              className="flex items-center justify-center px-4 py-3 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRelatedAddToCart(rp); }}

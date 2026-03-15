@@ -43,6 +43,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { getProducts, type ProductFilters } from "@/lib/products";
 import { useAuth } from "@/hooks/useAuth";
@@ -64,6 +66,8 @@ export default function ProductsPage() {
 
   // Cart / wishlist interaction
   const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
+  const [cartMap, setCartMap] = useState<Map<string, { cartItemId: string; quantity: number }>>(new Map());
+  const [updatingCartId, setUpdatingCartId] = useState<string | null>(null);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [togglingWishlistId, setTogglingWishlistId] = useState<string | null>(null);
 
@@ -122,7 +126,24 @@ export default function ProductsPage() {
     fetchProducts();
   }, [filters]);
 
-  // Load wishlist for authenticated users
+  // Load wishlist and cart for authenticated users
+  const loadCart = useCallback(async () => {
+    if (!authenticated || !session?.accessToken) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const map = new Map<string, { cartItemId: string; quantity: number }>();
+        for (const item of data.items || []) {
+          map.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
+        }
+        setCartMap(map);
+      }
+    } catch { /* silently fail */ }
+  }, [authenticated, session?.accessToken]);
+
   useEffect(() => {
     const loadWishlist = async () => {
       if (!authenticated || !session?.accessToken) return;
@@ -134,12 +155,11 @@ export default function ProductsPage() {
           const items = await res.json();
           setWishlistIds(new Set(items.map((item: any) => item.productId)));
         }
-      } catch {
-        // silently fail
-      }
+      } catch { /* silently fail */ }
     };
     loadWishlist();
-  }, [authenticated, session?.accessToken]);
+    loadCart();
+  }, [authenticated, session?.accessToken, loadCart]);
 
   const updateFilter = (key: keyof ProductFilters, value: any) => {
     setFilters((prev) => ({
@@ -240,6 +260,7 @@ export default function ProductsPage() {
       });
       if (res.ok) {
         toast.success(`${product.title} added to bag`);
+        await loadCart();
       } else {
         const err = await res.json();
         toast.error(err.detail || "Failed to add to bag");
@@ -249,7 +270,38 @@ export default function ProductsPage() {
     } finally {
       setAddingToCartId(null);
     }
-  }, [authenticated, session?.accessToken, router]);
+  }, [authenticated, session?.accessToken, router, loadCart]);
+
+  // Cart quantity update handler
+  const handleUpdateQuantity = useCallback(async (productId: string, delta: number) => {
+    const entry = cartMap.get(productId);
+    if (!entry) return;
+    const newQty = entry.quantity + delta;
+    setUpdatingCartId(productId);
+    try {
+      if (newQty < 1) {
+        // Remove item
+        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(entry.cartItemId)}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session?.accessToken}` },
+        });
+      } else {
+        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(entry.cartItemId)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+          body: JSON.stringify({ quantity: newQty }),
+        });
+      }
+      await loadCart();
+    } catch {
+      toast.error("Failed to update quantity");
+    } finally {
+      setUpdatingCartId(null);
+    }
+  }, [cartMap, session?.accessToken, loadCart]);
 
   // Wishlist handler
   const handleToggleWishlist = useCallback(async (product: Product) => {
@@ -684,6 +736,37 @@ export default function ProductsPage() {
                                 Restocking soon
                               </p>
                             </>
+                          ) : cartMap.has(product.id) ? (
+                            <div
+                              className="flex w-full items-center rounded-2xl border-2 border-pink-200 bg-pink-50 overflow-hidden"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            >
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleUpdateQuantity(product.id, -1); }}
+                                disabled={updatingCartId === product.id}
+                                className="flex items-center justify-center px-4 py-3 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <div className="flex-1 flex items-center justify-center border-x border-pink-200 py-3">
+                                {updatingCartId === product.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-pink-600" />
+                                ) : (
+                                  <span className="text-sm font-bold text-pink-800">
+                                    {cartMap.get(product.id)!.quantity} in bag
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleUpdateQuantity(product.id, 1); }}
+                                disabled={updatingCartId === product.id}
+                                className="flex items-center justify-center px-4 py-3 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
                           ) : (
                             <button
                               onClick={(e) => {
