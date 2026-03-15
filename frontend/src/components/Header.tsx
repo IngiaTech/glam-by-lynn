@@ -22,7 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  ShoppingCart,
+  ShoppingBag,
   User,
   Menu,
   LogOut,
@@ -32,6 +32,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { CartDrawer, openCartDrawer, CART_UPDATED_EVENT } from "@/components/CartDrawer";
 
 export function Header() {
   const { user, authenticated, isAdmin, session } = useAuth();
@@ -126,9 +127,15 @@ export function Header() {
       }
     }
     fetchCartCount();
+
+    // Re-fetch when cart is updated from the drawer or product pages
+    const handleCartUpdated = () => fetchCartCount();
+    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdated);
+    return () => window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdated);
   }, [authenticated, session?.accessToken]);
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-black shadow-md shadow-black/20">
       <div className="container mx-auto px-4">
         {/* Main header */}
@@ -186,18 +193,21 @@ export function Header() {
 
           {/* Cart, User Menu */}
           <div className="flex items-center gap-3">
-            {/* Cart Icon */}
-            <Button variant="ghost" size="icon" asChild className="relative text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10">
-              <Link href="/cart">
-                <ShoppingCart className="h-5 w-5" />
-                {cartItemCount > 0 && (
-                  <Badge
-                    className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs bg-pink-gradient text-white border-0"
-                  >
-                    {cartItemCount > 9 ? "9+" : cartItemCount}
-                  </Badge>
-                )}
-              </Link>
+            {/* Bag Icon */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-white hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10"
+              onClick={openCartDrawer}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <Badge
+                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs bg-pink-gradient text-white border-0"
+                >
+                  {cartItemCount > 9 ? "9+" : cartItemCount}
+                </Badge>
+              )}
             </Button>
 
             {/* User Menu */}
@@ -379,5 +389,8 @@ export function Header() {
         </div>
       </div>
     </header>
+
+    <CartDrawer />
+    </>
   );
 }

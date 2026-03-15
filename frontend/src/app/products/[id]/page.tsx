@@ -55,6 +55,7 @@ import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { openCartDrawer, notifyCartUpdated } from "@/components/CartDrawer";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 import type { Product } from "@/types";
@@ -211,6 +212,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
       if (res.ok) {
         toast.success("Added to bag!");
+        notifyCartUpdated();
+        openCartDrawer();
       } else {
         const errorData = await res.json();
         toast.error(errorData.detail || "Failed to add to bag");
@@ -294,6 +297,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       if (res.ok) {
         toast.success(`${rp.title} added to bag`);
         await loadRelatedCart();
+        notifyCartUpdated();
+        openCartDrawer();
       } else {
         const err = await res.json();
         toast.error(err.detail || "Failed to add to bag");
@@ -327,6 +332,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         });
       }
       await loadRelatedCart();
+      notifyCartUpdated();
     } catch {
       toast.error("Failed to update quantity");
     } finally {

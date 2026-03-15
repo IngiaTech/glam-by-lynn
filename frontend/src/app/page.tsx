@@ -17,6 +17,7 @@ import { FadeInSection } from "@/components/animations/FadeInSection";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { openCartDrawer, notifyCartUpdated } from "@/components/CartDrawer";
 
 interface Product {
   id: string;
@@ -181,8 +182,9 @@ export default function Home() {
         body: JSON.stringify({ productId: product.id, quantity: 1 }),
       });
       if (res.ok) {
-        toast.success(`${product.title} added to bag`);
         await loadCart();
+        notifyCartUpdated();
+        openCartDrawer();
       } else {
         const err = await res.json();
         toast.error(err.detail || "Failed to add to bag");
@@ -216,6 +218,7 @@ export default function Home() {
         });
       }
       await loadCart();
+      notifyCartUpdated();
     } catch {
       toast.error("Failed to update quantity");
     } finally {

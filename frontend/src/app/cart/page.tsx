@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
-  ShoppingCart,
   Minus,
   Plus,
   X,
@@ -159,8 +158,8 @@ export default function CartPage() {
   const clearCart = () => {
     setConfirmDialog({
       open: true,
-      title: "Clear Cart",
-      description: "Are you sure you want to clear your cart?",
+      title: "Clear Bag",
+      description: "Are you sure you want to clear your bag?",
       onConfirm: async () => {
         try {
           const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
@@ -171,11 +170,11 @@ export default function CartPage() {
           if (res.ok) {
             setCartItems([]);
           } else {
-            toast.error("Failed to clear cart");
+            toast.error("Failed to clear bag");
           }
         } catch (error) {
           console.error("Error clearing cart:", error);
-          toast.error("Failed to clear cart");
+          toast.error("Failed to clear bag");
         }
       },
     });
@@ -214,16 +213,16 @@ export default function CartPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Shopping Cart</h1>
+            <h1 className="text-3xl font-bold">Shopping Bag</h1>
             <p className="text-muted-foreground">
               {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your
-              cart
+              bag
             </p>
           </div>
           {cartItems.length > 0 && (
             <Button variant="outline" onClick={clearCart}>
               <Trash2 className="mr-2 h-4 w-4" />
-              Clear Cart
+              Clear Bag
             </Button>
           )}
         </div>
@@ -231,8 +230,8 @@ export default function CartPage() {
         {cartItems.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <ShoppingCart className="mb-4 h-16 w-16 text-muted-foreground/50" />
-              <h2 className="mb-2 text-xl font-semibold">Your cart is empty</h2>
+              <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground/50" />
+              <h2 className="mb-2 text-xl font-semibold">Your bag is empty</h2>
               <p className="mb-6 text-muted-foreground">
                 Add some products to get started!
               </p>
@@ -266,7 +265,7 @@ export default function CartPage() {
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
-                            <ShoppingCart className="h-8 w-8 text-muted-foreground/30" />
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
                           </div>
                         )}
                       </Link>

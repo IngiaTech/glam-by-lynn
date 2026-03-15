@@ -49,6 +49,7 @@ import {
 import { getProducts, type ProductFilters } from "@/lib/products";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { openCartDrawer, notifyCartUpdated } from "@/components/CartDrawer";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 import type { Product, Brand, Category } from "@/types";
@@ -259,8 +260,9 @@ export default function ProductsPage() {
         body: JSON.stringify({ productId: product.id, quantity: 1 }),
       });
       if (res.ok) {
-        toast.success(`${product.title} added to bag`);
         await loadCart();
+        notifyCartUpdated();
+        openCartDrawer();
       } else {
         const err = await res.json();
         toast.error(err.detail || "Failed to add to bag");
@@ -296,6 +298,7 @@ export default function ProductsPage() {
         });
       }
       await loadCart();
+      notifyCartUpdated();
     } catch {
       toast.error("Failed to update quantity");
     } finally {
