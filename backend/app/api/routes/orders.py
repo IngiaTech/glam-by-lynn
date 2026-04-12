@@ -1,4 +1,6 @@
 """Order API routes."""
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -20,31 +22,21 @@ router = APIRouter(tags=["Orders"])
 def create_order(
     order_data: OrderCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
-    Create a new order from user's cart.
+    Create a new order.
 
-    Validates cart items, checks stock availability, applies promo code if provided,
-    calculates totals, generates order number, and clears cart after successful order creation.
+    **Authenticated users:** items are read from the persisted cart; any
+    ``cartItems`` in the request body are ignored.
 
-    **Requirements:**
-    - User must be authenticated
-    - Cart must not be empty
-    - All cart items must be in stock
-    - Promo code must be valid (if provided)
+    **Guest checkout:** ``guestInfo`` and ``cartItems`` must both be supplied
+    in the request body. No account is created; the order is stored against
+    the guest contact details.
 
-    **Process:**
-    1. Validates all cart items exist and are in stock
-    2. Calculates subtotal from cart
-    3. Applies promo code discount (if provided)
-    4. Adds delivery fee based on location
-    5. Creates order and order items
-    6. Updates product stock
-    7. Clears user's cart
-
-    Returns:
-        Created order with all items
+    Validates items, checks stock availability, applies promo code if
+    provided, calculates totals, generates an order number, and clears the
+    user's cart (if any) after successful order creation.
     """
     success, message, order = order_service.create_order(
         db=db,
@@ -53,6 +45,7 @@ def create_order(
         delivery_info=order_data.delivery_info,
         promo_code=order_data.promo_code,
         payment_method=order_data.payment_method,
+        cart_items=order_data.cart_items,
     )
 
     if not success:

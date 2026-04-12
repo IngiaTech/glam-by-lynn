@@ -1,5 +1,5 @@
 """Cart service for business logic."""
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
@@ -236,6 +236,54 @@ def remove_cart_item(db: Session, user_id: UUID, cart_item_id: UUID) -> bool:
     db.delete(cart_item)
     db.commit()
     return True
+
+
+def merge_guest_cart_items(
+    db: Session,
+    user_id: UUID,
+    items: List[dict],
+) -> Tuple[int, List[str]]:
+    """
+    Merge a list of guest (localStorage) cart items into the user's cart.
+
+    Uses the existing add_item_to_cart flow so quantities for an item already
+    in the cart are summed. Items that fail stock validation are skipped and
+    reported in the returned warnings list so the caller can surface a
+    non-blocking message to the user.
+
+    Args:
+        db: Database session
+        user_id: Target user ID
+        items: List of dicts with keys ``product_id`` (UUID), ``quantity`` (int),
+            and optional ``product_variant_id`` (UUID)
+
+    Returns:
+        Tuple of (merged_count, warnings)
+    """
+    merged = 0
+    warnings: List[str] = []
+
+    for item in items:
+        product_id = item.get("product_id")
+        quantity = item.get("quantity", 0)
+        variant_id = item.get("product_variant_id")
+
+        if not product_id or quantity <= 0:
+            continue
+
+        try:
+            add_item_to_cart(
+                db=db,
+                user_id=user_id,
+                product_id=product_id,
+                quantity=quantity,
+                product_variant_id=variant_id,
+            )
+            merged += 1
+        except ValueError as e:
+            warnings.append(str(e))
+
+    return merged, warnings
 
 
 def clear_cart(db: Session, user_id: UUID) -> bool:

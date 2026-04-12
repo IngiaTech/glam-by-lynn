@@ -57,9 +57,15 @@ class DeliveryInfo(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    """Schema for creating a new order."""
+    """Schema for creating a new order.
+
+    For authenticated users: `cart_items` is ignored; items are read from the
+    user's stored cart. For guest checkout: `guest_info` and `cart_items`
+    are both required.
+    """
 
     guest_info: Optional[GuestInfo] = Field(None, alias="guestInfo")
+    cart_items: Optional[List[OrderItemCreate]] = Field(None, alias="cartItems")
     delivery_info: DeliveryInfo = Field(..., alias="deliveryInfo")
     promo_code: Optional[str] = Field(None, alias="promoCode")
     payment_method: Optional[str] = Field(None, alias="paymentMethod")

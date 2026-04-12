@@ -1,14 +1,29 @@
 """Shopping cart API routes."""
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.cart import CartItemCreate, CartItemUpdate, CartItemResponse, CartResponse
+from app.schemas.cart import (
+    CartItemCreate,
+    CartItemUpdate,
+    CartItemResponse,
+    CartMergeRequest,
+    CartResponse,
+)
 from app.services import cart_service
+
+
+class CartMergeResponse(BaseModel):
+    """Response body for cart merge."""
+
+    merged: int
+    warnings: List[str] = Field(default_factory=list)
 
 router = APIRouter(tags=["Shopping Cart"])
 
@@ -216,3 +231,35 @@ async def clear_cart(
     """
     cart_service.clear_cart(db, current_user.id)
     return None
+
+
+@router.post("/cart/merge", response_model=CartMergeResponse)
+async def merge_guest_cart(
+    payload: CartMergeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Merge a guest (localStorage) cart into the authenticated user's cart.
+
+    Called by the frontend immediately after sign-in/up so items a visitor
+    added while browsing anonymously are not lost. Items that fail stock
+    validation are skipped; the ``warnings`` array reports them so the
+    client can surface a non-blocking toast.
+    """
+    items = [
+        {
+            "product_id": item.product_id,
+            "product_variant_id": item.product_variant_id,
+            "quantity": item.quantity,
+        }
+        for item in payload.items
+    ]
+
+    merged, warnings = cart_service.merge_guest_cart_items(
+        db=db,
+        user_id=current_user.id,
+        items=items,
+    )
+
+    return CartMergeResponse(merged=merged, warnings=warnings)

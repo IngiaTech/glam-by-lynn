@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.models.order import Cart, CartItem, Order, OrderItem
 from app.models.product import Product, ProductVariant
 from app.models.user import User
-from app.schemas.order import DeliveryInfo, GuestInfo
+from app.schemas.order import DeliveryInfo, GuestInfo, OrderItemCreate
 from app.services import promo_code_service
 
 
@@ -115,6 +115,81 @@ def validate_cart_and_calculate_totals(
     return True, "", subtotal, items_data
 
 
+def validate_inline_items_and_calculate_totals(
+    db: Session, cart_items: List[OrderItemCreate]
+) -> Tuple[bool, str, Decimal, List[dict]]:
+    """
+    Validate a list of inline cart items (guest checkout) and calculate totals.
+
+    Mirrors validate_cart_and_calculate_totals but operates on a list of
+    OrderItemCreate payloads instead of a persisted Cart row. Used when a
+    guest submits the bag contents directly with the order request.
+    """
+    if not cart_items:
+        return False, "Cart is empty", Decimal(0), []
+
+    # Deduplicate: if the same product/variant appears twice, sum the quantity
+    merged: dict = {}
+    for ci in cart_items:
+        key = (ci.product_id, ci.product_variant_id)
+        merged[key] = merged.get(key, 0) + ci.quantity
+
+    subtotal = Decimal(0)
+    items_data = []
+
+    for (product_id, variant_id), quantity in merged.items():
+        product = db.query(Product).filter(Product.id == product_id).first()
+
+        if not product:
+            return False, "Product not found", Decimal(0), []
+
+        if not product.is_active:
+            return False, f"Product '{product.title}' is no longer available", Decimal(0), []
+
+        if product.inventory_count < quantity:
+            return (
+                False,
+                f"Insufficient stock for '{product.title}'. Available: {product.inventory_count}",
+                Decimal(0),
+                [],
+            )
+
+        variant = None
+        if variant_id:
+            variant = (
+                db.query(ProductVariant)
+                .filter(ProductVariant.id == variant_id)
+                .first()
+            )
+
+            if not variant:
+                return False, "Product variant not found", Decimal(0), []
+
+            if variant.inventory_count < quantity:
+                return (
+                    False,
+                    f"Insufficient stock for '{product.title}' variant. Available: {variant.inventory_count}",
+                    Decimal(0),
+                    [],
+                )
+
+        unit_price = product.base_price + (variant.price_adjustment if variant else Decimal(0))
+        item_total = unit_price * quantity
+        subtotal += item_total
+
+        items_data.append({
+            "product_id": product.id,
+            "product_variant_id": variant.id if variant else None,
+            "product_title": product.title,
+            "product_sku": variant.sku if variant else product.sku,
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "total_price": item_total,
+        })
+
+    return True, "", subtotal, items_data
+
+
 def calculate_delivery_fee(delivery_county: str) -> Decimal:
     """
     Calculate delivery fee based on county.
@@ -133,9 +208,15 @@ def create_order(
     delivery_info: DeliveryInfo,
     promo_code: Optional[str],
     payment_method: Optional[str],
+    cart_items: Optional[List[OrderItemCreate]] = None,
 ) -> Tuple[bool, str, Optional[Order]]:
     """
-    Create a new order from user's cart.
+    Create a new order from the user's bag.
+
+    For authenticated users, items are read from the persisted cart and
+    `cart_items` is ignored. For guest checkout, `guest_info` and `cart_items`
+    must both be supplied (the items travel with the request since guests do
+    not have a server-side cart).
 
     Args:
         db: Database session
@@ -144,27 +225,30 @@ def create_order(
         delivery_info: Delivery address
         promo_code: Optional promo code
         payment_method: Payment method chosen
+        cart_items: Inline items for guest checkout
 
     Returns:
         Tuple of (success, message, order)
     """
-    # Validate user or guest info
-    if not user and not guest_info:
-        return False, "Either user or guest information required", None
+    # Validate caller supplied the right combination of fields
+    if not user:
+        if not guest_info:
+            return False, "Guest information required for guest checkout", None
+        if not cart_items:
+            return False, "Cart is empty", None
 
-    # Get cart (only for authenticated users)
+    # Get cart and validate items
     cart = None
     if user:
         cart = db.query(Cart).filter(Cart.user_id == user.id).first()
         if not cart or cart.cart_items.count() == 0:
             return False, "Cart is empty", None
+        is_valid, error_msg, subtotal, items_data = validate_cart_and_calculate_totals(db, cart)
     else:
-        # For guest checkout, we would need to pass cart items directly
-        # For now, require authentication
-        return False, "Guest checkout not yet implemented", None
+        is_valid, error_msg, subtotal, items_data = validate_inline_items_and_calculate_totals(
+            db, cart_items or []
+        )
 
-    # Validate cart and calculate subtotal
-    is_valid, error_msg, subtotal, items_data = validate_cart_and_calculate_totals(db, cart)
     if not is_valid:
         return False, error_msg, None
 

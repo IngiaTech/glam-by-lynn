@@ -1,7 +1,7 @@
 """Cart schemas for API requests and responses."""
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, computed_field
@@ -21,6 +21,14 @@ class CartItemUpdate(BaseModel):
     """Schema for updating cart item quantity."""
 
     quantity: int = Field(..., gt=0, description="New quantity (must be > 0)")
+
+
+class CartMergeRequest(BaseModel):
+    """Schema for merging a guest (localStorage) cart into a user cart."""
+
+    items: List[CartItemCreate] = Field(default_factory=list)
+
+    model_config = {"populate_by_name": True}
 
 
 class ProductSummary(BaseModel):
