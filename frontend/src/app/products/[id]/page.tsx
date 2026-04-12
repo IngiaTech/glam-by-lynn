@@ -54,8 +54,9 @@ import {
 import { getProductById, getProductBySlug } from "@/lib/products";
 import { getProductRatingSummary, type ProductRatingSummary } from "@/lib/reviews";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
-import { openCartDrawer, notifyCartUpdated } from "@/components/CartDrawer";
+import { openCartDrawer } from "@/lib/cartEvents";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 import type { Product } from "@/types";
@@ -86,12 +87,20 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [addingToWishlist, setAddingToWishlist] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
 
+  // Unified cart (guest + authenticated)
+  const { items: cartItems, addItem, updateQuantity: updateCartQuantity } = useCart();
+
   // Related product card interactions
   const [relatedAddingToCartId, setRelatedAddingToCartId] = useState<string | null>(null);
-  const [relatedCartMap, setRelatedCartMap] = useState<Map<string, { cartItemId: string; quantity: number }>>(new Map());
   const [relatedUpdatingCartId, setRelatedUpdatingCartId] = useState<string | null>(null);
   const [relatedWishlistIds, setRelatedWishlistIds] = useState<Set<string>>(new Set());
   const [relatedTogglingWishlistId, setRelatedTogglingWishlistId] = useState<string | null>(null);
+
+  // Derive the cartMap from useCart for the related-products in-bag selector
+  const relatedCartMap = new Map<string, { cartItemId: string; quantity: number }>();
+  for (const item of cartItems) {
+    relatedCartMap.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
+  }
 
   useEffect(() => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedParams.id);
@@ -142,24 +151,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     fetchProduct();
   }, [resolvedParams.id, refreshKey]);
 
-  // Load wishlist and cart for current and related products
-  const loadRelatedCart = async () => {
-    if (!authenticated || !session?.accessToken) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const map = new Map<string, { cartItemId: string; quantity: number }>();
-        for (const item of data.items || []) {
-          map.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
-        }
-        setRelatedCartMap(map);
-      }
-    } catch { /* silently fail */ }
-  };
-
+  // Load wishlist for current and related products (cart is handled by useCart)
   useEffect(() => {
     const checkWishlist = async () => {
       if (!authenticated || !product) return;
@@ -178,7 +170,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       }
     };
     checkWishlist();
-    loadRelatedCart();
   }, [authenticated, product]);
 
   const handleReviewSubmitted = () => {
@@ -190,37 +181,41 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   };
 
   const handleAddToCart = async () => {
-    if (!authenticated) {
-      router.push("/auth/signin?redirect=/products/" + product?.id);
-      return;
-    }
+    if (!product) return;
 
     setAddingToCart(true);
     try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-        body: JSON.stringify({
-          productId: product?.id,
-          productVariantId: selectedVariant || undefined,
-          quantity,
-        }),
-      });
+      const variant = selectedVariant
+        ? product.variants?.find((v) => v.id === selectedVariant)
+        : undefined;
 
-      if (res.ok) {
-        toast.success("Added to bag!");
-        notifyCartUpdated();
-        openCartDrawer();
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.detail || "Failed to add to bag");
-      }
-    } catch (error) {
+      await addItem(
+        {
+          id: product.id,
+          title: product.title,
+          slug: product.slug,
+          basePrice: Number(product.final_price ?? product.base_price ?? 0),
+          inventoryCount: product.inventory_count ?? 0,
+          images: product.images?.map((img) => ({
+            imageUrl: img.image_url,
+            altText: img.alt_text,
+          })),
+        },
+        quantity,
+        variant
+          ? {
+              id: variant.id,
+              variantType: variant.variant_type,
+              variantValue: variant.variant_value,
+              priceAdjustment: Number(variant.price_adjustment ?? 0),
+            }
+          : undefined,
+      );
+      toast.success("Added to bag!");
+      openCartDrawer();
+    } catch (error: any) {
       console.error("Error adding to cart:", error);
-      toast.error("Failed to add to bag");
+      toast.error(error?.message || "Failed to add to bag");
     } finally {
       setAddingToCart(false);
     }
@@ -280,31 +275,26 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   };
 
   const handleRelatedAddToCart = async (rp: Product) => {
-    if (!authenticated) {
-      router.push(`/auth/signin?redirect=/products/${rp.id}`);
-      return;
-    }
     setRelatedAddingToCartId(rp.id);
     try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
+      await addItem(
+        {
+          id: rp.id,
+          title: rp.title,
+          slug: rp.slug,
+          basePrice: Number(rp.final_price ?? rp.base_price ?? 0),
+          inventoryCount: rp.inventory_count ?? 0,
+          images: rp.images?.map((img) => ({
+            imageUrl: img.image_url,
+            altText: img.alt_text,
+          })),
         },
-        body: JSON.stringify({ productId: rp.id, quantity: 1 }),
-      });
-      if (res.ok) {
-        toast.success(`${rp.title} added to bag`);
-        await loadRelatedCart();
-        notifyCartUpdated();
-        openCartDrawer();
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || "Failed to add to bag");
-      }
-    } catch {
-      toast.error("Failed to add to bag");
+        1,
+      );
+      toast.success(`${rp.title} added to bag`);
+      openCartDrawer();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add to bag");
     } finally {
       setRelatedAddingToCartId(null);
     }
@@ -316,25 +306,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     const newQty = entry.quantity + delta;
     setRelatedUpdatingCartId(productId);
     try {
-      if (newQty < 1) {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(entry.cartItemId)}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${session?.accessToken}` },
-        });
-      } else {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(entry.cartItemId)}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-          body: JSON.stringify({ quantity: newQty }),
-        });
-      }
-      await loadRelatedCart();
-      notifyCartUpdated();
-    } catch {
-      toast.error("Failed to update quantity");
+      await updateCartQuantity(entry.cartItemId, newQty);
     } finally {
       setRelatedUpdatingCartId(null);
     }

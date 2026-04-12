@@ -15,24 +15,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-import { ShoppingCart, MapPin, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
+import { ShoppingBag, MapPin, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { resolveImageUrl } from "@/lib/utils";
-
-interface CartItem {
-  id: string;
-  productId: string;
-  productVariantId?: string;
-  quantity: number;
-  product: {
-    id: string;
-    title: string;
-    slug: string;
-    basePrice: number | string;
-    images?: Array<{ imageUrl: string; altText?: string }>;
-  };
-}
 
 interface SavedAddress {
   id: string;
@@ -44,14 +31,16 @@ interface SavedAddress {
 export default function CheckoutPage() {
   const { user, authenticated, session } = useAuth();
   const router = useRouter();
+  const { items: cartItems, loading: cartLoading, clearCart } = useCart();
 
   // State
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const loading = cartLoading || loadingAddresses;
 
   // Form state
   const [fullName, setFullName] = useState("");
@@ -76,86 +65,58 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  // Fetch cart and saved addresses
+  // Fetch saved addresses (cart is loaded by useCart)
   useEffect(() => {
-    async function fetchData() {
+    async function fetchAddresses() {
+      if (!authenticated || !session?.accessToken) {
+        setLoadingAddresses(false);
+        return;
+      }
       try {
-        setLoading(true);
+        const ordersRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.LIST}?limit=5`, {
+          headers: { Authorization: `Bearer ${session.accessToken}` },
+        });
 
-        // For authenticated users, fetch cart from backend
-        if (authenticated) {
-          // Fetch cart
-          const cartRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-            headers: { Authorization: `Bearer ${session?.accessToken}` },
-          });
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+          const addresses: SavedAddress[] = [];
+          const seen = new Set<string>();
 
-          if (cartRes.ok) {
-            const cartData = await cartRes.json();
-            setCartItems(cartData.items || []);
-          }
-
-          // Fetch saved addresses from previous orders
-          const ordersRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.LIST}?limit=5`, {
-            headers: { Authorization: `Bearer ${session?.accessToken}` },
-          });
-
-          if (ordersRes.ok) {
-            const ordersData = await ordersRes.json();
-            const addresses: SavedAddress[] = [];
-            const seen = new Set<string>();
-
-            for (const order of ordersData.orders || []) {
-              if (
-                order.deliveryCounty &&
-                order.deliveryTown &&
-                order.deliveryAddress
-              ) {
-                const key = `${order.deliveryCounty}|${order.deliveryTown}|${order.deliveryAddress}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  addresses.push({
-                    id: order.id,
-                    deliveryCounty: order.deliveryCounty,
-                    deliveryTown: order.deliveryTown,
-                    deliveryAddress: order.deliveryAddress,
-                  });
-                }
+          for (const order of ordersData.orders || []) {
+            if (
+              order.deliveryCounty &&
+              order.deliveryTown &&
+              order.deliveryAddress
+            ) {
+              const key = `${order.deliveryCounty}|${order.deliveryTown}|${order.deliveryAddress}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                addresses.push({
+                  id: order.id,
+                  deliveryCounty: order.deliveryCounty,
+                  deliveryTown: order.deliveryTown,
+                  deliveryAddress: order.deliveryAddress,
+                });
               }
             }
-
-            setSavedAddresses(addresses);
-
-            // If we have saved addresses, default to saved mode
-            if (addresses.length > 0) {
-              setAddressMode("saved");
-              setSelectedAddressId(addresses[0].id);
-            }
           }
-        } else {
-          // For guest users, load cart from localStorage
-          const guestCart = localStorage.getItem("guestCart");
-          if (guestCart) {
-            try {
-              const parsedCart = JSON.parse(guestCart);
-              setCartItems(parsedCart || []);
-            } catch (e) {
-              console.error("Error parsing guest cart:", e);
-              setCartItems([]);
-            }
-          } else {
-            setCartItems([]);
+
+          setSavedAddresses(addresses);
+
+          if (addresses.length > 0) {
+            setAddressMode("saved");
+            setSelectedAddressId(addresses[0].id);
           }
         }
       } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load checkout data");
+        console.error("Error fetching addresses:", err);
       } finally {
-        setLoading(false);
+        setLoadingAddresses(false);
       }
     }
 
-    fetchData();
-  }, [authenticated]);
+    fetchAddresses();
+  }, [authenticated, session?.accessToken]);
 
   const validatePromoCode = async () => {
     if (!promoCode.trim()) return;
@@ -207,7 +168,7 @@ export default function CheckoutPage() {
     }
 
     if (cartItems.length === 0) {
-      setError("Your cart is empty. Please add items before checking out.");
+      setError("Your bag is empty. Please add items before checking out.");
       return;
     }
 
@@ -241,18 +202,29 @@ export default function CheckoutPage() {
         promoCode: promoCode || undefined,
       };
 
-      // Include guest info for non-authenticated users
+      // For guest checkout, send guest contact details and inline cart items
+      // so the backend can build the order without a persisted cart.
       if (!authenticated) {
         orderData.guestInfo = {
           name: fullName,
           email: email,
           phone: phone,
         };
+        orderData.cartItems = cartItems.map((item) => ({
+          productId: item.productId,
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+        }));
+      }
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (authenticated && session?.accessToken) {
+        headers.Authorization = `Bearer ${session.accessToken}`;
       }
 
       const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ORDERS.CREATE}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.accessToken}` },
+        headers,
         body: JSON.stringify(orderData),
       });
 
@@ -260,14 +232,10 @@ export default function CheckoutPage() {
         const order = await res.json();
         setSuccess(true);
 
-        // Clear cart (backend for authenticated users, localStorage for guests)
-        if (authenticated) {
-          await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${session?.accessToken}` },
-          });
-        } else {
-          localStorage.removeItem("guestCart");
+        // For authenticated users, the backend clears the cart server-side.
+        // For guests, clear the localStorage cart via useCart.
+        if (!authenticated) {
+          await clearCart();
         }
 
         // Redirect to order confirmation
@@ -524,7 +492,7 @@ export default function CheckoutPage() {
               <Card className="sticky top-4">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
+                    <ShoppingBag className="h-5 w-5" />
                     Order Summary
                   </CardTitle>
                 </CardHeader>
@@ -543,7 +511,7 @@ export default function CheckoutPage() {
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center">
-                              <ShoppingCart className="h-6 w-6 text-muted-foreground/50" />
+                              <ShoppingBag className="h-6 w-6 text-muted-foreground/50" />
                             </div>
                           )}
                           <Badge

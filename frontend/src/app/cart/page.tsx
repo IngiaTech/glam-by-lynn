@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/Header";
@@ -19,40 +18,22 @@ import {
   ShoppingBag,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
+import type { CartItem } from "@/hooks/useCart";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 
-interface CartItem {
-  id: string;
-  cartId: string;
-  productId: string;
-  productVariantId?: string;
-  quantity: number;
-  product: {
-    id: string;
-    title: string;
-    slug: string;
-    basePrice: number;
-    images?: Array<{ imageUrl: string; altText?: string }>;
-    inventoryCount: number;
-  };
-  productVariant?: {
-    id: string;
-    variantType: string;
-    variantValue: string;
-    priceAdjustment: number;
-  };
-}
-
 export default function CartPage() {
-  const { authenticated, session } = useAuth();
-  const router = useRouter();
+  const { authenticated } = useAuth();
+  const {
+    items: cartItems,
+    loading,
+    updateQuantity: updateQuantityInCart,
+    removeItem: removeItemFromCart,
+    clearCart: clearCartItems,
+  } = useCart();
 
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -62,95 +43,29 @@ export default function CartPage() {
     onConfirm: () => void;
   }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
-  useEffect(() => {
-    if (!authenticated) {
-      router.push("/auth/signin?redirect=/cart");
-      return;
-    }
-
-    fetchCart();
-  }, [authenticated, router]);
-
-  const fetchCart = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-        headers: { Authorization: `Bearer ${session?.accessToken}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setCartItems(data.items || []);
-      }
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-
     setUpdatingItems((prev) => new Set(prev).add(itemId));
-
     try {
-      const res = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(itemId)}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-          body: JSON.stringify({ quantity: newQuantity }),
-        }
-      );
-
-      if (res.ok) {
-        await fetchCart();
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.detail || "Failed to update quantity");
-      }
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-      toast.error("Failed to update quantity");
+      await updateQuantityInCart(itemId, newQuantity);
     } finally {
       setUpdatingItems((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
+        const s = new Set(prev);
+        s.delete(itemId);
+        return s;
       });
     }
   };
 
   const removeItem = async (itemId: string) => {
     setRemovingItems((prev) => new Set(prev).add(itemId));
-
     try {
-      const res = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(itemId)}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${session?.accessToken}` },
-        }
-      );
-
-      if (res.ok) {
-        await fetchCart();
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.detail || "Failed to remove item");
-      }
-    } catch (error) {
-      console.error("Error removing item:", error);
-      toast.error("Failed to remove item");
+      await removeItemFromCart(itemId);
     } finally {
       setRemovingItems((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
-        return newSet;
+        const s = new Set(prev);
+        s.delete(itemId);
+        return s;
       });
     }
   };
@@ -161,21 +76,7 @@ export default function CartPage() {
       title: "Clear Bag",
       description: "Are you sure you want to clear your bag?",
       onConfirm: async () => {
-        try {
-          const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.CLEAR}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${session?.accessToken}` },
-          });
-
-          if (res.ok) {
-            setCartItems([]);
-          } else {
-            toast.error("Failed to clear bag");
-          }
-        } catch (error) {
-          console.error("Error clearing cart:", error);
-          toast.error("Failed to clear bag");
-        }
+        await clearCartItems();
       },
     });
   };
@@ -226,6 +127,21 @@ export default function CartPage() {
             </Button>
           )}
         </div>
+
+        {!authenticated && cartItems.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-pink-100 bg-pink-50/50 px-4 py-3">
+            <p className="text-sm text-pink-900">
+              <span className="font-semibold">Shopping as a guest.</span>{" "}
+              <Link
+                href="/auth/signin?redirect=/cart"
+                className="text-pink-600 font-semibold underline hover:no-underline"
+              >
+                Sign in
+              </Link>{" "}
+              to save your bag across devices — or continue to checkout without an account.
+            </p>
+          </div>
+        )}
 
         {cartItems.length === 0 ? (
           <Card>

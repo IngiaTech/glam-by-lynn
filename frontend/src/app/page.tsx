@@ -16,8 +16,9 @@ import { Star, ArrowRight, CheckCircle, Sparkles, ShoppingBag, Heart, Eye, Bell,
 import { FadeInSection } from "@/components/animations/FadeInSection";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
-import { openCartDrawer, notifyCartUpdated } from "@/components/CartDrawer";
+import { openCartDrawer } from "@/lib/cartEvents";
 
 interface Product {
   id: string;
@@ -85,9 +86,15 @@ export default function Home() {
   const { settings: publicSettings } = usePublicSettings();
 
   // Product card interaction state
+  const { items: cartItems, addItem, updateQuantity: updateCartQuantity } = useCart();
   const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
-  const [cartMap, setCartMap] = useState<Map<string, { cartItemId: string; quantity: number }>>(new Map());
   const [updatingCartId, setUpdatingCartId] = useState<string | null>(null);
+
+  const cartMap = new Map<string, { cartItemId: string; quantity: number }>();
+  for (const item of cartItems) {
+    cartMap.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
+  }
+
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [togglingWishlistId, setTogglingWishlistId] = useState<string | null>(null);
 
@@ -131,24 +138,7 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Load wishlist and cart for authenticated users
-  const loadCart = useCallback(async () => {
-    if (!authenticated || !session?.accessToken) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const map = new Map<string, { cartItemId: string; quantity: number }>();
-        for (const item of data.items || []) {
-          map.set(item.productId, { cartItemId: item.id, quantity: item.quantity });
-        }
-        setCartMap(map);
-      }
-    } catch { /* silently fail */ }
-  }, [authenticated, session?.accessToken]);
-
+  // Load wishlist for authenticated users (cart is loaded by useCart)
   useEffect(() => {
     const loadWishlist = async () => {
       if (!authenticated || !session?.accessToken) return;
@@ -163,38 +153,32 @@ export default function Home() {
       } catch { /* silently fail */ }
     };
     loadWishlist();
-    loadCart();
-  }, [authenticated, session?.accessToken, loadCart]);
+  }, [authenticated, session?.accessToken]);
 
   const handleAddToCart = useCallback(async (product: Product) => {
-    if (!authenticated) {
-      router.push("/auth/signin?redirect=/");
-      return;
-    }
     setAddingToCartId(product.id);
     try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.ADD_ITEM}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
+      await addItem(
+        {
+          id: product.id,
+          title: product.title,
+          slug: product.slug,
+          basePrice: Number(product.final_price ?? product.base_price ?? 0),
+          inventoryCount: product.inventory_count ?? 0,
+          images: product.images?.map((img) => ({
+            imageUrl: img.image_url,
+            altText: img.alt_text,
+          })),
         },
-        body: JSON.stringify({ productId: product.id, quantity: 1 }),
-      });
-      if (res.ok) {
-        await loadCart();
-        notifyCartUpdated();
-        openCartDrawer();
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || "Failed to add to bag");
-      }
-    } catch {
-      toast.error("Failed to add to bag");
+        1,
+      );
+      openCartDrawer();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add to bag");
     } finally {
       setAddingToCartId(null);
     }
-  }, [authenticated, session?.accessToken, router, loadCart]);
+  }, [addItem]);
 
   const handleUpdateQuantity = useCallback(async (productId: string, delta: number) => {
     const entry = cartMap.get(productId);
@@ -202,29 +186,11 @@ export default function Home() {
     const newQty = entry.quantity + delta;
     setUpdatingCartId(productId);
     try {
-      if (newQty < 1) {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(entry.cartItemId)}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${session?.accessToken}` },
-        });
-      } else {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(entry.cartItemId)}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-          body: JSON.stringify({ quantity: newQty }),
-        });
-      }
-      await loadCart();
-      notifyCartUpdated();
-    } catch {
-      toast.error("Failed to update quantity");
+      await updateCartQuantity(entry.cartItemId, newQty);
     } finally {
       setUpdatingCartId(null);
     }
-  }, [cartMap, session?.accessToken, loadCart]);
+  }, [cartMap, updateCartQuantity]);
 
   const handleToggleWishlist = useCallback(async (product: Product) => {
     if (!authenticated) {

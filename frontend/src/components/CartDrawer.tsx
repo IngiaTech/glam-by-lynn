@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -10,7 +10,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   ShoppingBag,
   Minus,
@@ -19,110 +18,41 @@ import {
   Loader2,
   ArrowRight,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { useCart } from "@/hooks/useCart";
+import type { CartItem } from "@/hooks/useCart";
 import { resolveImageUrl } from "@/lib/utils";
+import {
+  CART_DRAWER_EVENT,
+  CART_UPDATED_EVENT,
+  openCartDrawer,
+  notifyCartUpdated,
+} from "@/lib/cartEvents";
 
-interface CartItem {
-  id: string;
-  cartId: string;
-  productId: string;
-  productVariantId?: string;
-  quantity: number;
-  product: {
-    id: string;
-    title: string;
-    slug: string;
-    basePrice: number;
-    images?: Array<{ imageUrl: string; altText?: string }>;
-    inventoryCount: number;
-  };
-  productVariant?: {
-    id: string;
-    variantType: string;
-    variantValue: string;
-    priceAdjustment: number;
-  };
-}
-
-// Custom event for opening the cart drawer
-export const CART_DRAWER_EVENT = "cart-drawer:open";
-export const CART_UPDATED_EVENT = "cart:updated";
-
-export function openCartDrawer() {
-  window.dispatchEvent(new CustomEvent(CART_DRAWER_EVENT));
-}
-
-export function notifyCartUpdated() {
-  window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT));
-}
+// Re-export for existing callers that import from CartDrawer
+export { CART_DRAWER_EVENT, CART_UPDATED_EVENT, openCartDrawer, notifyCartUpdated };
 
 export function CartDrawer() {
-  const { authenticated, session } = useAuth();
+  const { authenticated } = useAuth();
+  const { items, loading, updateQuantity, removeItem, refresh } = useCart();
   const [open, setOpen] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
-
-  const fetchCart = useCallback(async () => {
-    if (!authenticated || !session?.accessToken) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCartItems(data.items || []);
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false);
-    }
-  }, [authenticated, session?.accessToken]);
 
   // Listen for open events
   useEffect(() => {
     const handleOpen = () => {
       setOpen(true);
-      fetchCart();
-    };
-    const handleCartUpdated = () => {
-      if (open) fetchCart();
+      refresh();
     };
     window.addEventListener(CART_DRAWER_EVENT, handleOpen);
-    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdated);
-    return () => {
-      window.removeEventListener(CART_DRAWER_EVENT, handleOpen);
-      window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdated);
-    };
-  }, [fetchCart, open]);
+    return () => window.removeEventListener(CART_DRAWER_EVENT, handleOpen);
+  }, [refresh]);
 
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     setUpdatingItems((prev) => new Set(prev).add(itemId));
     try {
-      if (newQuantity < 1) {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(itemId)}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${session?.accessToken}` },
-        });
-      } else {
-        await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.UPDATE_ITEM(itemId)}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-          body: JSON.stringify({ quantity: newQuantity }),
-        });
-      }
-      await fetchCart();
-      notifyCartUpdated();
-    } catch {
-      toast.error("Failed to update quantity");
+      await updateQuantity(itemId, newQuantity);
     } finally {
       setUpdatingItems((prev) => {
         const s = new Set(prev);
@@ -132,17 +62,10 @@ export function CartDrawer() {
     }
   };
 
-  const removeItem = async (itemId: string) => {
+  const handleRemove = async (itemId: string) => {
     setRemovingItems((prev) => new Set(prev).add(itemId));
     try {
-      await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.REMOVE_ITEM(itemId)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${session?.accessToken}` },
-      });
-      await fetchCart();
-      notifyCartUpdated();
-    } catch {
-      toast.error("Failed to remove item");
+      await removeItem(itemId);
     } finally {
       setRemovingItems((prev) => {
         const s = new Set(prev);
@@ -152,12 +75,14 @@ export function CartDrawer() {
     }
   };
 
-  const getItemPrice = (item: CartItem) => {
-    return Number(item.product.basePrice) + Number(item.productVariant?.priceAdjustment || 0);
-  };
+  const getItemPrice = (item: CartItem) =>
+    Number(item.product.basePrice) + Number(item.productVariant?.priceAdjustment || 0);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0);
-  const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + getItemPrice(item) * item.quantity,
+    0,
+  );
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -181,7 +106,7 @@ export function CartDrawer() {
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-pink-400" />
             </div>
-          ) : cartItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ShoppingBag className="mb-4 h-12 w-12 text-gray-200" />
               <p className="text-sm font-medium text-gray-500">Your bag is empty</p>
@@ -198,7 +123,7 @@ export function CartDrawer() {
             </div>
           ) : (
             <div className="space-y-4">
-              {cartItems.map((item) => (
+              {items.map((item) => (
                 <div
                   key={item.id}
                   className="flex gap-3 rounded-2xl border border-pink-50 bg-white p-3"
@@ -246,7 +171,7 @@ export function CartDrawer() {
 
                       {/* Remove */}
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => handleRemove(item.id)}
                         disabled={removingItems.has(item.id)}
                         className="flex-shrink-0 rounded-full p-1 text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
                       >
@@ -262,7 +187,7 @@ export function CartDrawer() {
                     <div className="mt-2 flex items-center">
                       <div className="inline-flex items-center rounded-xl border border-pink-200 bg-pink-50 overflow-hidden">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           disabled={updatingItems.has(item.id)}
                           className="flex items-center justify-center px-2.5 py-1.5 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
                         >
@@ -276,7 +201,7 @@ export function CartDrawer() {
                           )}
                         </div>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                           disabled={updatingItems.has(item.id) || item.quantity >= item.product.inventoryCount}
                           className="flex items-center justify-center px-2.5 py-1.5 text-pink-700 hover:bg-pink-100 transition-colors disabled:opacity-50"
                         >
@@ -295,7 +220,7 @@ export function CartDrawer() {
         </div>
 
         {/* Footer */}
-        {cartItems.length > 0 && (
+        {items.length > 0 && (
           <div className="border-t border-pink-100 px-6 py-4 space-y-4">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Subtotal</span>
@@ -321,6 +246,19 @@ export function CartDrawer() {
             >
               Continue Shopping
             </Button>
+
+            {!authenticated && (
+              <p className="text-center text-[11px] text-gray-500">
+                <Link
+                  href="/auth/signin?redirect=/checkout"
+                  onClick={() => setOpen(false)}
+                  className="text-pink-600 font-semibold hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                to save your bag across devices
+              </p>
+            )}
 
             {subtotal < 5000 && (
               <p className="text-center text-[10px] text-gray-400">

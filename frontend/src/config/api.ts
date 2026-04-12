@@ -56,7 +56,8 @@ export const API_ENDPOINTS = {
     ADD_ITEM: "/api/cart/items",
     UPDATE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
     REMOVE_ITEM: (itemId: string) => `/api/cart/items/${itemId}`,
-    CLEAR: "/api/cart/clear",
+    CLEAR: "/api/cart",
+    MERGE: "/api/cart/merge",
   },
   // Promo Codes
   PROMO_CODES: {
