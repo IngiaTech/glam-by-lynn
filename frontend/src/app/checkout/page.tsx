@@ -232,6 +232,20 @@ export default function CheckoutPage() {
         const order = await res.json();
         setSuccess(true);
 
+        // Stash the full order in sessionStorage so the confirmation page
+        // can render without an authenticated API call. This is the only
+        // path for guests; authenticated users will still see it here and
+        // fall back to the API on refresh.
+        try {
+          sessionStorage.setItem(
+            `order-confirmation:${order.id}`,
+            JSON.stringify(order),
+          );
+        } catch {
+          // sessionStorage may be unavailable (private mode, quota). The
+          // confirmation page still falls back to the API for auth users.
+        }
+
         // For authenticated users, the backend clears the cart server-side.
         // For guests, clear the localStorage cart via useCart.
         if (!authenticated) {

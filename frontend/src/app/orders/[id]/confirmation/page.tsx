@@ -31,7 +31,7 @@ import {
 export default function OrderConfirmationPage() {
   const router = useRouter();
   const params = useParams();
-  const { session } = useAuth();
+  const { session, authenticated } = useAuth();
   const orderId = params?.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -42,6 +42,30 @@ export default function OrderConfirmationPage() {
     async function loadOrder() {
       if (!orderId) {
         setError("No order ID provided");
+        setLoading(false);
+        return;
+      }
+
+      // Try sessionStorage first — set by the checkout page immediately
+      // after order creation so both guests and authenticated users see
+      // confirmation without a second API round-trip.
+      try {
+        const cached = sessionStorage.getItem(`order-confirmation:${orderId}`);
+        if (cached) {
+          setOrder(JSON.parse(cached));
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // sessionStorage unavailable — continue to API fallback
+      }
+
+      // Fallback: fetch from API. This only works for authenticated
+      // users viewing their own order (e.g. deep link or page refresh).
+      if (!authenticated) {
+        setError(
+          "Order details are no longer available in this session. If you just placed the order, please check your email for confirmation.",
+        );
         setLoading(false);
         return;
       }
@@ -60,7 +84,7 @@ export default function OrderConfirmationPage() {
     }
 
     loadOrder();
-  }, [orderId, session]);
+  }, [orderId, session, authenticated]);
 
   if (loading) {
     return (
