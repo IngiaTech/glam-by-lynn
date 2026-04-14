@@ -1,4 +1,5 @@
 """Order service for business logic."""
+import logging
 import secrets
 import string
 from datetime import datetime
@@ -13,6 +14,9 @@ from app.models.product import Product, ProductVariant
 from app.models.user import User
 from app.schemas.order import DeliveryInfo, GuestInfo, OrderItemCreate
 from app.services import promo_code_service
+from app.services.email_service import email_service
+
+logger = logging.getLogger(__name__)
 
 
 def generate_order_number(db: Session) -> str:
@@ -341,9 +345,70 @@ def create_order(
     db.commit()
     db.refresh(order)
 
-    # TODO: Send order confirmation email
+    # Send order confirmation email. Failures are logged but do not fail the
+    # order — the order has already been persisted and the user has seen the
+    # confirmation page.
+    _send_order_confirmation_email(
+        order=order,
+        items_data=items_data,
+        user=user,
+        guest_info=guest_info,
+        delivery_info=delivery_info,
+    )
 
     return True, "Order created successfully", order
+
+
+def _send_order_confirmation_email(
+    order: Order,
+    items_data: List[dict],
+    user: Optional[User],
+    guest_info: Optional[GuestInfo],
+    delivery_info: DeliveryInfo,
+) -> None:
+    """
+    Send the order confirmation email for both authenticated and guest orders.
+
+    Swallows exceptions so email issues never break the order flow.
+    """
+    try:
+        if user:
+            to_email = user.email
+            customer_name = user.full_name or user.email
+            phone = guest_info.phone if guest_info else ""
+        elif guest_info:
+            to_email = guest_info.email
+            customer_name = guest_info.name
+            phone = guest_info.phone
+        else:
+            return
+
+        if not to_email:
+            return
+
+        delivery_address = {
+            "full_name": customer_name,
+            "phone": phone,
+            "address": delivery_info.address,
+            "city": delivery_info.town,
+            "county": delivery_info.county,
+        }
+
+        email_service.send_order_confirmation(
+            to_email=to_email,
+            order_number=order.order_number,
+            customer_name=customer_name,
+            order_items=items_data,
+            subtotal=order.subtotal,
+            discount=order.discount_amount,
+            delivery_fee=order.delivery_fee,
+            total=order.total_amount,
+            delivery_address=delivery_address,
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to send order confirmation email for order {order.order_number}: {e}"
+        )
 
 
 def get_order_by_id(db: Session, order_id: UUID) -> Optional[Order]:
