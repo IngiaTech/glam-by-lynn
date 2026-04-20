@@ -83,9 +83,14 @@ export function useCart(): UseCart {
   // transition and trigger the merge exactly once per sign-in.
   const prevAuthRef = useRef<boolean | null>(null);
 
+  // Track whether we've done the initial load. After that, subsequent
+  // refreshes should NOT show the loading spinner (they happen after
+  // mutations and the UI has per-item spinners for that).
+  const initialLoadDone = useRef(false);
+
   const refresh = useCallback(async () => {
     if (authenticated && session?.accessToken) {
-      setLoading(true);
+      if (!initialLoadDone.current) setLoading(true);
       try {
         const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CART.GET}`, {
           headers: { Authorization: `Bearer ${session.accessToken}` },
@@ -100,9 +105,11 @@ export function useCart(): UseCart {
         setItems([]);
       } finally {
         setLoading(false);
+        initialLoadDone.current = true;
       }
     } else {
       setItems(getGuestCart());
+      initialLoadDone.current = true;
     }
   }, [authenticated, session?.accessToken]);
 
@@ -111,17 +118,16 @@ export function useCart(): UseCart {
     refresh();
   }, [refresh]);
 
-  // Keep in sync with external cart updates (drawer, other tabs, etc.)
+  // Keep in sync with storage changes from other tabs.
+  // We do NOT listen to cart:updated here because this hook already
+  // calls refresh() internally after every mutation. Listening to its
+  // own dispatched events would cause a redundant double-fetch.
   useEffect(() => {
-    const handleUpdate = () => {
-      refresh();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "guestCart" || e.key === null) refresh();
     };
-    window.addEventListener("cart:updated", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
-    return () => {
-      window.removeEventListener("cart:updated", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
-    };
+    window.addEventListener("storage", handleStorage as any);
+    return () => window.removeEventListener("storage", handleStorage as any);
   }, [refresh]);
 
   // Merge guest cart on sign-in transition
