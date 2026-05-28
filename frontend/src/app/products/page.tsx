@@ -776,8 +776,9 @@ export default function ProductsPage() {
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                             >
                               <WhatsAppButton
-                                variant="link"
+                                variant="outline"
                                 label="Order on WhatsApp"
+                                size="sm"
                                 context={{ type: "product", product_id: product.id, quantity: 1 }}
                               />
                             </div>

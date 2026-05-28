@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { MessageCircle, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,7 @@ export type WhatsAppContext =
   | { type: "cart"; items: Array<{ product_id: string; quantity: number }> }
   | { type: "general" };
 
-type Variant = "primary" | "outline" | "icon" | "link";
+type Variant = "outline" | "icon";
 
 interface WhatsAppButtonProps {
   context: WhatsAppContext;
@@ -80,7 +79,7 @@ export function WhatsAppButton({
         disabled={loading || disabled}
         aria-label={label}
         className={cn(
-          "inline-flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition hover:bg-[#1ebe57] disabled:opacity-60",
+          "inline-flex items-center justify-center rounded-full bg-green-500 text-white shadow-sm transition hover:bg-green-600 disabled:opacity-60",
           "h-9 w-9",
           className,
         )}
@@ -94,40 +93,22 @@ export function WhatsAppButton({
     );
   }
 
-  if (variant === "link") {
-    return (
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={loading || disabled}
-        className={cn(
-          "inline-flex items-center gap-1.5 text-sm font-medium text-[#1ebe57] hover:underline disabled:opacity-60",
-          className,
-        )}
-      >
-        {loading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <WhatsAppGlyph className="h-3.5 w-3.5" />
-        )}
-        {label}
-      </button>
-    );
-  }
-
-  const isPrimary = variant === "primary";
+  const sizeClasses =
+    size === "sm"
+      ? "py-2 text-sm"
+      : size === "lg"
+        ? "py-3.5 text-base"
+        : "py-3 text-sm";
 
   return (
-    <Button
+    <button
       type="button"
       onClick={handleClick}
       disabled={loading || disabled}
-      size={size}
-      variant={isPrimary ? "default" : "outline"}
       className={cn(
-        isPrimary
-          ? "bg-[#25D366] text-white hover:bg-[#1ebe57]"
-          : "border-[#25D366] text-[#1ebe57] hover:bg-[#25D366]/10",
+        "w-full flex items-center justify-center gap-2 rounded-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+        "border-2 border-green-500 text-green-600 hover:bg-green-50",
+        sizeClasses,
         className,
       )}
     >
@@ -137,7 +118,7 @@ export function WhatsAppButton({
         <WhatsAppGlyph className="h-4 w-4" />
       )}
       {label}
-    </Button>
+    </button>
   );
 }
 

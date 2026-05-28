@@ -16,6 +16,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_optional_current_user
 from app.models.product import Product
@@ -65,6 +66,20 @@ def _fmt_ksh(amount: Decimal) -> str:
     return f"KSh {amount:,.0f}"
 
 
+def _site_base_url() -> str:
+    return settings.FRONTEND_URL.rstrip("/")
+
+
+def _product_url(product: Product) -> str:
+    return f"{_site_base_url()}/products/{product.id}"
+
+
+def _service_url(pkg: ServicePackage) -> str:
+    # No per-service detail page exists; deep-link the booking wizard with the
+    # package pre-selected so the recipient lands on the right context.
+    return f"{_site_base_url()}/bookings/new?packageId={pkg.id}"
+
+
 def _service_starting_price(pkg: ServicePackage) -> Optional[Decimal]:
     candidates = [
         pkg.base_bride_price,
@@ -98,6 +113,7 @@ def _build_product_message(
     lines = [
         "Hi Glam by Lynn — I'd like to order:",
         f"• {product.title} × {req.quantity} — {_fmt_ksh(line_total)}",
+        f"  {_product_url(product)}",
         f"Total: {_fmt_ksh(line_total)}",
     ]
     lines.extend(_user_lines(user))
@@ -115,6 +131,7 @@ def _build_service_message(
     lines = [
         "Hi Glam by Lynn — I'd like to book:",
         f"• {pkg.name}{price_str}",
+        f"  {_service_url(pkg)}",
     ]
     if req.preferred_date:
         # Strip any control chars from the free-text date.
@@ -146,6 +163,7 @@ def _build_cart_message(
         item_lines.append(
             f"• {product.title} × {item.quantity} — {_fmt_ksh(line_total)}"
         )
+        item_lines.append(f"  {_product_url(product)}")
     if not item_lines:
         raise HTTPException(status_code=404, detail="No valid items in cart")
     lines = ["Hi Glam by Lynn — I'd like to order:"]

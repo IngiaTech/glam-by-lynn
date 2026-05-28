@@ -616,20 +616,17 @@ export default function CheckoutPage() {
                     )}
                   </Button>
 
-                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <span>or</span>
-                    <WhatsAppButton
-                      variant="link"
-                      label="Order on WhatsApp instead"
-                      context={{
-                        type: "cart",
-                        items: cartItems.map((it) => ({
-                          product_id: it.product.id,
-                          quantity: it.quantity,
-                        })),
-                      }}
-                    />
-                  </div>
+                  <WhatsAppButton
+                    variant="outline"
+                    label="Order on WhatsApp"
+                    context={{
+                      type: "cart",
+                      items: cartItems.map((it) => ({
+                        product_id: it.product.id,
+                        quantity: it.quantity,
+                      })),
+                    }}
+                  />
 
                   <p className="text-xs text-center text-muted-foreground">
                     {!authenticated && "You're checking out as a guest. "}

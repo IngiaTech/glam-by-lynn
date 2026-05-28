@@ -400,9 +400,8 @@ export default function Home() {
                         </Link>
                       </Button>
                       <WhatsAppButton
-                        variant="link"
+                        variant="outline"
                         label="Book on WhatsApp"
-                        className="self-center"
                         context={{ type: "service", service_id: service.id }}
                       />
                     </CardContent>
@@ -621,8 +620,9 @@ export default function Home() {
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                             >
                               <WhatsAppButton
-                                variant="link"
+                                variant="outline"
                                 label="Order on WhatsApp"
+                                size="sm"
                                 context={{ type: "product", product_id: product.id, quantity: 1 }}
                               />
                             </div>
