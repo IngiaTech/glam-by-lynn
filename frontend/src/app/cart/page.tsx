@@ -335,9 +335,8 @@ export default function CartPage() {
 
                   <WhatsAppButton
                     size="lg"
-                    variant="primary"
+                    variant="outline"
                     label="Order on WhatsApp"
-                    className="w-full"
                     context={{
                       type: "cart",
                       items: cartItems.map((it) => ({

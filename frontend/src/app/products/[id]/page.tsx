@@ -700,9 +700,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               </Button>
               <WhatsAppButton
                 size="lg"
-                variant="primary"
+                variant="outline"
                 label="Order on WhatsApp"
-                className="w-full sm:w-auto"
                 context={{
                   type: "product",
                   product_id: product.id,
