@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -614,6 +615,21 @@ export default function CheckoutPage() {
                       "Place Order"
                     )}
                   </Button>
+
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <span>or</span>
+                    <WhatsAppButton
+                      variant="link"
+                      label="Order on WhatsApp instead"
+                      context={{
+                        type: "cart",
+                        items: cartItems.map((it) => ({
+                          product_id: it.product.id,
+                          quantity: it.quantity,
+                        })),
+                      }}
+                    />
+                  </div>
 
                   <p className="text-xs text-center text-muted-foreground">
                     {!authenticated && "You're checking out as a guest. "}

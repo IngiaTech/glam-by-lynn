@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ServicePackage } from "@/types";
@@ -145,6 +146,12 @@ export default function ServicesPage() {
                         >
                           Book Now
                         </Button>
+                        <WhatsAppButton
+                          variant="outline"
+                          label="Book on WhatsApp"
+                          className="w-full"
+                          context={{ type: "service", service_id: pkg.id }}
+                        />
                       </div>
                     </CardContent>
                   </Card>

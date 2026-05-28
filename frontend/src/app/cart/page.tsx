@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -331,6 +332,20 @@ export default function CartPage() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
+
+                  <WhatsAppButton
+                    size="lg"
+                    variant="primary"
+                    label="Order on WhatsApp"
+                    className="w-full"
+                    context={{
+                      type: "cart",
+                      items: cartItems.map((it) => ({
+                        product_id: it.product.id,
+                        quantity: it.quantity,
+                      })),
+                    }}
+                  />
 
                   <Button asChild variant="outline" size="lg" className="w-full">
                     <Link href="/products">Continue Shopping</Link>

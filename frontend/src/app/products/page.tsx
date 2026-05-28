@@ -12,6 +12,7 @@ import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -768,6 +769,18 @@ export default function ProductsPage() {
                               )}
                               Add to Bag
                             </button>
+                          )}
+                          {!isOutOfStock && (
+                            <div
+                              className="mt-2 flex justify-center"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            >
+                              <WhatsAppButton
+                                variant="link"
+                                label="Order on WhatsApp"
+                                context={{ type: "product", product_id: product.id, quantity: 1 }}
+                              />
+                            </div>
                           )}
                         </div>
                       </div>
