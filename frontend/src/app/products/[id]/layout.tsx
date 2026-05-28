@@ -37,10 +37,10 @@ function formatKsh(raw: string | number | undefined | null): string | null {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const resolved = await params;
-  const product = await getProduct(resolved.id);
+  const { id } = await params;
+  const product = await getProduct(id);
 
   if (!product) {
     return {
