@@ -16,6 +16,7 @@ import { ReviewSubmissionForm } from "@/components/ReviewSubmissionForm";
 import { RatingSummary } from "@/components/RatingSummary";
 import { ReviewList } from "@/components/ReviewList";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -664,7 +665,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button
                 size="lg"
                 className="flex-1"
@@ -697,6 +698,17 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   />
                 )}
               </Button>
+              <WhatsAppButton
+                size="lg"
+                variant="primary"
+                label="Order on WhatsApp"
+                className="w-full sm:w-auto"
+                context={{
+                  type: "product",
+                  product_id: product.id,
+                  quantity,
+                }}
+              />
             </div>
           </div>
         </div>

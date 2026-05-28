@@ -126,6 +126,10 @@ export const API_ENDPOINTS = {
       EXPORT_CSV: "/api/admin/classes/enrollments/export/csv",
     },
   },
+  // WhatsApp
+  WHATSAPP: {
+    LINK: "/api/whatsapp/link",
+  },
   // Site Settings
   SETTINGS: {
     PUBLIC: "/api/settings/public",

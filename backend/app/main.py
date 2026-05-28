@@ -17,7 +17,7 @@ from app.core.middleware import (
 )
 
 # Import routers
-from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision, classes, site_settings as public_site_settings
+from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision, classes, site_settings as public_site_settings, whatsapp as whatsapp_router
 from app.api.routes import brands, categories, products, product_images, product_variants, service_packages, orders, reviews
 from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery, users as admin_users, testimonials as admin_testimonials, promo_codes as admin_promo_codes, analytics as admin_analytics, vision as admin_vision, activity_logs as admin_activity_logs, booking_analytics, classes as admin_classes, site_settings as admin_site_settings, storage_settings as admin_storage_settings, instagram_settings as admin_instagram_settings
 
@@ -132,6 +132,7 @@ app.include_router(admin_site_settings.router, prefix="/api")  # Admin site sett
 app.include_router(admin_storage_settings.router, prefix="/api")  # Admin storage settings API
 app.include_router(admin_instagram_settings.router, prefix="/api")  # Admin Instagram settings API
 app.include_router(public_site_settings.router, prefix="/api")  # Public site settings API
+app.include_router(whatsapp_router.router, prefix="/api")  # WhatsApp deep-link API
 
 # Serve uploaded files when using local storage (non-S3)
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -398,6 +399,12 @@ export default function Home() {
                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Link>
                       </Button>
+                      <WhatsAppButton
+                        variant="link"
+                        label="Book on WhatsApp"
+                        className="self-center"
+                        context={{ type: "service", service_id: service.id }}
+                      />
                     </CardContent>
                     </Card>
                   </FadeInSection>
@@ -609,6 +616,16 @@ export default function Home() {
                                 Add to Bag
                               </button>
                             )}
+                            <div
+                              className="mt-2 flex justify-center"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            >
+                              <WhatsAppButton
+                                variant="link"
+                                label="Order on WhatsApp"
+                                context={{ type: "product", product_id: product.id, quantity: 1 }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </Link>

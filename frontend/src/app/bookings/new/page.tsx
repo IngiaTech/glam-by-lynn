@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -998,25 +999,39 @@ function BookingFormContent() {
             </div>
 
             {/* Navigation */}
-            <div className="mt-8 flex justify-between">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-between">
               <Button variant="outline" onClick={prevStep} size="lg">
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
-                size="lg"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Confirming Booking...
-                  </>
-                ) : (
-                  "Confirm Booking"
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {selectedPackage && (
+                  <WhatsAppButton
+                    variant="outline"
+                    size="lg"
+                    label="Book on WhatsApp"
+                    context={{
+                      type: "service",
+                      service_id: selectedPackage.id,
+                      preferred_date: bookingDate || undefined,
+                    }}
+                  />
                 )}
-              </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
+                  size="lg"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Confirming Booking...
+                    </>
+                  ) : (
+                    "Confirm Booking"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}

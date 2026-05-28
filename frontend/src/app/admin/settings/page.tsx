@@ -34,6 +34,7 @@ import {
   Instagram,
   RefreshCw,
   ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 import { extractErrorMessage } from "@/lib/error-utils";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
@@ -52,6 +53,12 @@ export default function AdminSettingsPage() {
   const [featureToggles, setFeatureToggles] = useState({
     enable_newsletter: false,
   });
+
+  // WhatsApp ordering (persisted via API as site setting)
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [whatsappSaving, setWhatsappSaving] = useState(false);
+  const [whatsappSuccess, setWhatsappSuccess] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
 
   // Business Info
   const [businessInfo, setBusinessInfo] = useState({
@@ -157,6 +164,7 @@ export default function AdminSettingsPage() {
             tiktok: data.social_tiktok ?? "",
             youtube: data.social_youtube ?? "",
           }));
+          setWhatsappPhone(data.whatsapp_phone_number ?? "");
         }
 
         // Load Instagram settings
@@ -238,6 +246,44 @@ export default function AdminSettingsPage() {
       setSaveError(extractErrorMessage(err, "Failed to save feature toggles"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveWhatsapp = async () => {
+    setWhatsappSaving(true);
+    setWhatsappError("");
+    setWhatsappSuccess("");
+
+    const digits = whatsappPhone.replace(/\D/g, "");
+    if (digits && (digits.length < 8 || digits.length > 15)) {
+      setWhatsappError(
+        "Enter a valid phone number with country code (8–15 digits, no '+')."
+      );
+      setWhatsappSaving(false);
+      return;
+    }
+
+    try {
+      const token = (session as any)?.accessToken;
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.ADMIN_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ whatsapp_phone_number: digits }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to save WhatsApp number");
+      setWhatsappPhone(digits);
+      setWhatsappSuccess("WhatsApp number saved");
+      setTimeout(() => setWhatsappSuccess(""), 3000);
+    } catch (err: any) {
+      setWhatsappError(extractErrorMessage(err, "Failed to save WhatsApp number"));
+    } finally {
+      setWhatsappSaving(false);
     }
   };
 
@@ -569,6 +615,53 @@ export default function AdminSettingsPage() {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* WhatsApp Ordering Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              WhatsApp Ordering
+            </CardTitle>
+            <CardDescription>
+              Phone number used for the “Order/Book on WhatsApp” buttons. Stored
+              server-side and never exposed in the public site bundle.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {whatsappSuccess && (
+              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-3 rounded text-sm">
+                {whatsappSuccess}
+              </div>
+            )}
+            {whatsappError && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded text-sm">
+                {whatsappError}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp-phone">WhatsApp Phone Number</Label>
+              <Input
+                id="whatsapp-phone"
+                inputMode="numeric"
+                value={whatsappPhone}
+                onChange={(e) => setWhatsappPhone(e.target.value)}
+                placeholder="254712345678"
+              />
+              <p className="text-xs text-muted-foreground">
+                Digits only, including country code, no leading “+”. Example:
+                <code className="ml-1 rounded bg-muted px-1 py-0.5">254712345678</code>.
+                Leave empty to disable WhatsApp ordering.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleSaveWhatsapp} disabled={whatsappSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                {whatsappSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
