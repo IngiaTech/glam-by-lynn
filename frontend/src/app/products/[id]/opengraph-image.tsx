@@ -1,79 +1,105 @@
 /**
  * Product Detail OpenGraph Image
- * Generates dynamic OG image for individual product pages
+ *
+ * Renders a 1200×630 social preview with the product's primary image,
+ * name, price (with compare-at strike-through when discounted), category,
+ * brand, stock state, and a sentence-trimmed description.
  */
 
-import { ImageResponse } from '@vercel/og';
-import { ProductOGTemplate } from '@/lib/og-templates';
-import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
-import { Product } from '@/types';
+import { ImageResponse } from "@vercel/og";
 
-export const runtime = 'edge';
-export const alt = 'Product - Glam by Lynn';
-export const size = {
-  width: 1200,
-  height: 630,
-};
-export const contentType = 'image/png';
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import {
+  OG_SIZE,
+  ProductOGTemplate,
+  GenericPageOGTemplate,
+  trimDescription,
+} from "@/lib/og-templates";
+import { Product } from "@/types";
+
+export const runtime = "edge";
+export const alt = "Product - Glam by Lynn";
+export const size = OG_SIZE;
+export const contentType = "image/png";
+
+const PRICE_FALLBACK = "Contact for pricing";
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.DETAIL(id)}`, {
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return response.json();
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.PRODUCTS.DETAIL(id)}`,
+      { cache: "no-store" },
+    );
+    if (!response.ok) return null;
+    return (await response.json()) as Product;
   } catch (error) {
-    console.error('Error fetching product for OG image:', error);
+    console.error("OG product fetch failed", error);
     return null;
   }
 }
 
-export default async function Image({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
+function formatKsh(raw: string | number | undefined | null): string | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n = typeof raw === "string" ? Number.parseFloat(raw) : raw;
+  if (!Number.isFinite(n)) return null;
+  return `KSh ${Math.round(n).toLocaleString("en-KE")}`;
+}
+
+function resolvePrimaryImage(product: Product): string | undefined {
+  if (!product.images || product.images.length === 0) return undefined;
+  const primary =
+    product.images.find((img) => img.is_primary) ?? product.images[0];
+  if (!primary?.image_url) return undefined;
+  if (
+    primary.image_url.startsWith("http://") ||
+    primary.image_url.startsWith("https://")
+  ) {
+    return primary.image_url;
+  }
+  return `${API_BASE_URL}${primary.image_url}`;
+}
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const product = await getProduct(id);
 
   if (!product) {
-    // Return a fallback image if product not found
     return new ImageResponse(
       (
-        <div
-          style={{
-            display: 'flex',
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#000000',
-            color: '#FFFFFF',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '48px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-          }}
-        >
-          Product Not Found
-        </div>
+        <GenericPageOGTemplate
+          title="Product not available"
+          description="This product may have been removed. Browse the full Glam by Lynn collection at glambylynn.com."
+        />
       ),
-      { ...size }
+      { ...size },
     );
   }
 
-  const price = product.base_price
-    ? `KSh ${product.base_price.toLocaleString()}`
-    : 'Contact for pricing';
-
-  const description = product.description?.substring(0, 150) || 'Quality beauty product from Glam by Lynn';
+  const price = formatKsh(product.final_price ?? product.base_price) ?? PRICE_FALLBACK;
+  const hasDiscount =
+    product.final_price &&
+    product.base_price &&
+    Number.parseFloat(String(product.final_price)) <
+      Number.parseFloat(String(product.base_price));
+  const comparePrice = hasDiscount ? formatKsh(product.base_price) ?? undefined : undefined;
 
   return new ImageResponse(
-    <ProductOGTemplate
-      name={product.title}
-      description={description}
-      price={price}
-      category={product.category?.name}
-      inStock={product.inventory_count > 0}
-    />,
-    { ...size }
+    (
+      <ProductOGTemplate
+        name={product.title}
+        description={trimDescription(product.description, 160)}
+        price={price}
+        comparePrice={comparePrice}
+        category={product.category?.name}
+        brand={product.brand?.name}
+        inStock={(product.in_stock ?? product.inventory_count > 0) === true}
+        imageUrl={resolvePrimaryImage(product)}
+      />
+    ),
+    { ...size },
   );
 }
