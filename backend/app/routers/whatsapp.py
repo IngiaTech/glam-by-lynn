@@ -75,9 +75,8 @@ def _product_url(product: Product) -> str:
 
 
 def _service_url(pkg: ServicePackage) -> str:
-    # No per-service detail page exists; deep-link the booking wizard with the
-    # package pre-selected so the recipient lands on the right context.
-    return f"{_site_base_url()}/bookings/new?packageId={pkg.id}"
+    # Public detail page — also the canonical URL used for social previews.
+    return f"{_site_base_url()}/services/{pkg.id}"
 
 
 def _service_starting_price(pkg: ServicePackage) -> Optional[Decimal]:

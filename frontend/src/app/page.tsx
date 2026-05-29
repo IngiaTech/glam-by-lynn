@@ -350,7 +350,18 @@ export default function Home() {
               <div className="grid gap-8 md:grid-cols-3">
                 {featuredServices.map((service, index) => (
                   <FadeInSection key={service.id} direction="up" delay={0.2 + index * 0.1} className="h-full">
-                    <Card className="group relative flex h-full flex-col overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50">
+                    <Card
+                      onClick={() => router.push(`/services/${service.id}`)}
+                      role="link"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/services/${service.id}`);
+                        }
+                      }}
+                      className="group relative flex h-full flex-col overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                    >
                     <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full" />
                     <CardHeader className="relative">
                       <CardTitle className="text-xl mb-2">{service.name}</CardTitle>
@@ -393,17 +404,32 @@ export default function Home() {
                         )}
                       </div>
 
-                      <Button asChild className="mt-auto w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 active:text-secondary-foreground">
-                        <Link href={`/bookings/new?packageId=${service.id}`}>
-                          Book Now
-                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </Link>
-                      </Button>
-                      <WhatsAppButton
-                        variant="outline"
-                        label="Book on WhatsApp"
-                        context={{ type: "service", service_id: service.id }}
-                      />
+                      <div className="mt-auto space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            asChild
+                            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 active:text-secondary-foreground"
+                          >
+                            <Link href={`/bookings/new?packageId=${service.id}`}>
+                              Book Now
+                              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </Link>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="outline"
+                            className="border-secondary text-secondary hover:bg-secondary/10 hover:text-secondary"
+                          >
+                            <Link href={`/services/${service.id}`}>View Details</Link>
+                          </Button>
+                        </div>
+                        <WhatsAppButton
+                          variant="outline"
+                          label="Book on WhatsApp"
+                          className="w-full"
+                          context={{ type: "service", service_id: service.id }}
+                        />
+                      </div>
                     </CardContent>
                     </Card>
                   </FadeInSection>
