@@ -494,7 +494,8 @@ function BookingFormContent() {
                   placeholder="Apartment, floor, landmarks, gate code, or directions to help us find the exact spot"
                   rows={3}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-2 text-sm font-semibold text-secondary">
+                  Some areas within Kitui town and Nairobi town are free.
                   Transport cost will be confirmed by our team after we verify
                   availability and location.
                 </p>
