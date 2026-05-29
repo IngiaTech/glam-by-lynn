@@ -15,26 +15,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ServicePackage, TransportLocation } from "@/types";
+import { ServicePackage } from "@/types";
 import { getActiveServicePackages, formatPrice, getPricingDescription } from "@/lib/services";
 import {
-  getTransportLocations,
   createBooking,
   calculateBookingPrice,
   formatCurrency,
   formatDate,
   formatTime,
 } from "@/lib/bookings";
-import { calculateTransportCost } from "@/lib/transport-pricing";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -67,21 +57,19 @@ function BookingFormContent() {
 
   // Data state
   const [packages, setPackages] = useState<ServicePackage[]>([]);
-  const [locations, setLocations] = useState<TransportLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
-  const [locationType, setLocationType] = useState<"predefined" | "custom">("predefined");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [customLocation, setCustomLocation] = useState<{
     address: string;
     latitude: number;
     longitude: number;
     distanceKm: number;
   } | null>(null);
+  const [locationDescription, setLocationDescription] = useState<string>("");
   const [bookingDate, setBookingDate] = useState<string>("");
   const [numBrides, setNumBrides] = useState<number>(1);
   const [numMaids, setNumMaids] = useState<number>(0);
@@ -97,19 +85,14 @@ function BookingFormContent() {
 
   // Derived state
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-  const selectedLocation = locations.find((l) => l.id === selectedLocationId);
 
   // Load data
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [packagesData, locationsData] = await Promise.all([
-          getActiveServicePackages(),
-          getTransportLocations(),
-        ]);
+        const packagesData = await getActiveServicePackages();
         setPackages(packagesData);
-        setLocations(locationsData);
 
         // Pre-select package from URL param
         const packageId = searchParams?.get("packageId");
@@ -127,34 +110,24 @@ function BookingFormContent() {
     loadData();
   }, [searchParams]);
 
-  // Calculate price
+  // Calculate price (transport cost is determined manually after booking)
   const pricing =
-    selectedPackage && (selectedLocation || customLocation)
-      ? (() => {
-          const transportCost =
-            locationType === "predefined" && selectedLocation
-              ? parseFloat(selectedLocation.transport_cost)
-              : customLocation
-                ? calculateTransportCost(customLocation.distanceKm).totalCost
-                : 0;
-
-          return calculateBookingPrice(
-            parseFloat(selectedPackage.base_bride_price || "0"),
-            parseFloat(selectedPackage.base_maid_price || "0"),
-            parseFloat(selectedPackage.base_mother_price || "0"),
-            parseFloat(selectedPackage.base_other_price || "0"),
-            numBrides,
-            numMaids,
-            numMothers,
-            numOthers,
-            transportCost
-          );
-        })()
+    selectedPackage && customLocation
+      ? calculateBookingPrice(
+          parseFloat(selectedPackage.base_bride_price || "0"),
+          parseFloat(selectedPackage.base_maid_price || "0"),
+          parseFloat(selectedPackage.base_mother_price || "0"),
+          parseFloat(selectedPackage.base_other_price || "0"),
+          numBrides,
+          numMaids,
+          numMothers,
+          numOthers,
+          0,
+        )
       : null;
 
   // Validation per step
-  const hasValidLocation =
-    locationType === "predefined" ? !!selectedLocationId : !!customLocation;
+  const hasValidLocation = !!customLocation;
 
   const canProceedFromStep = (step: number): boolean => {
     switch (step) {
@@ -239,14 +212,10 @@ function BookingFormContent() {
         package_id: selectedPackageId,
         booking_date: datePart,
         booking_time: submitTime,
-        ...(locationType === "predefined"
-          ? { location_id: selectedLocationId }
-          : {
-              custom_location_address: customLocation!.address,
-              custom_location_latitude: customLocation!.latitude,
-              custom_location_longitude: customLocation!.longitude,
-              custom_location_distance_km: customLocation!.distanceKm,
-            }),
+        custom_location_address: customLocation!.address,
+        custom_location_latitude: customLocation!.latitude,
+        custom_location_longitude: customLocation!.longitude,
+        location_description: locationDescription || undefined,
         num_brides: numBrides,
         num_maids: numMaids,
         num_mothers: numMothers,
@@ -486,54 +455,12 @@ function BookingFormContent() {
             </div>
 
             {/* Location Selection */}
-            <div className="mb-6">
-              <Label className="mb-3 block text-base font-medium">
-                Location *
-              </Label>
-
-              <RadioGroup
-                value={locationType}
-                onValueChange={(value) =>
-                  setLocationType(value as "predefined" | "custom")
-                }
-                className="mb-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="predefined" id="predefined" />
-                  <Label htmlFor="predefined" className="cursor-pointer font-normal">
-                    Choose from predefined locations (Nairobi/Kitui)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="cursor-pointer font-normal">
-                    Search for my location
-                  </Label>
-                </div>
-              </RadioGroup>
-
-              {locationType === "predefined" ? (
+            <div className="mb-6 space-y-4">
+              <div>
+                <Label className="mb-2 block text-base font-medium">
+                  Location *
+                </Label>
                 <div className="max-w-md">
-                  <Select
-                    value={selectedLocationId}
-                    onValueChange={setSelectedLocationId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.location_name}
-                          {parseFloat(loc.transport_cost) > 0 &&
-                            ` (+${formatCurrency(parseFloat(loc.transport_cost))})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="max-w-md space-y-2">
                   <LocationAutocomplete
                     onLocationSelect={(location) => {
                       setCustomLocation({
@@ -546,19 +473,32 @@ function BookingFormContent() {
                     placeholder="Search for your location in Kenya..."
                   />
                   {customLocation && (
-                    <div className="rounded-md border border-border bg-muted/50 p-3">
+                    <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
                       <p className="text-sm font-medium">{customLocation.address}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Distance from Nairobi: {customLocation.distanceKm.toFixed(1)}{" "}
-                        km {" · "} Transport cost:{" "}
-                        {formatCurrency(
-                          calculateTransportCost(customLocation.distanceKm).totalCost
-                        )}
-                      </p>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
+
+              <div className="max-w-md">
+                <Label
+                  htmlFor="location-description"
+                  className="mb-2 block text-base font-medium"
+                >
+                  Location details
+                </Label>
+                <Textarea
+                  id="location-description"
+                  value={locationDescription}
+                  onChange={(e) => setLocationDescription(e.target.value)}
+                  placeholder="Apartment, floor, landmarks, gate code, or directions to help us find the exact spot"
+                  rows={3}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Transport cost will be confirmed by our team after we verify
+                  availability and location.
+                </p>
+              </div>
             </div>
 
             {/* Navigation */}
@@ -833,13 +773,16 @@ function BookingFormContent() {
                         {formatTime(bookingDate.split("T")[1] || "")}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {locationType === "predefined"
-                          ? selectedLocation?.location_name || "—"
-                          : customLocation?.address || "—"}
-                      </span>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p>{customLocation?.address || "—"}</p>
+                        {locationDescription && (
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {locationDescription}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

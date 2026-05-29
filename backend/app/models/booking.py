@@ -51,11 +51,17 @@ class Booking(Base):
         index=True,
     )
 
-    # Custom location fields (for locations not in transport_locations table)
-    custom_location_address = Column(Text, nullable=True)  # Full address from Mapbox
-    custom_location_latitude = Column(Float, nullable=True)  # Latitude coordinate
-    custom_location_longitude = Column(Float, nullable=True)  # Longitude coordinate
-    custom_location_distance_km = Column(Float, nullable=True)  # Distance from Nairobi in km
+    # Custom location fields (for locations not in transport_locations table).
+    # Lat/lng/distance are kept for backwards compatibility but are no longer
+    # required at booking time; transport cost is determined manually after
+    # the booking is placed.
+    custom_location_address = Column(Text, nullable=True)  # Search result text
+    custom_location_latitude = Column(Float, nullable=True)
+    custom_location_longitude = Column(Float, nullable=True)
+    custom_location_distance_km = Column(Float, nullable=True)
+    # Free-text directions / landmarks added by the customer to clarify
+    # the exact spot the artist should travel to.
+    location_description = Column(Text, nullable=True)
 
     num_brides = Column(Integer, default=1)
     num_maids = Column(Integer, default=0)
@@ -106,13 +112,7 @@ class Booking(Base):
             name="bookings_deposit_amount_check_50_percent",
         ),
         CheckConstraint(
-            """
-            location_id IS NOT NULL OR
-            (custom_location_address IS NOT NULL AND
-             custom_location_latitude IS NOT NULL AND
-             custom_location_longitude IS NOT NULL AND
-             custom_location_distance_km IS NOT NULL)
-            """,
+            "location_id IS NOT NULL OR custom_location_address IS NOT NULL",
             name="bookings_location_check",
         ),
         Index("idx_bookings_date_time", "booking_date", "booking_time"),

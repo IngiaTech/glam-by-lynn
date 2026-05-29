@@ -226,38 +226,18 @@ def calculate_booking_price(
     num_maids: int,
     num_mothers: int,
     num_others: int,
-    location_id: Optional[UUID] = None,
-    custom_location_distance_km: Optional[float] = None
 ) -> tuple[Decimal, Decimal, Decimal]:
     """
-    Calculate booking pricing
+    Calculate booking pricing.
 
-    Args:
-        db: Database session
-        package_id: Service package ID
-        num_brides: Number of brides
-        num_maids: Number of maids
-        num_mothers: Number of mothers
-        num_others: Number of other attendees
-        location_id: Transport location ID (for predefined locations)
-        custom_location_distance_km: Distance from Nairobi in km (for custom locations)
-
-    Returns:
-        Tuple of (subtotal, transport_cost, total_amount)
-
-    Raises:
-        ValueError: If package not found or neither location method provided
+    Transport cost is no longer computed automatically at booking time —
+    it's determined manually once the artist has verified location and
+    availability with the customer. So this returns (subtotal, 0, subtotal).
     """
-    # Validate that either location_id or custom_location_distance_km is provided
-    if not location_id and custom_location_distance_km is None:
-        raise ValueError("Either location_id or custom_location_distance_km must be provided")
-
-    # Get package
     package = db.query(ServicePackage).filter(ServicePackage.id == package_id).first()
     if not package:
         raise ValueError(f"Service package with ID {package_id} not found")
 
-    # Calculate subtotal
     subtotal = Decimal(0)
 
     if package.base_bride_price and num_brides > 0:
@@ -272,18 +252,7 @@ def calculate_booking_price(
     if package.base_other_price and num_others > 0:
         subtotal += package.base_other_price * num_others
 
-    # Get transport cost
-    if location_id:
-        # Predefined location
-        location = db.query(TransportLocation).filter(TransportLocation.id == location_id).first()
-        if not location:
-            raise ValueError(f"Transport location with ID {location_id} not found")
-        transport_cost = location.transport_cost or Decimal(0)
-    else:
-        # Custom location - calculate from distance
-        transport_cost = calculate_transport_cost_from_distance(custom_location_distance_km)
-
-    # Calculate total
+    transport_cost = Decimal(0)
     total_amount = subtotal + transport_cost
 
     return subtotal, transport_cost, total_amount
@@ -319,29 +288,11 @@ def create_booking(
     if not package.is_active:
         raise ValueError(f"Service package '{package.name}' is not currently available")
 
-    # Validate location: Either predefined OR custom location must be provided
-    if booking_data.location_id:
-        # Validate predefined location exists and is active
-        location = db.query(TransportLocation).filter(
-            TransportLocation.id == booking_data.location_id
-        ).first()
-
-        if not location:
-            raise ValueError(f"Transport location with ID {booking_data.location_id} not found")
-
-        if not location.is_active:
-            raise ValueError(f"Transport location '{location.name}' is not currently available")
-    else:
-        # Validate custom location has all required fields
-        if not all([
-            booking_data.custom_location_address,
-            booking_data.custom_location_latitude is not None,
-            booking_data.custom_location_longitude is not None,
-            booking_data.custom_location_distance_km is not None
-        ]):
-            raise ValueError(
-                "Custom location requires address, latitude, longitude, and distance from Nairobi"
-            )
+    # Location: a searched address string is sufficient. Transport cost is
+    # determined manually after the booking is placed (admin contacts the
+    # customer to confirm availability and location).
+    if not booking_data.custom_location_address:
+        raise ValueError("Location address is required")
 
     # Validate package rules (maid count)
     if package.max_maids is not None and booking_data.num_maids > package.max_maids:
@@ -376,7 +327,7 @@ def create_booking(
                 "Guest bookings require email, name, and phone number"
             )
 
-    # Calculate pricing
+    # Calculate pricing (transport cost is added manually post-booking)
     subtotal, transport_cost, total_amount = calculate_booking_price(
         db=db,
         package_id=booking_data.package_id,
@@ -384,8 +335,6 @@ def create_booking(
         num_maids=booking_data.num_maids,
         num_mothers=booking_data.num_mothers,
         num_others=booking_data.num_others,
-        location_id=booking_data.location_id,
-        custom_location_distance_km=booking_data.custom_location_distance_km
     )
 
     # Calculate 50% deposit (round up to ensure it meets the 50% constraint)
@@ -406,6 +355,7 @@ def create_booking(
         booking_time=booking_data.booking_time,
         location_id=booking_data.location_id,
         custom_location_address=booking_data.custom_location_address,
+        location_description=booking_data.location_description,
         custom_location_latitude=booking_data.custom_location_latitude,
         custom_location_longitude=booking_data.custom_location_longitude,
         custom_location_distance_km=booking_data.custom_location_distance_km,
@@ -708,19 +658,21 @@ def admin_update_booking(
 
     # Recalculate pricing if necessary
     if recalculate_pricing:
-        subtotal, transport_cost, total_amount = calculate_booking_price(
+        subtotal, _new_transport, _new_total = calculate_booking_price(
             db=db,
             package_id=booking.package_id,
-            location_id=booking.location_id,
             num_brides=booking.num_brides,
             num_maids=booking.num_maids,
             num_mothers=booking.num_mothers,
-            num_others=booking.num_others
+            num_others=booking.num_others,
         )
+        # Preserve any transport cost the admin has already set; only the
+        # service-derived portion (subtotal) is recomputed automatically.
         booking.subtotal = subtotal
-        booking.transport_cost = transport_cost
-        booking.total_amount = total_amount
-        booking.deposit_amount = (total_amount * Decimal('0.5')).quantize(Decimal('0.01'), rounding=ROUND_UP)
+        booking.total_amount = subtotal + (booking.transport_cost or Decimal(0))
+        booking.deposit_amount = (
+            booking.total_amount * Decimal("0.5")
+        ).quantize(Decimal("0.01"), rounding=ROUND_UP)
 
     # Update other fields
     if wedding_theme is not None:
