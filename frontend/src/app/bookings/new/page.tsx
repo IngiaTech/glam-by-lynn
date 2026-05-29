@@ -52,17 +52,10 @@ import {
 
 const STEPS = [
   { id: 1, label: "Choose Service", icon: Sparkles },
-  { id: 2, label: "Date & Time", icon: Calendar },
+  { id: 2, label: "Date & Location", icon: Calendar },
   { id: 3, label: "Your Details", icon: Users },
   { id: 4, label: "Review & Confirm", icon: ClipboardCheck },
 ] as const;
-
-const TIME_SLOTS = Array.from({ length: 10 }, (_, i) => {
-  const hour = 8 + i;
-  const timeStr = `${hour.toString().padStart(2, "0")}:00:00`;
-  const displayTime = `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? "PM" : "AM"}`;
-  return { value: timeStr, label: displayTime };
-});
 
 function BookingFormContent() {
   const router = useRouter();
@@ -90,7 +83,6 @@ function BookingFormContent() {
     distanceKm: number;
   } | null>(null);
   const [bookingDate, setBookingDate] = useState<string>("");
-  const [bookingTime, setBookingTime] = useState<string>("");
   const [numBrides, setNumBrides] = useState<number>(1);
   const [numMaids, setNumMaids] = useState<number>(0);
   const [numMothers, setNumMothers] = useState<number>(0);
@@ -169,7 +161,7 @@ function BookingFormContent() {
       case 1:
         return !!selectedPackageId;
       case 2:
-        return !!bookingDate && !!bookingTime && hasValidLocation;
+        return !!bookingDate && hasValidLocation;
       case 3:
         return user ? true : !!(guestName && guestEmail && guestPhone);
       case 4:
@@ -183,7 +175,6 @@ function BookingFormContent() {
     selectedPackageId &&
     hasValidLocation &&
     bookingDate &&
-    bookingTime &&
     (user || (guestName && guestEmail && guestPhone)) &&
     pricing &&
     pricing.total > 0;
@@ -239,10 +230,15 @@ function BookingFormContent() {
       setSubmitting(true);
       setError(null);
 
+      // Split the datetime-local value into the date + time fields the
+      // backend expects (HH:MM → HH:MM:SS).
+      const [datePart, timePart = ""] = bookingDate.split("T");
+      const submitTime = timePart ? `${timePart}:00` : "";
+
       const bookingData = {
         package_id: selectedPackageId,
-        booking_date: bookingDate,
-        booking_time: bookingTime,
+        booking_date: datePart,
+        booking_time: submitTime,
         ...(locationType === "predefined"
           ? { location_id: selectedLocationId }
           : {
@@ -454,7 +450,7 @@ function BookingFormContent() {
                 disabled={!canProceedFromStep(1)}
                 size="lg"
               >
-                Continue to Date & Time
+                Continue to Date & Location
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -464,51 +460,29 @@ function BookingFormContent() {
         {/* Step 2: Date & Time */}
         {currentStep === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="mb-2 text-2xl font-semibold">Select Date & Time</h2>
+            <h2 className="mb-2 text-2xl font-semibold">Select Date & Location</h2>
             <p className="mb-6 text-muted-foreground">
               Choose when and where you&apos;d like your appointment
             </p>
 
-            {/* Date Selection */}
+            {/* Date & Time Selection */}
             <div className="mb-6">
               <Label htmlFor="date" className="mb-2 block text-base font-medium">
-                Preferred Date *
+                Preferred Date & Time *
               </Label>
               <Input
                 id="date"
-                type="date"
+                type="datetime-local"
                 value={bookingDate}
                 onChange={(e) => setBookingDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
+                min={(() => {
+                  const now = new Date();
+                  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                  return now.toISOString().slice(0, 16);
+                })()}
                 className="max-w-xs"
                 required
               />
-            </div>
-
-            {/* Time Slot Selection */}
-            <div className="mb-6">
-              <Label className="mb-3 block text-base font-medium">
-                Preferred Time *
-              </Label>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {TIME_SLOTS.map((slot) => {
-                  const isSelected = bookingTime === slot.value;
-                  return (
-                    <button
-                      key={slot.value}
-                      type="button"
-                      onClick={() => setBookingTime(slot.value)}
-                      className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
-                        isSelected
-                          ? "border-secondary bg-secondary text-secondary-foreground"
-                          : "border-border bg-background hover:border-secondary/50 hover:bg-muted"
-                      }`}
-                    >
-                      {slot.label}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             {/* Location Selection */}
@@ -855,7 +829,9 @@ function BookingFormContent() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatTime(bookingTime)}</span>
+                      <span>
+                        {formatTime(bookingDate.split("T")[1] || "")}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
