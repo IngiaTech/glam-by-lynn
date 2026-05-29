@@ -31,11 +31,17 @@ class WhatsAppGeneralRequest(BaseModel):
     type: Literal["general"]
 
 
+class WhatsAppBookingRequest(BaseModel):
+    type: Literal["booking"]
+    booking_number: str = Field(..., min_length=1, max_length=64)
+
+
 WhatsAppLinkRequest = Union[
     WhatsAppProductRequest,
     WhatsAppServiceRequest,
     WhatsAppCartRequest,
     WhatsAppGeneralRequest,
+    WhatsAppBookingRequest,
 ]
 
 

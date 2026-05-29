@@ -74,6 +74,38 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
         return None
 
 
+def create_booking_confirmation_token(
+    booking_id: str, expires_in_days: int = 30
+) -> str:
+    """
+    Create a signed token that lets a guest re-open their booking
+    confirmation without an account. The token binds to a specific
+    booking_id and expires after a configurable window.
+    """
+    expire = datetime.utcnow() + timedelta(days=expires_in_days)
+    payload = {
+        "sub": str(booking_id),
+        "exp": expire,
+        "type": "booking_confirmation",
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def verify_booking_confirmation_token(token: str) -> Optional[str]:
+    """
+    Verify a booking confirmation token and return the booking_id it
+    was issued for, or None if the token is invalid / expired / for a
+    different purpose.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("type") != "booking_confirmation":
+        return None
+    return payload.get("sub")
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a password against its hash

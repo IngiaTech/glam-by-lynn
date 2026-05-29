@@ -85,7 +85,7 @@ export async function createBooking(
     guest_phone?: string;
   },
   token?: string
-): Promise<Booking> {
+): Promise<Booking & { confirmationToken: string }> {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
@@ -106,7 +106,29 @@ export async function createBooking(
   }
 
   const data = await response.json();
-  return transformBookingResponse(data);
+  return {
+    ...transformBookingResponse(data),
+    confirmationToken: data.confirmation_token,
+  };
+}
+
+/**
+ * Look up a booking via the signed confirmation token returned at
+ * creation time. Public — no auth required.
+ */
+export async function getBookingConfirmation(
+  bookingId: string,
+  confirmationToken: string,
+): Promise<Booking> {
+  const url = `${API_BASE_URL}${API_ENDPOINTS.BOOKINGS.CONFIRMATION(bookingId)}?token=${encodeURIComponent(confirmationToken)}`;
+  const response = await fetch(url, { method: "GET", cache: "no-store" });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || `Failed to fetch confirmation: ${response.statusText}`,
+    );
+  }
+  return transformBookingResponse(await response.json());
 }
 
 /**

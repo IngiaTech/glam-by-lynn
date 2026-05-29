@@ -10,8 +10,19 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.core.dependencies import get_optional_current_user, get_current_user
+from app.core.security import (
+    create_booking_confirmation_token,
+    verify_booking_confirmation_token,
+)
+from app.models.booking import Booking
 from app.models.user import User
-from app.schemas.booking import AvailabilityResponse, BookingCreate, BookingResponse, BookingListResponse
+from app.schemas.booking import (
+    AvailabilityResponse,
+    BookingCreate,
+    BookingCreateResponse,
+    BookingResponse,
+    BookingListResponse,
+)
 from app.services import booking_service
 import math
 
@@ -124,6 +135,36 @@ async def get_booking_availability(
     return availability
 
 
+@router.get("/{booking_id}/confirmation", response_model=BookingResponse)
+async def get_booking_confirmation(
+    booking_id: UUID,
+    token: str = Query(..., description="Signed confirmation token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Public endpoint that returns a booking when the caller presents a
+    valid signed confirmation token. Lets guests re-open or share their
+    confirmation page without an account.
+
+    Returns 404 if the token is missing, invalid, expired, or bound to a
+    different booking.
+    """
+    token_sub = verify_booking_confirmation_token(token)
+    if not token_sub or token_sub != str(booking_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired confirmation link",
+        )
+
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with ID {booking_id} not found",
+        )
+    return booking
+
+
 @router.get("/{booking_id}", response_model=BookingResponse)
 async def get_booking_details(
     booking_id: UUID,
@@ -168,7 +209,7 @@ async def get_booking_details(
     return booking
 
 
-@router.post("", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BookingCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_booking(
     booking_data: BookingCreate,
     db: Session = Depends(get_db),
@@ -219,7 +260,11 @@ async def create_booking(
             user_id=user_id
         )
 
-        return booking
+        token = create_booking_confirmation_token(booking.id)
+        return {
+            **BookingResponse.model_validate(booking).model_dump(),
+            "confirmation_token": token,
+        }
 
     except ValueError as e:
         raise HTTPException(

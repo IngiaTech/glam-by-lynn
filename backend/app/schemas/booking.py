@@ -98,6 +98,15 @@ class BookingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BookingCreateResponse(BookingResponse):
+    """Booking response augmented with a signed confirmation token that
+    lets a guest re-open the confirmation page without authentication."""
+
+    confirmation_token: str = Field(
+        ..., description="Signed token for revisiting the confirmation page"
+    )
+
+
 class BookingListResponse(BaseModel):
     """Schema for paginated booking list response"""
     items: list[BookingResponse]

@@ -264,8 +264,12 @@ function BookingFormContent() {
       const token = (session as any)?.accessToken;
       const booking = await createBooking(bookingData, token);
 
+      // Keep the cached payload as a fast-path; the signed token in the
+      // URL is the durable way to re-open the page on refresh / new tab.
       sessionStorage.setItem(`booking_${booking.id}`, JSON.stringify(booking));
-      router.push(`/bookings/${booking.id}/confirmation`);
+      router.push(
+        `/bookings/${booking.id}/confirmation?token=${encodeURIComponent(booking.confirmationToken)}`,
+      );
     } catch (err: any) {
       console.error("Failed to create booking:", err);
       setError(err.message || "Failed to create booking. Please try again.");
@@ -981,24 +985,40 @@ function BookingFormContent() {
                         <span className="text-muted-foreground">
                           Transport:
                         </span>
-                        <span>{formatCurrency(pricing.transport)}</span>
+                        <span className="italic text-muted-foreground">
+                          To be confirmed
+                        </span>
                       </div>
                       <div className="border-t border-border pt-3">
                         <div className="flex justify-between text-lg font-semibold">
-                          <span>Total:</span>
+                          <span>Service Total:</span>
                           <span>{formatCurrency(pricing.total)}</span>
                         </div>
                         <div className="mt-2 flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            Deposit Required (50%):
+                            Deposit (50% of service total):
                           </span>
                           <span className="font-semibold text-secondary">
                             {formatCurrency(pricing.deposit)}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Remaining {formatCurrency(pricing.total - pricing.deposit)} due after service delivery
-                        </p>
+                      </div>
+                      <div className="mt-4 rounded-md border border-secondary/40 bg-secondary/10 p-3 text-sm text-secondary">
+                        <p className="font-semibold">How payment works</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-secondary/90">
+                          <li>
+                            Transport cost will be communicated after we
+                            verify availability and your location.
+                          </li>
+                          <li>
+                            The 50% deposit is paid once that transport
+                            quote is confirmed with you.
+                          </li>
+                          <li>
+                            The remaining 50% is paid on the service
+                            delivery day, before the service is provided.
+                          </li>
+                        </ul>
                       </div>
                     </div>
                   </CardContent>
@@ -1012,12 +1032,13 @@ function BookingFormContent() {
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                 {selectedPackage && (
                   <WhatsAppButton
                     variant="outline"
                     size="lg"
                     label="Book on WhatsApp"
+                    className="sm:flex-1"
                     context={{
                       type: "service",
                       service_id: selectedPackage.id,
@@ -1029,6 +1050,7 @@ function BookingFormContent() {
                   onClick={handleSubmit}
                   disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
                   size="lg"
+                  className="w-full sm:w-auto sm:flex-1"
                 >
                   {submitting ? (
                     <>
