@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     CREATE: "/api/bookings",
     LIST: "/api/bookings",
     DETAIL: (id: string) => `/api/bookings/${id}`,
+    CONFIRMATION: (id: string) => `/api/bookings/${id}/confirmation`,
     AVAILABILITY: "/api/bookings/availability",
     CANCEL: (id: string) => `/api/bookings/${id}/cancel`,
   },

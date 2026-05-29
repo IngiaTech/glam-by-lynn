@@ -6,14 +6,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Booking } from "@/types";
-import { getBookingById, formatCurrency, formatDate, formatTime } from "@/lib/bookings";
+import {
+  getBookingById,
+  getBookingConfirmation,
+  formatCurrency,
+  formatDate,
+  formatTime,
+} from "@/lib/bookings";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
@@ -31,8 +38,10 @@ import {
 export default function BookingConfirmationPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { session } = useAuth();
   const bookingId = params?.id as string;
+  const confirmationToken = searchParams?.get("token") ?? null;
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,26 +58,30 @@ export default function BookingConfirmationPage() {
       try {
         setLoading(true);
 
-        // First, try to get booking data from sessionStorage (passed from creation page)
-        // This allows guest users to see confirmation without needing authentication
-        const cachedBooking = sessionStorage.getItem(`booking_${bookingId}`);
-
-        if (cachedBooking) {
-          // Use cached booking data and clear it from storage
-          const bookingData = JSON.parse(cachedBooking);
-          setBooking(bookingData);
-          sessionStorage.removeItem(`booking_${bookingId}`);
+        // Preferred: signed token in the URL. Lets guests refresh,
+        // bookmark, or share the page without losing access.
+        if (confirmationToken) {
+          const data = await getBookingConfirmation(bookingId, confirmationToken);
+          setBooking(data);
           setLoading(false);
           return;
         }
 
-        // If no cached data, try to fetch from API (requires authentication)
-        // This handles cases where authenticated users refresh or bookmark the page
-        const token = session?.accessToken;
+        // Legacy: payload cached in sessionStorage by the creation page
+        // for users on the just-created tab.
+        const cachedBooking = sessionStorage.getItem(`booking_${bookingId}`);
+        if (cachedBooking) {
+          setBooking(JSON.parse(cachedBooking));
+          setLoading(false);
+          return;
+        }
 
+        // Last resort: authenticated owner fetching their own booking.
+        const token = session?.accessToken;
         if (!token) {
-          // Guest user without cached data - can't fetch from API
-          setError("Booking confirmation not found. Please check your email for booking details.");
+          setError(
+            "Booking confirmation not found. Please open the link from your confirmation email.",
+          );
           setLoading(false);
           return;
         }
@@ -84,7 +97,7 @@ export default function BookingConfirmationPage() {
     }
 
     loadBooking();
-  }, [bookingId, session]);
+  }, [bookingId, confirmationToken, session]);
 
   if (loading) {
     return (
@@ -149,6 +162,31 @@ export default function BookingConfirmationPage() {
             <Badge variant="secondary" className="text-base font-mono">
               {booking.bookingNumber}
             </Badge>
+          </div>
+
+          {/* What happens next — surfaced immediately so the customer
+              knows exactly what to expect without having to scroll. */}
+          <div className="mx-auto mt-8 max-w-2xl rounded-2xl border-2 border-secondary bg-secondary/10 p-5 text-left">
+            <p className="text-sm font-bold uppercase tracking-wider text-secondary">
+              What happens next
+            </p>
+            <p className="mt-2 text-base font-medium">
+              We&apos;ll review your booking details and reach out by call or
+              WhatsApp to confirm your appointment and location, verify
+              availability, share the final cost (including any transport
+              charge), and walk you through how to pay the 50% deposit.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              The remaining 50% is paid on the service delivery day, before
+              the service is provided.
+            </p>
+            <div className="mt-4">
+              <WhatsAppButton
+                size="lg"
+                label="Reach us on WhatsApp"
+                context={{ type: "booking", booking_number: booking.bookingNumber }}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -264,116 +302,60 @@ export default function BookingConfirmationPage() {
                 Price Summary
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span>{formatCurrency(booking.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Transport Cost:</span>
-                <span>{formatCurrency(booking.transportCost)}</span>
-              </div>
-              <div className="border-t border-border pt-3">
-                <div className="flex justify-between font-semibold">
-                  <span>Total Amount:</span>
-                  <span>{formatCurrency(booking.totalAmount)}</span>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Service subtotal:
+                  </span>
+                  <span>{formatCurrency(booking.subtotal)}</span>
                 </div>
-              </div>
-              {booking.depositAmount && (
-                <div className="rounded-lg bg-secondary/10 p-4">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Deposit Required (50%):</span>
-                    <span className="text-lg font-bold text-secondary">
-                      {formatCurrency(booking.depositAmount)}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Transport:</span>
+                  {booking.transportCost && booking.transportCost > 0 ? (
+                    <span>{formatCurrency(booking.transportCost)}</span>
+                  ) : (
+                    <span className="italic text-muted-foreground">
+                      To be confirmed
                     </span>
-                  </div>
-                  {!booking.depositPaid && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Payment pending - See payment instructions below
-                    </p>
                   )}
                 </div>
-              )}
+                <div className="border-t border-border pt-3">
+                  <div className="flex justify-between text-lg font-semibold">
+                    <span>Service Total:</span>
+                    <span>{formatCurrency(booking.totalAmount)}</span>
+                  </div>
+                  {booking.depositAmount && (
+                    <div className="mt-2 flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Deposit (50% of service total):
+                      </span>
+                      <span className="font-semibold text-secondary">
+                        {formatCurrency(booking.depositAmount)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 rounded-md border border-secondary/40 bg-secondary/10 p-3 text-sm text-secondary">
+                  <p className="font-semibold">How payment works</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-secondary/90">
+                    <li>
+                      Transport cost will be communicated after we verify
+                      availability and your location.
+                    </li>
+                    <li>
+                      The 50% deposit is paid once that transport quote is
+                      confirmed with you.
+                    </li>
+                    <li>
+                      The remaining 50% is paid on the service delivery day,
+                      before the service is provided.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Payment Instructions */}
-          {booking.depositAmount && !booking.depositPaid && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Instructions</CardTitle>
-                <CardDescription>Complete your deposit to confirm your booking</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-lg bg-muted p-4">
-                  <h4 className="mb-2 font-semibold">M-Pesa Payment</h4>
-                  <ol className="space-y-2 text-sm">
-                    <li className="flex gap-2">
-                      <span className="font-semibold">1.</span>
-                      <span>Go to M-Pesa on your phone</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">2.</span>
-                      <span>Select Lipa Na M-Pesa, then Pay Bill</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">3.</span>
-                      <span>
-                        Enter Business Number: <strong>123456</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">4.</span>
-                      <span>
-                        Enter Account Number: <strong>{booking.bookingNumber}</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">5.</span>
-                      <span>
-                        Enter Amount: <strong>{formatCurrency(booking.depositAmount)}</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">6.</span>
-                      <span>Enter your M-Pesa PIN and confirm</span>
-                    </li>
-                  </ol>
-                </div>
-
-                <div className="rounded-lg border border-border p-4">
-                  <h4 className="mb-2 font-semibold">Bank Transfer</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Bank:</span>
-                      <span className="font-medium">Equity Bank</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Account Name:</span>
-                      <span className="font-medium">Glam by Lynn</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Account Number:</span>
-                      <span className="font-medium">1234567890</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Reference:</span>
-                      <span className="font-medium">{booking.bookingNumber}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950/20">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <p className="text-blue-900 dark:text-blue-100">
-                    After making payment, send confirmation via WhatsApp to{" "}
-                    <strong>+254 700 000 000</strong> or email to{" "}
-                    <strong>payments@glambylynn.com</strong>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Next Steps */}
           <Card>
@@ -387,9 +369,9 @@ export default function BookingConfirmationPage() {
                     1
                   </span>
                   <div>
-                    <p className="font-medium">Booking Confirmation</p>
+                    <p className="font-medium">We review your booking</p>
                     <p className="text-sm text-muted-foreground">
-                      Review your booking details and deposit payment instructions above
+                      Our team verifies the package, attendees, date, and location you submitted.
                     </p>
                   </div>
                 </li>
@@ -398,9 +380,9 @@ export default function BookingConfirmationPage() {
                     2
                   </span>
                   <div>
-                    <p className="font-medium">Make Deposit Payment</p>
+                    <p className="font-medium">We contact you to confirm</p>
                     <p className="text-sm text-muted-foreground">
-                      Pay the 50% deposit via M-Pesa or bank transfer to secure your booking
+                      We&apos;ll call or message you on WhatsApp to confirm availability, lock in the exact location, share the final cost (including any transport charge), and send instructions for the 50% deposit.
                     </p>
                   </div>
                 </li>
@@ -409,9 +391,9 @@ export default function BookingConfirmationPage() {
                     3
                   </span>
                   <div>
-                    <p className="font-medium">Service Delivery</p>
+                    <p className="font-medium">Pay the 50% deposit</p>
                     <p className="text-sm text-muted-foreground">
-                      On your appointment day, our team will arrive at your location ready to make you look stunning
+                      Pay via M-Pesa or bank transfer using the details we share. The deposit secures your booking.
                     </p>
                   </div>
                 </li>
@@ -420,9 +402,9 @@ export default function BookingConfirmationPage() {
                     4
                   </span>
                   <div>
-                    <p className="font-medium">Complete Payment</p>
+                    <p className="font-medium">Service delivery</p>
                     <p className="text-sm text-muted-foreground">
-                      Pay the remaining 50% balance after service delivery
+                      On your appointment day, our team arrives at the confirmed location ready to make you look stunning.
                     </p>
                   </div>
                 </li>
@@ -431,9 +413,9 @@ export default function BookingConfirmationPage() {
                     5
                   </span>
                   <div>
-                    <p className="font-medium">Share Your Experience</p>
+                    <p className="font-medium">Pay the remaining 50%</p>
                     <p className="text-sm text-muted-foreground">
-                      Leave a review and help others discover our services
+                      The balance is paid on the service delivery day, before the service is provided.
                     </p>
                   </div>
                 </li>

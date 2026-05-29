@@ -1,6 +1,6 @@
 /**
  * New Booking Page - Tab-based Multi-step Wizard
- * 4-step booking flow: Choose Service → Date & Time → Your Details → Review & Confirm
+ * 5-step booking flow: Choose Service → Date & Location → Event Details → Contact Information → Review & Confirm
  */
 
 "use client";
@@ -15,26 +15,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ServicePackage, TransportLocation } from "@/types";
+import { ServicePackage } from "@/types";
 import { getActiveServicePackages, formatPrice, getPricingDescription } from "@/lib/services";
 import {
-  getTransportLocations,
   createBooking,
   calculateBookingPrice,
   formatCurrency,
   formatDate,
   formatTime,
 } from "@/lib/bookings";
-import { calculateTransportCost } from "@/lib/transport-pricing";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -48,21 +38,16 @@ import {
   ChevronLeft,
   Sparkles,
   ClipboardCheck,
+  ContactRound,
 } from "lucide-react";
 
 const STEPS = [
   { id: 1, label: "Choose Service", icon: Sparkles },
-  { id: 2, label: "Date & Time", icon: Calendar },
-  { id: 3, label: "Your Details", icon: Users },
-  { id: 4, label: "Review & Confirm", icon: ClipboardCheck },
+  { id: 2, label: "Date & Location", icon: Calendar },
+  { id: 3, label: "Event Details", icon: Users },
+  { id: 4, label: "Contact Information", icon: ContactRound },
+  { id: 5, label: "Review & Confirm", icon: ClipboardCheck },
 ] as const;
-
-const TIME_SLOTS = Array.from({ length: 10 }, (_, i) => {
-  const hour = 8 + i;
-  const timeStr = `${hour.toString().padStart(2, "0")}:00:00`;
-  const displayTime = `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? "PM" : "AM"}`;
-  return { value: timeStr, label: displayTime };
-});
 
 function BookingFormContent() {
   const router = useRouter();
@@ -74,23 +59,32 @@ function BookingFormContent() {
 
   // Data state
   const [packages, setPackages] = useState<ServicePackage[]>([]);
-  const [locations, setLocations] = useState<TransportLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Contact validation -------------------------------------------------
+  // Loose enough to accept anything that's recognisably an email — a
+  // single @ with a TLD-looking right-hand side. We're after "is this
+  // address typo-free enough to reach the user", not RFC compliance.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  // Kenyan mobile: +254 7XX/1XX XXX XXX, or 07XX/01XX XXX XXX. Strip
+  // spaces/dashes before checking.
+  const PHONE_RE = /^(?:\+?254|0)(?:7|1)\d{8}$/;
+  const normalizePhone = (s: string) => s.replace(/[\s-]/g, "");
+  const isValidEmail = (s: string) => EMAIL_RE.test(s.trim());
+  const isValidPhone = (s: string) => PHONE_RE.test(normalizePhone(s));
+
   // Form state
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
-  const [locationType, setLocationType] = useState<"predefined" | "custom">("predefined");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [customLocation, setCustomLocation] = useState<{
     address: string;
     latitude: number;
     longitude: number;
     distanceKm: number;
   } | null>(null);
+  const [locationDescription, setLocationDescription] = useState<string>("");
   const [bookingDate, setBookingDate] = useState<string>("");
-  const [bookingTime, setBookingTime] = useState<string>("");
   const [numBrides, setNumBrides] = useState<number>(1);
   const [numMaids, setNumMaids] = useState<number>(0);
   const [numMothers, setNumMothers] = useState<number>(0);
@@ -105,19 +99,14 @@ function BookingFormContent() {
 
   // Derived state
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
-  const selectedLocation = locations.find((l) => l.id === selectedLocationId);
 
   // Load data
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [packagesData, locationsData] = await Promise.all([
-          getActiveServicePackages(),
-          getTransportLocations(),
-        ]);
+        const packagesData = await getActiveServicePackages();
         setPackages(packagesData);
-        setLocations(locationsData);
 
         // Pre-select package from URL param
         const packageId = searchParams?.get("packageId");
@@ -135,44 +124,49 @@ function BookingFormContent() {
     loadData();
   }, [searchParams]);
 
-  // Calculate price
-  const pricing =
-    selectedPackage && (selectedLocation || customLocation)
-      ? (() => {
-          const transportCost =
-            locationType === "predefined" && selectedLocation
-              ? parseFloat(selectedLocation.transport_cost)
-              : customLocation
-                ? calculateTransportCost(customLocation.distanceKm).totalCost
-                : 0;
+  // When the selected package changes, snap numMaids into the package's
+  // [min_maids, max_maids] range so the form starts at a valid state.
+  useEffect(() => {
+    if (!selectedPackage) return;
+    const min = selectedPackage.min_maids ?? 0;
+    const max = selectedPackage.max_maids ?? Infinity;
+    setNumMaids((current) => Math.min(Math.max(current, min), max));
+  }, [selectedPackage]);
 
-          return calculateBookingPrice(
-            parseFloat(selectedPackage.base_bride_price || "0"),
-            parseFloat(selectedPackage.base_maid_price || "0"),
-            parseFloat(selectedPackage.base_mother_price || "0"),
-            parseFloat(selectedPackage.base_other_price || "0"),
-            numBrides,
-            numMaids,
-            numMothers,
-            numOthers,
-            transportCost
-          );
-        })()
+  // Calculate price (transport cost is determined manually after booking)
+  const pricing =
+    selectedPackage && customLocation
+      ? calculateBookingPrice(
+          parseFloat(selectedPackage.base_bride_price || "0"),
+          parseFloat(selectedPackage.base_maid_price || "0"),
+          parseFloat(selectedPackage.base_mother_price || "0"),
+          parseFloat(selectedPackage.base_other_price || "0"),
+          numBrides,
+          numMaids,
+          numMothers,
+          numOthers,
+          0,
+        )
       : null;
 
   // Validation per step
-  const hasValidLocation =
-    locationType === "predefined" ? !!selectedLocationId : !!customLocation;
+  const hasValidLocation = !!customLocation;
 
   const canProceedFromStep = (step: number): boolean => {
     switch (step) {
       case 1:
         return !!selectedPackageId;
       case 2:
-        return !!bookingDate && !!bookingTime && hasValidLocation;
+        return !!bookingDate && hasValidLocation;
       case 3:
-        return user ? true : !!(guestName && guestEmail && guestPhone);
+        return attendeeErrors.length === 0;
       case 4:
+        return user
+          ? true
+          : !!guestName.trim() &&
+              isValidEmail(guestEmail) &&
+              isValidPhone(guestPhone);
+      case 5:
         return true;
       default:
         return false;
@@ -183,8 +177,10 @@ function BookingFormContent() {
     selectedPackageId &&
     hasValidLocation &&
     bookingDate &&
-    bookingTime &&
-    (user || (guestName && guestEmail && guestPhone)) &&
+    (user ||
+      (guestName.trim() &&
+        isValidEmail(guestEmail) &&
+        isValidPhone(guestPhone))) &&
     pricing &&
     pricing.total > 0;
 
@@ -213,7 +209,7 @@ function BookingFormContent() {
   };
 
   const nextStep = () => {
-    if (canProceedFromStep(currentStep) && currentStep < 4) {
+    if (canProceedFromStep(currentStep) && currentStep < 5) {
       setCurrentStep(currentStep + 1);
       setError(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -239,18 +235,19 @@ function BookingFormContent() {
       setSubmitting(true);
       setError(null);
 
+      // Split the datetime-local value into the date + time fields the
+      // backend expects (HH:MM → HH:MM:SS).
+      const [datePart, timePart = ""] = bookingDate.split("T");
+      const submitTime = timePart ? `${timePart}:00` : "";
+
       const bookingData = {
         package_id: selectedPackageId,
-        booking_date: bookingDate,
-        booking_time: bookingTime,
-        ...(locationType === "predefined"
-          ? { location_id: selectedLocationId }
-          : {
-              custom_location_address: customLocation!.address,
-              custom_location_latitude: customLocation!.latitude,
-              custom_location_longitude: customLocation!.longitude,
-              custom_location_distance_km: customLocation!.distanceKm,
-            }),
+        booking_date: datePart,
+        booking_time: submitTime,
+        custom_location_address: customLocation!.address,
+        custom_location_latitude: customLocation!.latitude,
+        custom_location_longitude: customLocation!.longitude,
+        location_description: locationDescription || undefined,
         num_brides: numBrides,
         num_maids: numMaids,
         num_mothers: numMothers,
@@ -258,17 +255,21 @@ function BookingFormContent() {
         wedding_theme: weddingTheme || undefined,
         special_requests: specialRequests || undefined,
         ...(!user && {
-          guest_name: guestName,
-          guest_email: guestEmail,
-          guest_phone: guestPhone,
+          guest_name: guestName.trim(),
+          guest_email: guestEmail.trim(),
+          guest_phone: normalizePhone(guestPhone),
         }),
       };
 
       const token = (session as any)?.accessToken;
       const booking = await createBooking(bookingData, token);
 
+      // Keep the cached payload as a fast-path; the signed token in the
+      // URL is the durable way to re-open the page on refresh / new tab.
       sessionStorage.setItem(`booking_${booking.id}`, JSON.stringify(booking));
-      router.push(`/bookings/${booking.id}/confirmation`);
+      router.push(
+        `/bookings/${booking.id}/confirmation?token=${encodeURIComponent(booking.confirmationToken)}`,
+      );
     } catch (err: any) {
       console.error("Failed to create booking:", err);
       setError(err.message || "Failed to create booking. Please try again.");
@@ -454,7 +455,7 @@ function BookingFormContent() {
                 disabled={!canProceedFromStep(1)}
                 size="lg"
               >
-                Continue to Date & Time
+                Continue to Date & Location
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -464,102 +465,38 @@ function BookingFormContent() {
         {/* Step 2: Date & Time */}
         {currentStep === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="mb-2 text-2xl font-semibold">Select Date & Time</h2>
+            <h2 className="mb-2 text-2xl font-semibold">Select Date & Location</h2>
             <p className="mb-6 text-muted-foreground">
               Choose when and where you&apos;d like your appointment
             </p>
 
-            {/* Date Selection */}
+            {/* Date & Time Selection */}
             <div className="mb-6">
               <Label htmlFor="date" className="mb-2 block text-base font-medium">
-                Preferred Date *
+                Preferred Date & Time *
               </Label>
               <Input
                 id="date"
-                type="date"
+                type="datetime-local"
                 value={bookingDate}
                 onChange={(e) => setBookingDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
+                min={(() => {
+                  const now = new Date();
+                  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                  return now.toISOString().slice(0, 16);
+                })()}
                 className="max-w-xs"
                 required
               />
             </div>
 
-            {/* Time Slot Selection */}
-            <div className="mb-6">
-              <Label className="mb-3 block text-base font-medium">
-                Preferred Time *
-              </Label>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {TIME_SLOTS.map((slot) => {
-                  const isSelected = bookingTime === slot.value;
-                  return (
-                    <button
-                      key={slot.value}
-                      type="button"
-                      onClick={() => setBookingTime(slot.value)}
-                      className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
-                        isSelected
-                          ? "border-secondary bg-secondary text-secondary-foreground"
-                          : "border-border bg-background hover:border-secondary/50 hover:bg-muted"
-                      }`}
-                    >
-                      {slot.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Location Selection */}
-            <div className="mb-6">
-              <Label className="mb-3 block text-base font-medium">
-                Location *
-              </Label>
-
-              <RadioGroup
-                value={locationType}
-                onValueChange={(value) =>
-                  setLocationType(value as "predefined" | "custom")
-                }
-                className="mb-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="predefined" id="predefined" />
-                  <Label htmlFor="predefined" className="cursor-pointer font-normal">
-                    Choose from predefined locations (Nairobi/Kitui)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="cursor-pointer font-normal">
-                    Search for my location
-                  </Label>
-                </div>
-              </RadioGroup>
-
-              {locationType === "predefined" ? (
+            <div className="mb-6 space-y-4">
+              <div>
+                <Label className="mb-2 block text-base font-medium">
+                  Location *
+                </Label>
                 <div className="max-w-md">
-                  <Select
-                    value={selectedLocationId}
-                    onValueChange={setSelectedLocationId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.location_name}
-                          {parseFloat(loc.transport_cost) > 0 &&
-                            ` (+${formatCurrency(parseFloat(loc.transport_cost))})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="max-w-md space-y-2">
                   <LocationAutocomplete
                     onLocationSelect={(location) => {
                       setCustomLocation({
@@ -572,19 +509,33 @@ function BookingFormContent() {
                     placeholder="Search for your location in Kenya..."
                   />
                   {customLocation && (
-                    <div className="rounded-md border border-border bg-muted/50 p-3">
+                    <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">
                       <p className="text-sm font-medium">{customLocation.address}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Distance from Nairobi: {customLocation.distanceKm.toFixed(1)}{" "}
-                        km {" · "} Transport cost:{" "}
-                        {formatCurrency(
-                          calculateTransportCost(customLocation.distanceKm).totalCost
-                        )}
-                      </p>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
+
+              <div className="max-w-md">
+                <Label
+                  htmlFor="location-description"
+                  className="mb-2 block text-base font-medium"
+                >
+                  Location details
+                </Label>
+                <Textarea
+                  id="location-description"
+                  value={locationDescription}
+                  onChange={(e) => setLocationDescription(e.target.value)}
+                  placeholder="Apartment, floor, landmarks, gate code, or directions to help us find the exact spot"
+                  rows={3}
+                />
+                <p className="mt-2 text-sm font-semibold text-secondary">
+                  Some areas within Kitui town and Nairobi town are free.
+                  Transport cost will be confirmed by our team after we verify
+                  availability and location.
+                </p>
+              </div>
             </div>
 
             {/* Navigation */}
@@ -598,17 +549,17 @@ function BookingFormContent() {
                 disabled={!canProceedFromStep(2)}
                 size="lg"
               >
-                Continue to Details
+                Continue to Event Details
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Your Details */}
+        {/* Step 3: Event Details */}
         {currentStep === 3 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="mb-2 text-2xl font-semibold">Your Details</h2>
+            <h2 className="mb-2 text-2xl font-semibold">Event Details</h2>
             <p className="mb-6 text-muted-foreground">
               Tell us about your event and how many people need makeup
             </p>
@@ -652,15 +603,25 @@ function BookingFormContent() {
                       <div className="space-y-2">
                         <Label htmlFor="maids">
                           Maids/Bridesmaids ({formatCurrency(parseFloat(selectedPackage.base_maid_price))} each)
+                          {selectedPackage.min_maids ? (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              · minimum {selectedPackage.min_maids}
+                            </span>
+                          ) : null}
                         </Label>
                         <Input
                           id="maids"
                           type="number"
-                          min="0"
-                          value={numMaids || ""}
-                          onChange={(e) =>
-                            setNumMaids(parseInt(e.target.value) || 0)
-                          }
+                          min={selectedPackage.min_maids ?? 0}
+                          max={selectedPackage.max_maids ?? undefined}
+                          value={numMaids}
+                          onChange={(e) => {
+                            const raw = parseInt(e.target.value);
+                            const min = selectedPackage.min_maids ?? 0;
+                            const max = selectedPackage.max_maids ?? Infinity;
+                            const next = Number.isNaN(raw) ? min : raw;
+                            setNumMaids(Math.min(Math.max(next, min), max));
+                          }}
                         />
                       </div>
                     )}
@@ -733,48 +694,94 @@ function BookingFormContent() {
               </div>
             </div>
 
-            {/* Guest Information (if not logged in) */}
-            {!user && (
-              <div className="mb-6">
-                <h3 className="mb-3 text-lg font-medium">
-                  Contact Information
-                </h3>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  We&apos;ll use this to confirm your booking
-                </p>
-                <div className="space-y-4">
+            {/* Navigation */}
+            <div className="mt-8 flex justify-between">
+              <Button variant="outline" onClick={prevStep} size="lg">
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+              <Button
+                onClick={nextStep}
+                disabled={!canProceedFromStep(3)}
+                size="lg"
+              >
+                Continue to Contact Info
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Contact Information */}
+        {currentStep === 4 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="mb-2 text-2xl font-semibold">Contact Information</h2>
+            <p className="mb-6 text-muted-foreground">
+              We&apos;ll use this to confirm your booking and share any
+              additional details about your appointment.
+            </p>
+
+            {user ? (
+              <Card>
+                <CardContent className="p-5">
+                  <p className="text-sm text-muted-foreground">Signed in as</p>
+                  <p className="font-medium">{user.email}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guestName">Full Name *</Label>
+                  <Input
+                    id="guestName"
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="guestName">Full Name *</Label>
+                    <Label htmlFor="guestEmail">Email Address *</Label>
                     <Input
-                      id="guestName"
-                      type="text"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
+                      id="guestEmail"
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      aria-invalid={
+                        guestEmail.length > 0 && !isValidEmail(guestEmail)
+                      }
                       required
                     />
+                    {guestEmail.length > 0 && !isValidEmail(guestEmail) && (
+                      <p className="text-xs text-destructive">
+                        Enter a valid email address (e.g. you@example.com).
+                      </p>
+                    )}
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="guestEmail">Email Address *</Label>
-                      <Input
-                        id="guestEmail"
-                        type="email"
-                        value={guestEmail}
-                        onChange={(e) => setGuestEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="guestPhone">Phone Number *</Label>
-                      <Input
-                        id="guestPhone"
-                        type="tel"
-                        placeholder="+254 7XX XXX XXX"
-                        value={guestPhone}
-                        onChange={(e) => setGuestPhone(e.target.value)}
-                        required
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="guestPhone">Phone Number *</Label>
+                    <Input
+                      id="guestPhone"
+                      type="tel"
+                      placeholder="+254 7XX XXX XXX"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      aria-invalid={
+                        guestPhone.length > 0 && !isValidPhone(guestPhone)
+                      }
+                      required
+                    />
+                    {guestPhone.length > 0 && !isValidPhone(guestPhone) ? (
+                      <p className="text-xs text-destructive">
+                        Enter a Kenyan mobile number, e.g. +254 712 345 678 or
+                        0712 345 678.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Kenyan mobile: +254 7XX XXX XXX or 07XX XXX XXX.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -788,7 +795,7 @@ function BookingFormContent() {
               </Button>
               <Button
                 onClick={nextStep}
-                disabled={!canProceedFromStep(3)}
+                disabled={!canProceedFromStep(4)}
                 size="lg"
               >
                 Review Booking
@@ -798,8 +805,8 @@ function BookingFormContent() {
           </div>
         )}
 
-        {/* Step 4: Review & Confirm */}
-        {currentStep === 4 && (
+        {/* Step 5: Review & Confirm */}
+        {currentStep === 5 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="mb-2 text-2xl font-semibold">Review & Confirm</h2>
             <p className="mb-6 text-muted-foreground">
@@ -855,15 +862,20 @@ function BookingFormContent() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatTime(bookingTime)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span>
-                        {locationType === "predefined"
-                          ? selectedLocation?.location_name || "—"
-                          : customLocation?.address || "—"}
+                        {formatTime(bookingDate.split("T")[1] || "")}
                       </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p>{customLocation?.address || "—"}</p>
+                        {locationDescription && (
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {locationDescription}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -934,7 +946,7 @@ function BookingFormContent() {
                       </h3>
                       <button
                         type="button"
-                        onClick={() => goToStep(3)}
+                        onClick={() => goToStep(4)}
                         className="text-sm text-secondary hover:underline"
                       >
                         Edit
@@ -973,24 +985,40 @@ function BookingFormContent() {
                         <span className="text-muted-foreground">
                           Transport:
                         </span>
-                        <span>{formatCurrency(pricing.transport)}</span>
+                        <span className="italic text-muted-foreground">
+                          To be confirmed
+                        </span>
                       </div>
                       <div className="border-t border-border pt-3">
                         <div className="flex justify-between text-lg font-semibold">
-                          <span>Total:</span>
+                          <span>Service Total:</span>
                           <span>{formatCurrency(pricing.total)}</span>
                         </div>
                         <div className="mt-2 flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            Deposit Required (50%):
+                            Deposit (50% of service total):
                           </span>
                           <span className="font-semibold text-secondary">
                             {formatCurrency(pricing.deposit)}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Remaining {formatCurrency(pricing.total - pricing.deposit)} due after service delivery
-                        </p>
+                      </div>
+                      <div className="mt-4 rounded-md border border-secondary/40 bg-secondary/10 p-3 text-sm text-secondary">
+                        <p className="font-semibold">How payment works</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-secondary/90">
+                          <li>
+                            Transport cost will be communicated after we
+                            verify availability and your location.
+                          </li>
+                          <li>
+                            The 50% deposit is paid once that transport
+                            quote is confirmed with you.
+                          </li>
+                          <li>
+                            The remaining 50% is paid on the service
+                            delivery day, before the service is provided.
+                          </li>
+                        </ul>
                       </div>
                     </div>
                   </CardContent>
@@ -1004,12 +1032,13 @@ function BookingFormContent() {
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                 {selectedPackage && (
                   <WhatsAppButton
                     variant="outline"
                     size="lg"
                     label="Book on WhatsApp"
+                    className="sm:flex-1"
                     context={{
                       type: "service",
                       service_id: selectedPackage.id,
@@ -1021,6 +1050,7 @@ function BookingFormContent() {
                   onClick={handleSubmit}
                   disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
                   size="lg"
+                  className="w-full sm:w-auto sm:flex-1"
                 >
                   {submitting ? (
                     <>

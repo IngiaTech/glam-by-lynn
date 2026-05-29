@@ -11,6 +11,7 @@ export type WhatsAppContext =
   | { type: "product"; product_id: string; quantity?: number }
   | { type: "service"; service_id: string; preferred_date?: string }
   | { type: "cart"; items: Array<{ product_id: string; quantity: number }> }
+  | { type: "booking"; booking_number: string }
   | { type: "general" };
 
 type Variant = "outline" | "icon";
@@ -95,10 +96,10 @@ export function WhatsAppButton({
 
   const sizeClasses =
     size === "sm"
-      ? "py-2 text-sm"
+      ? "py-2 px-4 text-sm"
       : size === "lg"
-        ? "py-3.5 text-base"
-        : "py-3 text-sm";
+        ? "py-3.5 px-8 text-base"
+        : "py-3 px-4 text-sm";
 
   return (
     <button

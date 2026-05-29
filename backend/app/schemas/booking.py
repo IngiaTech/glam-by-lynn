@@ -36,12 +36,16 @@ class BookingCreate(BaseModel):
     booking_date: date_type = Field(..., description="Booking date")
     booking_time: time_type = Field(..., description="Booking time")
 
-    # Location: Either use predefined location OR custom location (both optional, but one must be provided)
-    location_id: Optional[UUID] = Field(None, description="Predefined transport location ID")
-    custom_location_address: Optional[str] = Field(None, description="Custom location address from Mapbox")
-    custom_location_latitude: Optional[float] = Field(None, description="Custom location latitude")
-    custom_location_longitude: Optional[float] = Field(None, description="Custom location longitude")
-    custom_location_distance_km: Optional[float] = Field(None, description="Distance from Nairobi in km")
+    # Location: a free-text address (from the search field) plus an
+    # optional description for landmarks / directions. Lat/lng/distance
+    # are accepted for backwards compatibility but are no longer required
+    # — transport cost is determined manually after the booking is placed.
+    custom_location_address: str = Field(..., min_length=1, description="Searched location address")
+    location_description: Optional[str] = Field(None, description="Extra directions / landmarks")
+    location_id: Optional[UUID] = Field(None, description="Deprecated: predefined transport location ID")
+    custom_location_latitude: Optional[float] = Field(None, description="Optional latitude")
+    custom_location_longitude: Optional[float] = Field(None, description="Optional longitude")
+    custom_location_distance_km: Optional[float] = Field(None, description="Optional distance from Nairobi (km)")
 
     num_brides: int = Field(1, ge=0, description="Number of brides")
     num_maids: int = Field(0, ge=0, description="Number of maids/bridesmaids")
@@ -66,9 +70,10 @@ class BookingResponse(BaseModel):
     booking_date: date_type
     booking_time: time_type
 
-    # Location fields (can be either predefined or custom)
+    # Location fields
     location_id: Optional[UUID]
     custom_location_address: Optional[str]
+    location_description: Optional[str]
     custom_location_latitude: Optional[float]
     custom_location_longitude: Optional[float]
     custom_location_distance_km: Optional[float]
@@ -91,6 +96,15 @@ class BookingResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BookingCreateResponse(BookingResponse):
+    """Booking response augmented with a signed confirmation token that
+    lets a guest re-open the confirmation page without authentication."""
+
+    confirmation_token: str = Field(
+        ..., description="Signed token for revisiting the confirmation page"
+    )
 
 
 class BookingListResponse(BaseModel):

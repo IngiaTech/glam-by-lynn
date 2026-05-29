@@ -19,10 +19,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_optional_current_user
+from app.models.booking import Booking
 from app.models.product import Product
 from app.models.service import ServicePackage
 from app.models.user import User
 from app.schemas.whatsapp import (
+    WhatsAppBookingRequest,
     WhatsAppCartRequest,
     WhatsAppGeneralRequest,
     WhatsAppLinkRequest,
@@ -178,6 +180,33 @@ def _build_general_message(user: Optional[User]) -> str:
     return "\n".join(lines)
 
 
+def _build_booking_message(
+    db: Session, req: WhatsAppBookingRequest, user: Optional[User]
+) -> str:
+    # Strip control chars and trim to a safe length before using in the
+    # message body; the lookup itself is parameterised so SQL injection
+    # is not a concern.
+    safe_number = re.sub(r"[\x00-\x1f]", "", req.booking_number).strip()[:64]
+    if not safe_number:
+        raise HTTPException(status_code=400, detail="Booking number is required")
+
+    booking = (
+        db.query(Booking).filter(Booking.booking_number == safe_number).first()
+    )
+    if not booking:
+        # Don't leak whether the number is valid — but a no-op message is
+        # unhelpful for the user, so we keep the same wording either way.
+        # The artist receiving the message can verify the number on their end.
+        pass
+
+    lines = [
+        "Hi Glam by Lynn — I'd like to follow up on my booking.",
+        f"Booking number: {safe_number}",
+    ]
+    lines.extend(_user_lines(user))
+    return "\n".join(lines)
+
+
 @router.post(
     "/link",
     response_model=WhatsAppLinkResponse,
@@ -196,6 +225,8 @@ def generate_link(
         message = _build_service_message(db, payload, current_user)
     elif isinstance(payload, WhatsAppCartRequest):
         message = _build_cart_message(db, payload, current_user)
+    elif isinstance(payload, WhatsAppBookingRequest):
+        message = _build_booking_message(db, payload, current_user)
     else:
         message = _build_general_message(current_user)
 
