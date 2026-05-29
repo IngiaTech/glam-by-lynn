@@ -1,6 +1,6 @@
 /**
  * New Booking Page - Tab-based Multi-step Wizard
- * 4-step booking flow: Choose Service → Date & Time → Your Details → Review & Confirm
+ * 5-step booking flow: Choose Service → Date & Location → Event Details → Contact Information → Review & Confirm
  */
 
 "use client";
@@ -38,13 +38,15 @@ import {
   ChevronLeft,
   Sparkles,
   ClipboardCheck,
+  ContactRound,
 } from "lucide-react";
 
 const STEPS = [
   { id: 1, label: "Choose Service", icon: Sparkles },
   { id: 2, label: "Date & Location", icon: Calendar },
-  { id: 3, label: "Your Details", icon: Users },
-  { id: 4, label: "Review & Confirm", icon: ClipboardCheck },
+  { id: 3, label: "Event Details", icon: Users },
+  { id: 4, label: "Contact Information", icon: ContactRound },
+  { id: 5, label: "Review & Confirm", icon: ClipboardCheck },
 ] as const;
 
 function BookingFormContent() {
@@ -60,6 +62,18 @@ function BookingFormContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- Contact validation -------------------------------------------------
+  // Loose enough to accept anything that's recognisably an email — a
+  // single @ with a TLD-looking right-hand side. We're after "is this
+  // address typo-free enough to reach the user", not RFC compliance.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  // Kenyan mobile: +254 7XX/1XX XXX XXX, or 07XX/01XX XXX XXX. Strip
+  // spaces/dashes before checking.
+  const PHONE_RE = /^(?:\+?254|0)(?:7|1)\d{8}$/;
+  const normalizePhone = (s: string) => s.replace(/[\s-]/g, "");
+  const isValidEmail = (s: string) => EMAIL_RE.test(s.trim());
+  const isValidPhone = (s: string) => PHONE_RE.test(normalizePhone(s));
 
   // Form state
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
@@ -110,6 +124,15 @@ function BookingFormContent() {
     loadData();
   }, [searchParams]);
 
+  // When the selected package changes, snap numMaids into the package's
+  // [min_maids, max_maids] range so the form starts at a valid state.
+  useEffect(() => {
+    if (!selectedPackage) return;
+    const min = selectedPackage.min_maids ?? 0;
+    const max = selectedPackage.max_maids ?? Infinity;
+    setNumMaids((current) => Math.min(Math.max(current, min), max));
+  }, [selectedPackage]);
+
   // Calculate price (transport cost is determined manually after booking)
   const pricing =
     selectedPackage && customLocation
@@ -136,8 +159,14 @@ function BookingFormContent() {
       case 2:
         return !!bookingDate && hasValidLocation;
       case 3:
-        return user ? true : !!(guestName && guestEmail && guestPhone);
+        return attendeeErrors.length === 0;
       case 4:
+        return user
+          ? true
+          : !!guestName.trim() &&
+              isValidEmail(guestEmail) &&
+              isValidPhone(guestPhone);
+      case 5:
         return true;
       default:
         return false;
@@ -148,7 +177,10 @@ function BookingFormContent() {
     selectedPackageId &&
     hasValidLocation &&
     bookingDate &&
-    (user || (guestName && guestEmail && guestPhone)) &&
+    (user ||
+      (guestName.trim() &&
+        isValidEmail(guestEmail) &&
+        isValidPhone(guestPhone))) &&
     pricing &&
     pricing.total > 0;
 
@@ -177,7 +209,7 @@ function BookingFormContent() {
   };
 
   const nextStep = () => {
-    if (canProceedFromStep(currentStep) && currentStep < 4) {
+    if (canProceedFromStep(currentStep) && currentStep < 5) {
       setCurrentStep(currentStep + 1);
       setError(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -223,9 +255,9 @@ function BookingFormContent() {
         wedding_theme: weddingTheme || undefined,
         special_requests: specialRequests || undefined,
         ...(!user && {
-          guest_name: guestName,
-          guest_email: guestEmail,
-          guest_phone: guestPhone,
+          guest_name: guestName.trim(),
+          guest_email: guestEmail.trim(),
+          guest_phone: normalizePhone(guestPhone),
         }),
       };
 
@@ -513,17 +545,17 @@ function BookingFormContent() {
                 disabled={!canProceedFromStep(2)}
                 size="lg"
               >
-                Continue to Details
+                Continue to Event Details
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Your Details */}
+        {/* Step 3: Event Details */}
         {currentStep === 3 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="mb-2 text-2xl font-semibold">Your Details</h2>
+            <h2 className="mb-2 text-2xl font-semibold">Event Details</h2>
             <p className="mb-6 text-muted-foreground">
               Tell us about your event and how many people need makeup
             </p>
@@ -567,15 +599,25 @@ function BookingFormContent() {
                       <div className="space-y-2">
                         <Label htmlFor="maids">
                           Maids/Bridesmaids ({formatCurrency(parseFloat(selectedPackage.base_maid_price))} each)
+                          {selectedPackage.min_maids ? (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              · minimum {selectedPackage.min_maids}
+                            </span>
+                          ) : null}
                         </Label>
                         <Input
                           id="maids"
                           type="number"
-                          min="0"
-                          value={numMaids || ""}
-                          onChange={(e) =>
-                            setNumMaids(parseInt(e.target.value) || 0)
-                          }
+                          min={selectedPackage.min_maids ?? 0}
+                          max={selectedPackage.max_maids ?? undefined}
+                          value={numMaids}
+                          onChange={(e) => {
+                            const raw = parseInt(e.target.value);
+                            const min = selectedPackage.min_maids ?? 0;
+                            const max = selectedPackage.max_maids ?? Infinity;
+                            const next = Number.isNaN(raw) ? min : raw;
+                            setNumMaids(Math.min(Math.max(next, min), max));
+                          }}
                         />
                       </div>
                     )}
@@ -648,48 +690,94 @@ function BookingFormContent() {
               </div>
             </div>
 
-            {/* Guest Information (if not logged in) */}
-            {!user && (
-              <div className="mb-6">
-                <h3 className="mb-3 text-lg font-medium">
-                  Contact Information
-                </h3>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  We&apos;ll use this to confirm your booking
-                </p>
-                <div className="space-y-4">
+            {/* Navigation */}
+            <div className="mt-8 flex justify-between">
+              <Button variant="outline" onClick={prevStep} size="lg">
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+              <Button
+                onClick={nextStep}
+                disabled={!canProceedFromStep(3)}
+                size="lg"
+              >
+                Continue to Contact Info
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Contact Information */}
+        {currentStep === 4 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="mb-2 text-2xl font-semibold">Contact Information</h2>
+            <p className="mb-6 text-muted-foreground">
+              We&apos;ll use this to confirm your booking and share any
+              additional details about your appointment.
+            </p>
+
+            {user ? (
+              <Card>
+                <CardContent className="p-5">
+                  <p className="text-sm text-muted-foreground">Signed in as</p>
+                  <p className="font-medium">{user.email}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guestName">Full Name *</Label>
+                  <Input
+                    id="guestName"
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="guestName">Full Name *</Label>
+                    <Label htmlFor="guestEmail">Email Address *</Label>
                     <Input
-                      id="guestName"
-                      type="text"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
+                      id="guestEmail"
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      aria-invalid={
+                        guestEmail.length > 0 && !isValidEmail(guestEmail)
+                      }
                       required
                     />
+                    {guestEmail.length > 0 && !isValidEmail(guestEmail) && (
+                      <p className="text-xs text-destructive">
+                        Enter a valid email address (e.g. you@example.com).
+                      </p>
+                    )}
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="guestEmail">Email Address *</Label>
-                      <Input
-                        id="guestEmail"
-                        type="email"
-                        value={guestEmail}
-                        onChange={(e) => setGuestEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="guestPhone">Phone Number *</Label>
-                      <Input
-                        id="guestPhone"
-                        type="tel"
-                        placeholder="+254 7XX XXX XXX"
-                        value={guestPhone}
-                        onChange={(e) => setGuestPhone(e.target.value)}
-                        required
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="guestPhone">Phone Number *</Label>
+                    <Input
+                      id="guestPhone"
+                      type="tel"
+                      placeholder="+254 7XX XXX XXX"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      aria-invalid={
+                        guestPhone.length > 0 && !isValidPhone(guestPhone)
+                      }
+                      required
+                    />
+                    {guestPhone.length > 0 && !isValidPhone(guestPhone) ? (
+                      <p className="text-xs text-destructive">
+                        Enter a Kenyan mobile number, e.g. +254 712 345 678 or
+                        0712 345 678.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Kenyan mobile: +254 7XX XXX XXX or 07XX XXX XXX.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -703,7 +791,7 @@ function BookingFormContent() {
               </Button>
               <Button
                 onClick={nextStep}
-                disabled={!canProceedFromStep(3)}
+                disabled={!canProceedFromStep(4)}
                 size="lg"
               >
                 Review Booking
@@ -713,8 +801,8 @@ function BookingFormContent() {
           </div>
         )}
 
-        {/* Step 4: Review & Confirm */}
-        {currentStep === 4 && (
+        {/* Step 5: Review & Confirm */}
+        {currentStep === 5 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="mb-2 text-2xl font-semibold">Review & Confirm</h2>
             <p className="mb-6 text-muted-foreground">
@@ -854,7 +942,7 @@ function BookingFormContent() {
                       </h3>
                       <button
                         type="button"
-                        onClick={() => goToStep(3)}
+                        onClick={() => goToStep(4)}
                         className="text-sm text-secondary hover:underline"
                       >
                         Edit
