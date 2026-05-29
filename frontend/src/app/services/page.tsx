@@ -46,8 +46,11 @@ export default function ServicesPage() {
   }, []);
 
   const handleBookNow = (packageId: string) => {
-    // TODO: Navigate to booking form with package pre-selected
     router.push(`/bookings/new?packageId=${packageId}`);
+  };
+
+  const handleViewDetails = (packageId: string) => {
+    router.push(`/services/${packageId}`);
   };
 
   return (
@@ -103,7 +106,16 @@ export default function ServicesPage() {
                     key={pkg.id}
                     id={pkg.id}
                     data-testid="service-card"
-                    className={`flex h-full flex-col ${isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}`}
+                    onClick={() => handleViewDetails(pkg.id)}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleViewDetails(pkg.id);
+                      }
+                    }}
+                    className={`flex h-full flex-col cursor-pointer transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}`}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -140,18 +152,29 @@ export default function ServicesPage() {
                           <p className="text-sm text-muted-foreground">Pricing</p>
                           <p className="text-sm font-semibold">{pricingDescription}</p>
                         </div>
-                        <Button
-                          onClick={() => handleBookNow(pkg.id)}
-                          className="w-full"
-                        >
-                          Book Now
-                        </Button>
-                        <WhatsAppButton
-                          variant="outline"
-                          label="Book on WhatsApp"
-                          className="w-full"
-                          context={{ type: "service", service_id: pkg.id }}
-                        />
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              onClick={() => handleBookNow(pkg.id)}
+                              className="bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 active:text-secondary-foreground"
+                            >
+                              Book Now
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleViewDetails(pkg.id)}
+                              className="border-secondary text-secondary hover:bg-secondary/10 hover:text-secondary"
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                          <WhatsAppButton
+                            variant="outline"
+                            label="Book on WhatsApp"
+                            className="w-full"
+                            context={{ type: "service", service_id: pkg.id }}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
