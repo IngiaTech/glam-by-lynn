@@ -275,7 +275,7 @@ def create_booking(
         Created booking
 
     Raises:
-        ValueError: If validation fails or slot is not available
+        ValueError: If validation fails (e.g. invalid package or attendee counts)
     """
     # Validate package exists and is active
     package = db.query(ServicePackage).filter(
@@ -307,17 +307,10 @@ def create_booking(
             f"({package.min_maids}) for package '{package.name}'"
         )
 
-    # Check availability
-    is_available, reason = is_slot_available(
-        db,
-        booking_data.booking_date,
-        booking_data.booking_time
-    )
-
-    if not is_available:
-        raise ValueError(
-            f"Selected time slot is not available. Reason: {reason}"
-        )
+    # Availability is at the service provider's discretion and is confirmed
+    # with the customer after the booking is placed — we do not block creation
+    # on slot availability. (The exact time is also confirmed later, so every
+    # booking carries the same placeholder time and must not collide.)
 
     # Validate user or guest information
     if not user_id:
@@ -607,27 +600,12 @@ def admin_update_booking(
     # Track if pricing needs recalculation
     recalculate_pricing = False
 
-    # Update date/time if provided and check availability
-    if booking_date is not None and booking_time is not None:
-        # Only check availability if changing date/time
-        if booking_date != booking.booking_date or booking_time != booking.booking_time:
-            is_available, reason = is_slot_available(db, booking_date, booking_time)
-            if not is_available:
-                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
-            booking.booking_date = booking_date
-            booking.booking_time = booking_time
-    elif booking_date is not None:
-        if booking_date != booking.booking_date:
-            is_available, reason = is_slot_available(db, booking_date, booking.booking_time)
-            if not is_available:
-                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
-            booking.booking_date = booking_date
-    elif booking_time is not None:
-        if booking_time != booking.booking_time:
-            is_available, reason = is_slot_available(db, booking.booking_date, booking_time)
-            if not is_available:
-                raise ValueError(f"Selected time slot is not available. Reason: {reason}")
-            booking.booking_time = booking_time
+    # Update date/time if provided. Availability is managed manually by the
+    # service provider, so changes are never blocked on slot availability.
+    if booking_date is not None:
+        booking.booking_date = booking_date
+    if booking_time is not None:
+        booking.booking_time = booking_time
 
     # Update location if provided
     if location_id is not None and location_id != booking.location_id:
