@@ -1,9 +1,12 @@
 """Email service for sending transactional emails."""
+import logging
 import os
 import re
 from typing import Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 # Import email libraries based on availability
 try:
@@ -72,13 +75,20 @@ class EmailService:
                 return True
 
             elif self.provider == "resend":
-                resend.Emails.send({
+                response = resend.Emails.send({
                     "from": f"{self.from_name} <{self.from_email}>",
                     "to": to_email,
                     "subject": subject,
                     "html": html_content,
                     "text": text_content,
                 })
+                # Resend returns {"id": "..."} on success; surface it so a
+                # send can be traced in the provider dashboard.
+                message_id = response.get("id") if isinstance(response, dict) else None
+                logger.info(
+                    "Email sent via resend to %s (subject=%r, id=%s)",
+                    to_email, subject, message_id,
+                )
                 return True
 
             elif self.provider == "sendgrid":
@@ -91,14 +101,27 @@ class EmailService:
                 )
                 sg = SendGridAPIClient(self.sendgrid_key)
                 sg.send(message)
+                logger.info(
+                    "Email sent via sendgrid to %s (subject=%r)", to_email, subject
+                )
                 return True
 
             else:
-                print(f"Unknown email provider: {self.provider}")
+                logger.error(
+                    "Unknown email provider %r — cannot send to %s (subject=%r)",
+                    self.provider, to_email, subject,
+                )
                 return False
 
         except Exception as e:
-            print(f"Error sending email: {e}")
+            # Log the recipient and the provider error with a traceback. This is
+            # the only place a per-recipient failure (e.g. Resend rejecting a
+            # non-verified-domain recipient) becomes visible — without it the
+            # caller just sees False and the failure is silent.
+            logger.exception(
+                "Failed to send email via %s to %s (subject=%r): %s",
+                self.provider, to_email, subject, e,
+            )
             return False
 
     def send_order_confirmation(
