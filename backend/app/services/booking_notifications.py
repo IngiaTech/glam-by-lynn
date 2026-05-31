@@ -6,6 +6,7 @@ FastAPI background tasks so a slow or failing mail provider never blocks
 (or fails) the booking itself.
 """
 import json
+import logging
 import re
 from decimal import Decimal
 from typing import List, Optional
@@ -18,6 +19,8 @@ from app.core.config import settings
 from app.models.booking import Booking
 from app.services import site_settings_service
 from app.services.email_service import email_service
+
+logger = logging.getLogger(__name__)
 
 PHONE_KEY = "whatsapp_phone_number"
 
@@ -139,6 +142,10 @@ def schedule_booking_notifications(
 
     # Customer notification
     if customer_email:
+        logger.info(
+            "Queuing customer booking email for %s (booking=%s)",
+            customer_email, booking.booking_number,
+        )
         background_tasks.add_task(
             email_service.send_booking_received_customer,
             to_email=customer_email,
@@ -151,6 +158,11 @@ def schedule_booking_notifications(
             deposit=deposit,
             whatsapp_url=followup_url,
             call_number=phone,
+        )
+    else:
+        logger.warning(
+            "No customer email for booking %s — skipping customer notification",
+            booking.booking_number,
         )
 
     # Admin notification(s)
