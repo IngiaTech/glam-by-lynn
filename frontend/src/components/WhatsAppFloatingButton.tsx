@@ -8,6 +8,9 @@ export function WhatsAppFloatingButton() {
   const pathname = usePathname() ?? "";
 
   if (pathname.startsWith("/admin")) return null;
+  // The booking wizard renders its own persistent, context-aware
+  // "Book on WhatsApp" bar, so suppress the generic bubble there.
+  if (pathname.startsWith("/bookings/new")) return null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 sm:bottom-6 sm:right-6">

@@ -1,5 +1,6 @@
 """Email service for sending transactional emails."""
 import os
+import re
 from typing import Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
@@ -280,34 +281,65 @@ class EmailService:
 
         return self.send_email(to_email, subject, html_content, text_content)
 
-    def send_booking_confirmation(
+    def send_booking_received_customer(
         self,
         to_email: str,
-        booking_reference: str,
+        booking_number: str,
         customer_name: str,
         service_name: str,
         booking_date: datetime,
-        booking_time: str,
         location: str,
-        total_price: Decimal,
+        subtotal: Decimal,
+        deposit: Decimal,
+        whatsapp_url: Optional[str] = None,
+        call_number: Optional[str] = None,
     ) -> bool:
         """
-        Send booking confirmation email.
+        Notify the customer that we've received their booking request.
+
+        The booking is not yet confirmed — our team reviews it, verifies
+        availability and location, and gets back in touch with the transport
+        quote and payment instructions. The email gives the customer a clear
+        way to follow up (WhatsApp / call) instead of waiting passively.
 
         Args:
             to_email: Customer email
-            booking_reference: Booking reference number
+            booking_number: Booking reference number
             customer_name: Customer name
             service_name: Service/package name
-            booking_date: Booking date
-            booking_time: Booking time
-            location: Service location
-            total_price: Total price
+            booking_date: Requested booking date
+            location: Service location text
+            subtotal: Service subtotal (transport confirmed later)
+            deposit: Estimated 50% deposit
+            whatsapp_url: Pre-filled wa.me follow-up link (optional)
+            call_number: Business phone for the call button, digits only (optional)
 
         Returns:
             True if sent successfully
         """
-        subject = f"Booking Confirmation - {booking_reference}"
+        subject = f"We've received your booking - {booking_number}"
+
+        # Build the follow-up CTA buttons only when we have contact channels.
+        cta_buttons = ""
+        if whatsapp_url:
+            cta_buttons += (
+                f'<a href="{whatsapp_url}" '
+                'style="display: inline-block; background: #22c55e; color: #ffffff; '
+                'padding: 14px 28px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">Follow up on WhatsApp</a>'
+            )
+        if call_number:
+            cta_buttons += (
+                f'<a href="tel:+{call_number}" '
+                'style="display: inline-block; background: #111827; color: #ffffff; '
+                'padding: 14px 28px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">Call us</a>'
+            )
+        cta_html = (
+            f'<div style="text-align: center; margin: 24px 0;">{cta_buttons}</div>'
+            if cta_buttons
+            else ""
+        )
 
         html_content = f"""
         <!DOCTYPE html>
@@ -319,38 +351,43 @@ class EmailService:
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #000 0%, #333 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
                 <h1 style="margin: 0; font-size: 28px;">Glam by Lynn</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">Your booking is confirmed!</p>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">We've received your booking!</p>
             </div>
 
             <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-                <h2 style="color: #ec4899; margin-top: 0;">Booking Confirmed</h2>
+                <h2 style="color: #ec4899; margin-top: 0;">Thank you, {customer_name}!</h2>
 
-                <p>Hi {customer_name},</p>
-
-                <p>We're excited to see you! Your booking has been confirmed.</p>
+                <p>Your booking request has been received. Here's a summary of what you requested:</p>
 
                 <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 0;"><strong>Booking Reference:</strong> {booking_reference}</p>
+                    <p style="margin: 0;"><strong>Booking Number:</strong> {booking_number}</p>
                     <p style="margin: 10px 0 0 0;"><strong>Service:</strong> {service_name}</p>
                     <p style="margin: 10px 0 0 0;"><strong>Date:</strong> {booking_date.strftime('%B %d, %Y')}</p>
-                    <p style="margin: 10px 0 0 0;"><strong>Time:</strong> {booking_time}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Time:</strong> To be confirmed</p>
                     <p style="margin: 10px 0 0 0;"><strong>Location:</strong> {location}</p>
-                    <p style="margin: 10px 0 0 0;"><strong>Total:</strong> <span style="color: #ec4899; font-size: 20px; font-weight: bold;">KES {total_price:,.2f}</span></p>
+                    <p style="margin: 10px 0 0 0;"><strong>Service subtotal:</strong> KES {subtotal:,.2f}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Transport:</strong> To be confirmed</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Estimated deposit (50%):</strong> KES {deposit:,.2f}</p>
                 </div>
 
-                <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-top: 30px; border-radius: 4px;">
+                <div style="background: #fdf2f8; border-left: 4px solid #ec4899; padding: 15px; margin-top: 20px; border-radius: 4px;">
                     <p style="margin: 0; font-size: 14px;">
-                        <strong>Important:</strong><br>
-                        Please arrive 10 minutes before your scheduled time. If you need to reschedule or cancel, please contact us at least 24 hours in advance.
+                        <strong>What happens next?</strong><br>
+                        Our team will review your booking and contact you by call or WhatsApp to
+                        confirm availability and your location. We'll then share the final cost
+                        (including transport) and instructions for paying your deposit.
                     </p>
                 </div>
 
-                <p style="margin-top: 30px;">
-                    If you have any questions, please contact us at support@glambylynn.com or call us at +254 XXX XXX XXX
+                {cta_html}
+
+                <p style="text-align: center; color: #666; font-size: 14px; margin-top: 0;">
+                    Have a question or want to follow up? Reach us using the buttons above and
+                    quote your booking number <strong>{booking_number}</strong>.
                 </p>
 
-                <p style="margin-top: 20px; color: #666; font-size: 14px;">
-                    We look forward to seeing you!<br>
+                <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                    Warm regards,<br>
                     <strong style="color: #ec4899;">The Glam by Lynn Team</strong>
                 </p>
             </div>
@@ -363,32 +400,202 @@ class EmailService:
         </html>
         """
 
+        contact_text = ""
+        if whatsapp_url:
+            contact_text += f"\n        Follow up on WhatsApp: {whatsapp_url}"
+        if call_number:
+            contact_text += f"\n        Call us: +{call_number}"
+
         text_content = f"""
-        GLAM BY LYNN - BOOKING CONFIRMATION
+        GLAM BY LYNN - BOOKING RECEIVED
 
         Hi {customer_name},
 
-        Your booking has been confirmed!
+        Your booking request has been received. Here's what you requested:
 
-        Booking Reference: {booking_reference}
+        Booking Number: {booking_number}
         Service: {service_name}
         Date: {booking_date.strftime('%B %d, %Y')}
-        Time: {booking_time}
+        Time: To be confirmed
         Location: {location}
-        Total: KES {total_price:,.2f}
+        Service subtotal: KES {subtotal:,.2f}
+        Transport: To be confirmed
+        Estimated deposit (50%): KES {deposit:,.2f}
 
-        IMPORTANT:
-        Please arrive 10 minutes before your scheduled time. If you need to reschedule or cancel, please contact us at least 24 hours in advance.
+        WHAT HAPPENS NEXT?
+        Our team will review your booking and contact you by call or WhatsApp to confirm
+        availability and your location. We'll then share the final cost (including transport)
+        and instructions for paying your deposit.
 
-        If you have any questions, contact us at support@glambylynn.com or call +254 XXX XXX XXX
+        Want to follow up? Quote your booking number {booking_number}.{contact_text}
 
-        We look forward to seeing you!
-
-        Best regards,
+        Warm regards,
         The Glam by Lynn Team
 
         © {datetime.now().year} Glam by Lynn. All rights reserved.
         Kitui & Nairobi, Kenya
+        """
+
+        return self.send_email(to_email, subject, html_content, text_content)
+
+    def send_booking_admin_notification(
+        self,
+        to_email: str,
+        booking_number: str,
+        customer_name: str,
+        customer_email: str,
+        customer_phone: str,
+        service_name: str,
+        booking_date: datetime,
+        location: str,
+        location_description: Optional[str],
+        attendees: str,
+        subtotal: Decimal,
+        special_requests: Optional[str],
+        admin_url: str,
+        customer_whatsapp_url: Optional[str] = None,
+    ) -> bool:
+        """
+        Notify the admin/team that a new booking needs review.
+
+        Args:
+            to_email: Admin recipient
+            booking_number: Booking reference number
+            customer_name / customer_email / customer_phone: Customer contact
+            service_name: Service/package name
+            booking_date: Requested date
+            location: Location text
+            location_description: Extra location details from the customer
+            attendees: Pre-formatted attendee summary
+            subtotal: Service subtotal (transport set manually later)
+            special_requests: Customer notes
+            admin_url: Link to the booking in the admin dashboard
+            customer_whatsapp_url: Pre-filled wa.me link to message the customer
+
+        Returns:
+            True if sent successfully
+        """
+        subject = f"New booking to review - {booking_number} ({customer_name})"
+
+        phone_digits = re.sub(r"\D", "", customer_phone or "")
+        contact_buttons = (
+            f'<a href="tel:{customer_phone}" '
+            'style="display: inline-block; background: #111827; color: #ffffff; '
+            'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+            'font-weight: bold; margin: 6px;">Call customer</a>'
+            if phone_digits
+            else ""
+        )
+        if customer_whatsapp_url:
+            contact_buttons += (
+                f'<a href="{customer_whatsapp_url}" '
+                'style="display: inline-block; background: #22c55e; color: #ffffff; '
+                'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">WhatsApp customer</a>'
+            )
+        contact_buttons += (
+            f'<a href="{admin_url}" '
+            'style="display: inline-block; background: #ec4899; color: #ffffff; '
+            'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+            'font-weight: bold; margin: 6px;">Open in dashboard</a>'
+        )
+
+        description_row = (
+            f'<p style="margin: 10px 0 0 0;"><strong>Location details:</strong> {location_description}</p>'
+            if location_description
+            else ""
+        )
+        requests_row = (
+            f'<p style="margin: 10px 0 0 0;"><strong>Special requests:</strong> {special_requests}</p>'
+            if special_requests
+            else ""
+        )
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #000 0%, #333 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">Glam by Lynn</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">New booking to review</p>
+            </div>
+
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                <h2 style="color: #ec4899; margin-top: 0;">Booking {booking_number}</h2>
+
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>Action needed:</strong> Review the details below, then contact the
+                        customer to verify availability and location, confirm the transport cost,
+                        and share payment instructions to proceed.
+                    </p>
+                </div>
+
+                <h3 style="color: #333; margin-top: 24px;">Customer</h3>
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <p style="margin: 0;"><strong>Name:</strong> {customer_name}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Email:</strong> {customer_email}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Phone:</strong> {customer_phone}</p>
+                </div>
+
+                <h3 style="color: #333; margin-top: 24px;">Booking</h3>
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <p style="margin: 0;"><strong>Service:</strong> {service_name}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Date:</strong> {booking_date.strftime('%B %d, %Y')}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Time:</strong> To be confirmed with customer</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Location:</strong> {location}</p>
+                    {description_row}
+                    <p style="margin: 10px 0 0 0;"><strong>Attendees:</strong> {attendees}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Service subtotal:</strong> KES {subtotal:,.2f}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Transport:</strong> To be set after location verification</p>
+                    {requests_row}
+                </div>
+
+                <div style="text-align: center; margin: 24px 0;">
+                    {contact_buttons}
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
+                <p>© {datetime.now().year} Glam by Lynn. Internal notification.</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_content = f"""
+        GLAM BY LYNN - NEW BOOKING TO REVIEW
+
+        Booking Number: {booking_number}
+
+        ACTION NEEDED:
+        Review the details below, then contact the customer to verify availability and
+        location, confirm the transport cost, and share payment instructions.
+
+        CUSTOMER
+        Name: {customer_name}
+        Email: {customer_email}
+        Phone: {customer_phone}
+
+        BOOKING
+        Service: {service_name}
+        Date: {booking_date.strftime('%B %d, %Y')}
+        Time: To be confirmed with customer
+        Location: {location}
+        {f'Location details: {location_description}' if location_description else ''}
+        Attendees: {attendees}
+        Service subtotal: KES {subtotal:,.2f}
+        Transport: To be set after location verification
+        {f'Special requests: {special_requests}' if special_requests else ''}
+
+        Open in dashboard: {admin_url}
+        {f'WhatsApp customer: {customer_whatsapp_url}' if customer_whatsapp_url else ''}
+
+        © {datetime.now().year} Glam by Lynn. Internal notification.
         """
 
         return self.send_email(to_email, subject, html_content, text_content)

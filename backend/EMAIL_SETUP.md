@@ -9,13 +9,34 @@ Add the following environment variables to your `.env` file:
 ### Basic Configuration
 
 ```env
-# Email Provider (console, resend, sendgrid, smtp)
+# Email Provider: console (dev), resend, or sendgrid
+# Note: "smtp" is NOT implemented — only console, resend, and sendgrid work.
 EMAIL_PROVIDER=console
 
-# From Email Address
+# Sender identity. EMAIL_FROM must be a verified domain/sender with your provider.
 EMAIL_FROM=noreply@glambylynn.com
 EMAIL_FROM_NAME=Glam by Lynn
 ```
+
+> ⚠️ The email service reads `EMAIL_FROM` (not `FROM_EMAIL`). The `FROM_EMAIL`
+> setting in `app/core/config.py` is unrelated to outbound mail.
+
+### Recipients & links (booking notifications)
+
+```env
+# Comma-separated recipients of internal notifications (e.g. "new booking to
+# review"). If empty, no admin emails are sent (the customer email still goes out).
+ADMIN_EMAILS=admin@glambylynn.com,lynn@glambylynn.com
+
+# Used to build links in emails (e.g. the admin "Open in dashboard" button).
+FRONTEND_URL=https://glambylynn.com
+```
+
+The customer "Follow up on WhatsApp" / "Call us" buttons and the admin
+"WhatsApp customer" button use the business number stored under the
+`whatsapp_phone_number` site setting — configured in the app under
+**Admin → Settings**, not via env. If it's unset, those buttons are omitted
+and the email still sends.
 
 ### Provider-Specific Configuration
 
@@ -29,21 +50,23 @@ EMAIL_PROVIDER=console
 
 #### Option 2: Resend (Recommended for Production)
 
+The `resend` package is included in `requirements.txt`, so no extra install is needed.
+
 1. Sign up at [resend.com](https://resend.com)
-2. Create an API key
-3. Install the package: `pip install resend`
-4. Configure:
+2. Verify your sending domain and create an API key
+3. Configure:
 
 ```env
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=your_resend_api_key_here
+EMAIL_FROM=bookings@glambylynn.com   # must be on the verified domain
 ```
 
 #### Option 3: SendGrid
 
 1. Sign up at [sendgrid.com](https://sendgrid.com)
 2. Create an API key
-3. Install the package: `pip install sendgrid`
+3. Install the package: `pip install sendgrid` (not bundled in requirements.txt)
 4. Configure:
 
 ```env
@@ -60,10 +83,16 @@ The service includes responsive HTML templates for:
 - Includes order details, items, totals, delivery address
 - Brand colors: Black background with pink accents
 
-### 2. Booking Confirmation Email
-- Sent when customer books a service
-- Includes booking reference, service details, date/time, location
-- Reminder to arrive 10 minutes early
+### 2. Booking Notification Emails
+Sent automatically when a booking is created (via FastAPI background tasks, so
+a slow/failing provider never blocks or fails the booking):
+- **Customer** (`send_booking_received_customer`) — confirms the request was
+  received (pending, not yet confirmed), summarises the details, explains what
+  happens next, and offers "Follow up on WhatsApp" + "Call us" buttons.
+- **Team** (`send_booking_admin_notification`) — sent to each `ADMIN_EMAILS`
+  address with the customer's contact, full booking details, an action
+  checklist, and "Call customer" / "WhatsApp customer" / "Open in dashboard"
+  buttons.
 
 ### 3. Vision Registration Confirmation Email
 - Sent when someone registers interest in 2026 expansion
@@ -90,16 +119,20 @@ email_service.send_order_confirmation(
     delivery_address={...},
 )
 
-# Send booking confirmation
-email_service.send_booking_confirmation(
+# Booking notifications are sent automatically on booking creation — see
+# app/services/booking_notifications.py (scheduled from the create-booking
+# route via BackgroundTasks). To send one directly:
+email_service.send_booking_received_customer(
     to_email="customer@example.com",
-    booking_reference="BKG-12345",
+    booking_number="BK202601150001",
     customer_name="Jane Doe",
     service_name="Bridal Makeup Package",
-    booking_date=datetime(2026, 1, 15),
-    booking_time="10:00 AM",
-    location="Nairobi Studio",
-    total_price=Decimal("5000.00"),
+    booking_date=date(2026, 1, 15),
+    location="Karen, Nairobi",
+    subtotal=Decimal("5000.00"),
+    deposit=Decimal("2500.00"),
+    whatsapp_url="https://wa.me/2547...",   # optional
+    call_number="2547...",                  # optional
 )
 
 # Send vision registration confirmation

@@ -23,7 +23,6 @@ import {
   calculateBookingPrice,
   formatCurrency,
   formatDate,
-  formatTime,
 } from "@/lib/bookings";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { useAuth } from "@/hooks/useAuth";
@@ -161,8 +160,10 @@ function BookingFormContent() {
       case 3:
         return attendeeErrors.length === 0;
       case 4:
+        // Accounts don't store a phone number, so we require it here even for
+        // signed-in users — it's how we reach them about the booking.
         return user
-          ? true
+          ? isValidPhone(guestPhone)
           : !!guestName.trim() &&
               isValidEmail(guestEmail) &&
               isValidPhone(guestPhone);
@@ -177,10 +178,11 @@ function BookingFormContent() {
     selectedPackageId &&
     hasValidLocation &&
     bookingDate &&
-    (user ||
-      (guestName.trim() &&
+    (user
+      ? isValidPhone(guestPhone)
+      : guestName.trim() &&
         isValidEmail(guestEmail) &&
-        isValidPhone(guestPhone))) &&
+        isValidPhone(guestPhone)) &&
     pricing &&
     pricing.total > 0;
 
@@ -235,15 +237,13 @@ function BookingFormContent() {
       setSubmitting(true);
       setError(null);
 
-      // Split the datetime-local value into the date + time fields the
-      // backend expects (HH:MM → HH:MM:SS).
-      const [datePart, timePart = ""] = bookingDate.split("T");
-      const submitTime = timePart ? `${timePart}:00` : "";
-
+      // The picker now collects a date only; the exact appointment time is
+      // confirmed with the customer after booking. Send a neutral placeholder
+      // for the time the backend still requires.
       const bookingData = {
         package_id: selectedPackageId,
-        booking_date: datePart,
-        booking_time: submitTime,
+        booking_date: bookingDate,
+        booking_time: "09:00:00",
         custom_location_address: customLocation!.address,
         custom_location_latitude: customLocation!.latitude,
         custom_location_longitude: customLocation!.longitude,
@@ -254,10 +254,12 @@ function BookingFormContent() {
         num_others: numOthers,
         wedding_theme: weddingTheme || undefined,
         special_requests: specialRequests || undefined,
+        // Phone is always captured (accounts have no phone field); name/email
+        // only for guests — signed-in bookings use the account for those.
+        guest_phone: normalizePhone(guestPhone),
         ...(!user && {
           guest_name: guestName.trim(),
           guest_email: guestEmail.trim(),
-          guest_phone: normalizePhone(guestPhone),
         }),
       };
 
@@ -473,21 +475,25 @@ function BookingFormContent() {
             {/* Date & Time Selection */}
             <div className="mb-6">
               <Label htmlFor="date" className="mb-2 block text-base font-medium">
-                Preferred Date & Time *
+                Preferred Date *
               </Label>
               <Input
                 id="date"
-                type="datetime-local"
+                type="date"
                 value={bookingDate}
                 onChange={(e) => setBookingDate(e.target.value)}
                 min={(() => {
                   const now = new Date();
                   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                  return now.toISOString().slice(0, 16);
+                  return now.toISOString().slice(0, 10);
                 })()}
                 className="max-w-xs"
                 required
               />
+              <p className="mt-2 text-sm text-muted-foreground">
+                We&apos;ll confirm the exact appointment time with you after your
+                booking.
+              </p>
             </div>
 
             {/* Location Selection */}
@@ -722,12 +728,48 @@ function BookingFormContent() {
             </p>
 
             {user ? (
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground">Signed in as</p>
-                  <p className="font-medium">{user.email}</p>
-                </CardContent>
-              </Card>
+              <div className="space-y-4">
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-muted-foreground">
+                      Signed in as
+                    </p>
+                    {user.name && (
+                      <p className="font-medium">{user.name}</p>
+                    )}
+                    <p className={user.name ? "text-muted-foreground" : "font-medium"}>
+                      {user.email}
+                    </p>
+                  </CardContent>
+                </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="guestPhone">Phone Number *</Label>
+                  <Input
+                    id="guestPhone"
+                    type="tel"
+                    placeholder="+254 7XX XXX XXX"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    aria-invalid={
+                      guestPhone.length > 0 && !isValidPhone(guestPhone)
+                    }
+                    className="sm:max-w-xs"
+                    required
+                  />
+                  {guestPhone.length > 0 && !isValidPhone(guestPhone) ? (
+                    <p className="text-xs text-destructive">
+                      Enter a Kenyan mobile number, e.g. +254 712 345 678 or
+                      0712 345 678.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;ll use this to confirm your booking and reach you
+                      on WhatsApp or by call. Kenyan mobile: +254 7XX XXX XXX or
+                      07XX XXX XXX.
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -845,7 +887,7 @@ function BookingFormContent() {
                 <CardContent className="p-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="font-semibold text-muted-foreground">
-                      Date, Time & Location
+                      Date & Location
                     </h3>
                     <button
                       type="button"
@@ -862,8 +904,8 @@ function BookingFormContent() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {formatTime(bookingDate.split("T")[1] || "")}
+                      <span className="text-muted-foreground">
+                        Time to be confirmed
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
@@ -936,8 +978,8 @@ function BookingFormContent() {
                 </CardContent>
               </Card>
 
-              {/* Contact Info (guest) */}
-              {!user && guestName && (
+              {/* Contact Info */}
+              {(user || guestName) && (
                 <Card>
                   <CardContent className="p-5">
                     <div className="mb-3 flex items-center justify-between">
@@ -954,10 +996,16 @@ function BookingFormContent() {
                     </div>
                     <div className="space-y-1 text-sm">
                       <p>
-                        Name: <span className="font-medium">{guestName}</span>
+                        Name:{" "}
+                        <span className="font-medium">
+                          {user ? user.name || "—" : guestName}
+                        </span>
                       </p>
                       <p>
-                        Email: <span className="font-medium">{guestEmail}</span>
+                        Email:{" "}
+                        <span className="font-medium">
+                          {user ? user.email : guestEmail}
+                        </span>
                       </p>
                       <p>
                         Phone: <span className="font-medium">{guestPhone}</span>
@@ -1032,40 +1080,55 @@ function BookingFormContent() {
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-                {selectedPackage && (
-                  <WhatsAppButton
-                    variant="outline"
-                    size="lg"
-                    label="Book on WhatsApp"
-                    className="sm:flex-1"
-                    context={{
-                      type: "service",
-                      service_id: selectedPackage.id,
-                      preferred_date: bookingDate || undefined,
-                    }}
-                  />
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
+                size="lg"
+                className="w-full sm:w-auto sm:min-w-[200px]"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Confirming Booking...
+                  </>
+                ) : (
+                  "Confirm Booking"
                 )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit || attendeeErrors.length > 0 || submitting}
-                  size="lg"
-                  className="w-full sm:w-auto sm:flex-1"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Confirming Booking...
-                    </>
-                  ) : (
-                    "Confirm Booking"
-                  )}
-                </Button>
-              </div>
+              </Button>
             </div>
           </div>
         )}
       </main>
+
+      {/* Persistent WhatsApp escape hatch — always visible across every step so
+          users who'd rather not finish the form can hand off to our team
+          instead of abandoning the booking. Carries the service + date they've
+          chosen so far. */}
+      <div className="sticky bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container mx-auto max-w-4xl px-4 py-3">
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+            <p className="text-center text-sm text-muted-foreground sm:text-left">
+              Prefer to book over chat? Our team can complete it with you on
+              WhatsApp.
+            </p>
+            <WhatsAppButton
+              variant="outline"
+              size="default"
+              label="Book on WhatsApp"
+              className="w-full sm:w-auto sm:min-w-[200px]"
+              context={
+                selectedPackage
+                  ? {
+                      type: "service",
+                      service_id: selectedPackage.id,
+                      preferred_date: bookingDate || undefined,
+                    }
+                  : { type: "general" }
+              }
+            />
+          </div>
+        </div>
+      </div>
 
       <Footer />
     </div>

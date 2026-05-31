@@ -2,7 +2,7 @@
 Public Booking API routes
 Publicly accessible endpoints for booking availability and creation
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import date as date_type, timedelta
 from typing import Optional
@@ -24,6 +24,7 @@ from app.schemas.booking import (
     BookingListResponse,
 )
 from app.services import booking_service
+from app.services.booking_notifications import schedule_booking_notifications
 import math
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -212,6 +213,7 @@ async def get_booking_details(
 @router.post("", response_model=BookingCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_booking(
     booking_data: BookingCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user)
 ):
@@ -261,6 +263,12 @@ async def create_booking(
         )
 
         token = create_booking_confirmation_token(booking.id)
+
+        # Notify the customer (with follow-up options) and the team (to review
+        # and reach out). Runs after the response is sent; never blocks or
+        # fails the booking itself.
+        schedule_booking_notifications(db, booking, background_tasks)
+
         return {
             **BookingResponse.model_validate(booking).model_dump(),
             "confirmation_token": token,
