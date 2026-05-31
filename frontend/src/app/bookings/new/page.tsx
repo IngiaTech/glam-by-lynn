@@ -160,8 +160,10 @@ function BookingFormContent() {
       case 3:
         return attendeeErrors.length === 0;
       case 4:
+        // Accounts don't store a phone number, so we require it here even for
+        // signed-in users — it's how we reach them about the booking.
         return user
-          ? true
+          ? isValidPhone(guestPhone)
           : !!guestName.trim() &&
               isValidEmail(guestEmail) &&
               isValidPhone(guestPhone);
@@ -176,10 +178,11 @@ function BookingFormContent() {
     selectedPackageId &&
     hasValidLocation &&
     bookingDate &&
-    (user ||
-      (guestName.trim() &&
+    (user
+      ? isValidPhone(guestPhone)
+      : guestName.trim() &&
         isValidEmail(guestEmail) &&
-        isValidPhone(guestPhone))) &&
+        isValidPhone(guestPhone)) &&
     pricing &&
     pricing.total > 0;
 
@@ -251,10 +254,12 @@ function BookingFormContent() {
         num_others: numOthers,
         wedding_theme: weddingTheme || undefined,
         special_requests: specialRequests || undefined,
+        // Phone is always captured (accounts have no phone field); name/email
+        // only for guests — signed-in bookings use the account for those.
+        guest_phone: normalizePhone(guestPhone),
         ...(!user && {
           guest_name: guestName.trim(),
           guest_email: guestEmail.trim(),
-          guest_phone: normalizePhone(guestPhone),
         }),
       };
 
@@ -723,12 +728,48 @@ function BookingFormContent() {
             </p>
 
             {user ? (
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground">Signed in as</p>
-                  <p className="font-medium">{user.email}</p>
-                </CardContent>
-              </Card>
+              <div className="space-y-4">
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-muted-foreground">
+                      Signed in as
+                    </p>
+                    {user.name && (
+                      <p className="font-medium">{user.name}</p>
+                    )}
+                    <p className={user.name ? "text-muted-foreground" : "font-medium"}>
+                      {user.email}
+                    </p>
+                  </CardContent>
+                </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="guestPhone">Phone Number *</Label>
+                  <Input
+                    id="guestPhone"
+                    type="tel"
+                    placeholder="+254 7XX XXX XXX"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    aria-invalid={
+                      guestPhone.length > 0 && !isValidPhone(guestPhone)
+                    }
+                    className="sm:max-w-xs"
+                    required
+                  />
+                  {guestPhone.length > 0 && !isValidPhone(guestPhone) ? (
+                    <p className="text-xs text-destructive">
+                      Enter a Kenyan mobile number, e.g. +254 712 345 678 or
+                      0712 345 678.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;ll use this to confirm your booking and reach you
+                      on WhatsApp or by call. Kenyan mobile: +254 7XX XXX XXX or
+                      07XX XXX XXX.
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -937,8 +978,8 @@ function BookingFormContent() {
                 </CardContent>
               </Card>
 
-              {/* Contact Info (guest) */}
-              {!user && guestName && (
+              {/* Contact Info */}
+              {(user || guestName) && (
                 <Card>
                   <CardContent className="p-5">
                     <div className="mb-3 flex items-center justify-between">
@@ -955,10 +996,16 @@ function BookingFormContent() {
                     </div>
                     <div className="space-y-1 text-sm">
                       <p>
-                        Name: <span className="font-medium">{guestName}</span>
+                        Name:{" "}
+                        <span className="font-medium">
+                          {user ? user.name || "—" : guestName}
+                        </span>
                       </p>
                       <p>
-                        Email: <span className="font-medium">{guestEmail}</span>
+                        Email:{" "}
+                        <span className="font-medium">
+                          {user ? user.email : guestEmail}
+                        </span>
                       </p>
                       <p>
                         Phone: <span className="font-medium">{guestPhone}</span>
