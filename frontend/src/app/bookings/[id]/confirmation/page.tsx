@@ -19,7 +19,6 @@ import {
   getBookingConfirmation,
   formatCurrency,
   formatDate,
-  formatTime,
 } from "@/lib/bookings";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -210,9 +209,9 @@ export default function BookingConfirmationPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Time</p>
-                  <p className="flex items-center gap-2 font-medium">
+                  <p className="flex items-center gap-2 font-medium text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    {formatTime(booking.bookingTime)}
+                    To be confirmed
                   </p>
                 </div>
                 <div className="space-y-1">
