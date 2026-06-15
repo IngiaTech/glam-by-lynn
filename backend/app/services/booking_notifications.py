@@ -5,37 +5,23 @@ request's DB session is still open, then schedules the actual sends on
 FastAPI background tasks so a slow or failing mail provider never blocks
 (or fails) the booking itself.
 """
-import json
 import logging
-import re
 from decimal import Decimal
-from typing import List, Optional
-from urllib.parse import quote
+from typing import List
 
 from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.booking import Booking
-from app.services import site_settings_service
 from app.services.email_service import email_service
+from app.services.notifications_common import (
+    customer_contact_url,
+    followup_url,
+    resolve_business_phone,
+)
 
 logger = logging.getLogger(__name__)
-
-PHONE_KEY = "whatsapp_phone_number"
-
-
-def _resolve_business_phone(db: Session) -> Optional[str]:
-    """Return the configured WhatsApp/business number as digits, or None."""
-    raw = site_settings_service.get_setting(db, PHONE_KEY)
-    if not raw:
-        return None
-    try:
-        value = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        value = raw
-    digits = re.sub(r"\D", "", str(value))
-    return digits if 8 <= len(digits) <= 15 else None
 
 
 def _booking_followup_url(phone: str, booking_number: str) -> str:
@@ -44,39 +30,7 @@ def _booking_followup_url(phone: str, booking_number: str) -> str:
         "Hi Glam by Lynn — I'd like to follow up on my booking.\n"
         f"Booking number: {booking_number}"
     )
-    return f"https://wa.me/{phone}?text={quote(message)}"
-
-
-def _normalize_ke_phone(phone: str) -> Optional[str]:
-    """Normalise a Kenyan phone number to wa.me digits (2547XXXXXXXX).
-
-    Accepts 07XXXXXXXX / 01XXXXXXXX, +2547XXXXXXXX, or 2547XXXXXXXX.
-    Returns None if it doesn't look like a usable number.
-    """
-    digits = re.sub(r"\D", "", phone or "")
-    if digits.startswith("0") and len(digits) == 10:
-        digits = "254" + digits[1:]
-    elif digits.startswith("254") and len(digits) == 12:
-        pass
-    elif digits.startswith("7") or digits.startswith("1"):
-        if len(digits) == 9:
-            digits = "254" + digits
-    return digits if 11 <= len(digits) <= 15 else None
-
-
-def _customer_contact_url(customer_phone: str, customer_name: str, booking_number: str) -> Optional[str]:
-    """wa.me link the team can use to message the customer about a booking.
-
-    Points at the *customer's* number so the chat opens with them.
-    """
-    normalized = _normalize_ke_phone(customer_phone)
-    if not normalized:
-        return None
-    message = (
-        f"Hi {customer_name}, this is Glam by Lynn regarding your booking "
-        f"{booking_number}."
-    )
-    return f"https://wa.me/{normalized}?text={quote(message)}"
+    return followup_url(phone, message)
 
 
 def _format_attendees(booking: Booking) -> str:
@@ -129,12 +83,14 @@ def schedule_booking_notifications(
     subtotal = Decimal(booking.subtotal or 0)
     deposit = Decimal(booking.deposit_amount or 0)
 
-    phone = _resolve_business_phone(db)
-    followup_url = (
+    phone = resolve_business_phone(db)
+    booking_followup_url = (
         _booking_followup_url(phone, booking.booking_number) if phone else None
     )
     customer_wa_url = (
-        _customer_contact_url(customer_phone, customer_name, booking.booking_number)
+        customer_contact_url(
+            customer_phone, customer_name, f"booking {booking.booking_number}"
+        )
         if customer_phone
         else None
     )
@@ -156,7 +112,7 @@ def schedule_booking_notifications(
             location=location,
             subtotal=subtotal,
             deposit=deposit,
-            whatsapp_url=followup_url,
+            whatsapp_url=booking_followup_url,
             call_number=phone,
         )
     else:

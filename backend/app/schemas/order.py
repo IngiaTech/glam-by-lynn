@@ -69,6 +69,9 @@ class OrderCreate(BaseModel):
     delivery_info: DeliveryInfo = Field(..., alias="deliveryInfo")
     promo_code: Optional[str] = Field(None, alias="promoCode")
     payment_method: Optional[str] = Field(None, alias="paymentMethod")
+    # Contact phone for authenticated checkout (accounts store no phone).
+    # Guests supply theirs via guest_info instead.
+    contact_phone: Optional[str] = Field(None, alias="contactPhone")
 
     class Config:
         populate_by_name = True

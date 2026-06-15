@@ -25,6 +25,7 @@ import {
   formatDate,
 } from "@/lib/bookings";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { isValidEmail, isValidPhone, normalizePhone } from "@/lib/contact";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
@@ -62,17 +63,8 @@ function BookingFormContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Contact validation -------------------------------------------------
-  // Loose enough to accept anything that's recognisably an email — a
-  // single @ with a TLD-looking right-hand side. We're after "is this
-  // address typo-free enough to reach the user", not RFC compliance.
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  // Kenyan mobile: +254 7XX/1XX XXX XXX, or 07XX/01XX XXX XXX. Strip
-  // spaces/dashes before checking.
-  const PHONE_RE = /^(?:\+?254|0)(?:7|1)\d{8}$/;
-  const normalizePhone = (s: string) => s.replace(/[\s-]/g, "");
-  const isValidEmail = (s: string) => EMAIL_RE.test(s.trim());
-  const isValidPhone = (s: string) => PHONE_RE.test(normalizePhone(s));
+  // Contact validation (KE phone / email) lives in lib/contact so the
+  // checkout flow shares the exact same rules.
 
   // Form state
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");

@@ -90,12 +90,16 @@ export default function AdminSettingsPage() {
     sunday: { open: "09:00", close: "18:00", closed: true },
   });
 
-  // Payment Settings
+  // Payment Settings (shown to customers on the order confirmation page)
   const [paymentSettings, setPaymentSettings] = useState({
-    mpesaEnabled: true,
-    mpesaShortcode: "",
-    depositPercentage: 50,
-    acceptCash: true,
+    mpesaPaybill: "",
+    bankName: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
+    confirmationPhone: "",
+    confirmationEmail: "",
+    contactPhone: "",
+    contactEmail: "",
   });
 
   // Notification Settings
@@ -165,6 +169,17 @@ export default function AdminSettingsPage() {
             youtube: data.social_youtube ?? "",
           }));
           setWhatsappPhone(data.whatsapp_phone_number ?? "");
+          setPaymentSettings((prev) => ({
+            ...prev,
+            mpesaPaybill: data.payment_mpesa_paybill ?? "",
+            bankName: data.payment_bank_name ?? "",
+            bankAccountName: data.payment_bank_account_name ?? "",
+            bankAccountNumber: data.payment_bank_account_number ?? "",
+            confirmationPhone: data.payment_confirmation_phone ?? "",
+            confirmationEmail: data.payment_confirmation_email ?? "",
+            contactPhone: data.contact_phone ?? "",
+            contactEmail: data.contact_email ?? "",
+          }));
         }
 
         // Load Instagram settings
@@ -370,8 +385,31 @@ export default function AdminSettingsPage() {
     setSaveSuccess("");
 
     try {
-      // TODO: Implement API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = (session as any)?.accessToken;
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.SETTINGS.ADMIN_UPDATE}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            payment_mpesa_paybill: paymentSettings.mpesaPaybill.trim(),
+            payment_bank_name: paymentSettings.bankName.trim(),
+            payment_bank_account_name: paymentSettings.bankAccountName.trim(),
+            payment_bank_account_number: paymentSettings.bankAccountNumber.trim(),
+            payment_confirmation_phone: paymentSettings.confirmationPhone.trim(),
+            payment_confirmation_email: paymentSettings.confirmationEmail.trim(),
+            contact_phone: paymentSettings.contactPhone.trim(),
+            contact_email: paymentSettings.contactEmail.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save payment settings");
+      }
 
       setSaveSuccess("Payment settings saved successfully");
       setTimeout(() => setSaveSuccess(""), 3000);
@@ -1200,62 +1238,113 @@ export default function AdminSettingsPage() {
         {/* Payment Settings Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Payment Settings</CardTitle>
+            <CardTitle>Payment & Contact Details</CardTitle>
             <CardDescription>
-              Configure payment methods and deposit requirements
+              Shown to customers on the order confirmation page. Leave a field
+              blank to hide it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <div className="font-medium">M-Pesa Payments</div>
-                <div className="text-sm text-muted-foreground">Accept M-Pesa payments</div>
-              </div>
-              <Switch
-                checked={paymentSettings.mpesaEnabled}
-                onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, mpesaEnabled: checked })}
-              />
-            </div>
-
-            {paymentSettings.mpesaEnabled && (
-              <div className="space-y-2">
-                <Label htmlFor="mpesa-shortcode">M-Pesa Shortcode</Label>
-                <Input
-                  id="mpesa-shortcode"
-                  value={paymentSettings.mpesaShortcode}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, mpesaShortcode: e.target.value })}
-                  placeholder="Enter M-Pesa shortcode"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <div className="font-medium">Cash Payments</div>
-                <div className="text-sm text-muted-foreground">Accept cash on delivery/service</div>
-              </div>
-              <Switch
-                checked={paymentSettings.acceptCash}
-                onCheckedChange={(checked) => setPaymentSettings({ ...paymentSettings, acceptCash: checked })}
-              />
-            </div>
-
             <div className="space-y-2">
-              <Label>Deposit Percentage</Label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={paymentSettings.depositPercentage}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, depositPercentage: parseInt(e.target.value) })}
-                  className="flex-1"
-                />
-                <span className="font-medium w-12 text-right">{paymentSettings.depositPercentage}%</span>
-              </div>
+              <Label htmlFor="mpesa-paybill">M-Pesa Paybill / Business Number</Label>
+              <Input
+                id="mpesa-paybill"
+                value={paymentSettings.mpesaPaybill}
+                onChange={(e) => setPaymentSettings({ ...paymentSettings, mpesaPaybill: e.target.value })}
+                placeholder="e.g. 247247"
+              />
               <p className="text-sm text-muted-foreground">
-                Required deposit for bookings
+                Customers use their order number as the account number.
               </p>
+            </div>
+
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="font-medium">Bank Transfer</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="bank-name">Bank Name</Label>
+                  <Input
+                    id="bank-name"
+                    value={paymentSettings.bankName}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, bankName: e.target.value })}
+                    placeholder="e.g. Equity Bank"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-account-name">Account Name</Label>
+                  <Input
+                    id="bank-account-name"
+                    value={paymentSettings.bankAccountName}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, bankAccountName: e.target.value })}
+                    placeholder="e.g. Glam by Lynn"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="bank-account-number">Account Number</Label>
+                  <Input
+                    id="bank-account-number"
+                    value={paymentSettings.bankAccountNumber}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, bankAccountNumber: e.target.value })}
+                    placeholder="Bank account number"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="font-medium">Payment Confirmation</div>
+              <p className="text-sm text-muted-foreground">
+                Where customers send proof of payment.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="confirmation-phone">WhatsApp / Phone</Label>
+                  <Input
+                    id="confirmation-phone"
+                    value={paymentSettings.confirmationPhone}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, confirmationPhone: e.target.value })}
+                    placeholder="+254 7XX XXX XXX"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmation-email">Email</Label>
+                  <Input
+                    id="confirmation-email"
+                    type="email"
+                    value={paymentSettings.confirmationEmail}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, confirmationEmail: e.target.value })}
+                    placeholder="payments@example.com"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="font-medium">Customer Support Contact</div>
+              <p className="text-sm text-muted-foreground">
+                Shown under &quot;Need Help?&quot; on the confirmation page.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-phone">Phone / WhatsApp</Label>
+                  <Input
+                    id="contact-phone"
+                    value={paymentSettings.contactPhone}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, contactPhone: e.target.value })}
+                    placeholder="+254 7XX XXX XXX"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-email">Email</Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    value={paymentSettings.contactEmail}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, contactEmail: e.target.value })}
+                    placeholder="info@example.com"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end">
