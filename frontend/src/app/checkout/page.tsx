@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import { isValidEmail, isValidPhone, normalizePhone } from "@/lib/contact";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { ShoppingBag, MapPin, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -163,6 +164,16 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError("Please enter a valid Kenyan mobile number, e.g. 0712 345 678");
+      return;
+    }
+
     if (!termsAccepted) {
       setError("Please accept the terms and conditions to proceed");
       return;
@@ -201,6 +212,10 @@ export default function CheckoutPage() {
           address: finalAddress,
         },
         promoCode: promoCode || undefined,
+        // Accounts store no phone, so always send the contact phone — it's how
+        // we reach the customer about the order (used for auth checkout; guests
+        // also carry it in guestInfo below).
+        contactPhone: normalizePhone(phone),
       };
 
       // For guest checkout, send guest contact details and inline cart items
@@ -209,7 +224,7 @@ export default function CheckoutPage() {
         orderData.guestInfo = {
           name: fullName,
           email: email,
-          phone: phone,
+          phone: normalizePhone(phone),
         };
         orderData.cartItems = cartItems.map((item) => ({
           productId: item.productId,
@@ -356,7 +371,13 @@ export default function CheckoutPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      aria-invalid={email.length > 0 && !isValidEmail(email)}
                     />
+                    {email.length > 0 && !isValidEmail(email) && (
+                      <p className="text-xs text-destructive">
+                        Enter a valid email address (e.g. you@example.com).
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
@@ -366,8 +387,20 @@ export default function CheckoutPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
-                      placeholder="+254..."
+                      placeholder="+254 7XX XXX XXX"
+                      aria-invalid={phone.length > 0 && !isValidPhone(phone)}
                     />
+                    {phone.length > 0 && !isValidPhone(phone) ? (
+                      <p className="text-xs text-destructive">
+                        Enter a Kenyan mobile number, e.g. +254 712 345 678 or
+                        0712 345 678.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        We&apos;ll use this to confirm your order and reach you on
+                        WhatsApp or by call.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -599,7 +632,14 @@ export default function CheckoutPage() {
                     type="submit"
                     className="w-full"
                     size="lg"
-                    disabled={submitting || success || !termsAccepted}
+                    disabled={
+                      submitting ||
+                      success ||
+                      !termsAccepted ||
+                      !fullName.trim() ||
+                      !isValidEmail(email) ||
+                      !isValidPhone(phone)
+                    }
                   >
                     {submitting ? (
                       <>

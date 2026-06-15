@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 from uuid import UUID
 
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.models.order import Cart, CartItem, Order, OrderItem
@@ -15,6 +16,7 @@ from app.models.user import User
 from app.schemas.order import DeliveryInfo, GuestInfo, OrderItemCreate
 from app.services import promo_code_service
 from app.services.email_service import email_service
+from app.services.order_notifications import schedule_order_notifications
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +215,8 @@ def create_order(
     promo_code: Optional[str],
     payment_method: Optional[str],
     cart_items: Optional[List[OrderItemCreate]] = None,
+    contact_phone: Optional[str] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
 ) -> Tuple[bool, str, Optional[Order]]:
     """
     Create a new order from the user's bag.
@@ -230,6 +234,12 @@ def create_order(
         promo_code: Optional promo code
         payment_method: Payment method chosen
         cart_items: Inline items for guest checkout
+        contact_phone: Phone for authenticated checkout (accounts have no phone
+            field); stored on the order so we can reach the customer. Ignored
+            for guests, whose phone comes from guest_info.
+        background_tasks: FastAPI background tasks used to send the customer +
+            admin emails without blocking (or failing) the order. If omitted,
+            the customer email is sent synchronously as a fallback.
 
     Returns:
         Tuple of (success, message, order)
@@ -289,7 +299,10 @@ def create_order(
         user_id=user.id if user else None,
         guest_email=guest_info.email if guest_info else None,
         guest_name=guest_info.name if guest_info else None,
-        guest_phone=guest_info.phone if guest_info else None,
+        # Phone always lands in guest_phone: from guest_info for guests, from
+        # the checkout's contact field for signed-in users (accounts store no
+        # phone). It's how we reach the customer about the order.
+        guest_phone=(guest_info.phone if guest_info else contact_phone) or None,
         delivery_county=delivery_info.county,
         delivery_town=delivery_info.town,
         delivery_address=delivery_info.address,
@@ -345,16 +358,29 @@ def create_order(
     db.commit()
     db.refresh(order)
 
-    # Send order confirmation email. Failures are logged but do not fail the
-    # order — the order has already been persisted and the user has seen the
-    # confirmation page.
-    _send_order_confirmation_email(
-        order=order,
-        items_data=items_data,
-        user=user,
-        guest_info=guest_info,
-        delivery_info=delivery_info,
-    )
+    # Notify the customer and admin. Sends run on background tasks so a slow or
+    # failing mail provider never blocks (or fails) the order — it's already
+    # persisted and the user has seen the confirmation page. When no
+    # background_tasks is supplied (e.g. non-route callers), fall back to a
+    # synchronous customer email.
+    if background_tasks is not None:
+        schedule_order_notifications(
+            db=db,
+            order=order,
+            items_data=items_data,
+            user=user,
+            guest_info=guest_info,
+            delivery_info=delivery_info,
+            background_tasks=background_tasks,
+        )
+    else:
+        _send_order_confirmation_email(
+            order=order,
+            items_data=items_data,
+            user=user,
+            guest_info=guest_info,
+            delivery_info=delivery_info,
+        )
 
     return True, "Order created successfully", order
 

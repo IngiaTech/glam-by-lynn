@@ -35,6 +35,17 @@ def get_public_settings(db: Session) -> Dict[str, Any]:
         "social_twitter",
         "social_tiktok",
         "social_youtube",
+        # Payment / contact details shown on the order confirmation page.
+        # These are meant to be public (customers need them to pay and reach us)
+        # — unlike whatsapp_phone_number, which stays server-side.
+        "payment_mpesa_paybill",
+        "payment_bank_name",
+        "payment_bank_account_name",
+        "payment_bank_account_number",
+        "payment_confirmation_phone",
+        "payment_confirmation_email",
+        "contact_phone",
+        "contact_email",
     ]
     all_settings = get_all_settings(db)
     return {k: v for k, v in all_settings.items() if k in PUBLIC_KEYS}

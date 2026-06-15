@@ -135,6 +135,8 @@ class EmailService:
         delivery_fee: Decimal,
         total: Decimal,
         delivery_address: Dict[str, Any],
+        whatsapp_url: Optional[str] = None,
+        call_number: Optional[str] = None,
     ) -> bool:
         """
         Send order confirmation email.
@@ -149,11 +151,37 @@ class EmailService:
             delivery_fee: Delivery fee
             total: Total amount
             delivery_address: Delivery address details
+            whatsapp_url: Pre-filled wa.me follow-up link (optional)
+            call_number: Business phone for the call button, digits only (optional)
 
         Returns:
             True if sent successfully
         """
         subject = f"Order Confirmation - {order_number}"
+
+        # Build the follow-up CTA buttons only when we have contact channels,
+        # mirroring the booking-received email so customers can reach us
+        # straight from their inbox instead of waiting passively.
+        cta_buttons = ""
+        if whatsapp_url:
+            cta_buttons += (
+                f'<a href="{whatsapp_url}" '
+                'style="display: inline-block; background: #22c55e; color: #ffffff; '
+                'padding: 14px 28px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">Follow up on WhatsApp</a>'
+            )
+        if call_number:
+            cta_buttons += (
+                f'<a href="tel:+{call_number}" '
+                'style="display: inline-block; background: #111827; color: #ffffff; '
+                'padding: 14px 28px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">Call us</a>'
+            )
+        cta_html = (
+            f'<div style="text-align: center; margin: 24px 0;">{cta_buttons}</div>'
+            if cta_buttons
+            else ""
+        )
 
         # Build items HTML
         items_html = ""
@@ -243,12 +271,16 @@ class EmailService:
                 <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-top: 30px; border-radius: 4px;">
                     <p style="margin: 0; font-size: 14px;">
                         <strong>What's Next?</strong><br>
-                        We'll send you another email once your order ships with tracking information.
+                        Our team will be in touch to arrange payment and delivery. We'll send
+                        another email once your order ships with tracking information.
                     </p>
                 </div>
 
+                {cta_html}
+
                 <p style="margin-top: 30px;">
-                    If you have any questions about your order, please contact us at support@glambylynn.com
+                    Have a question about your order? Reach us using the buttons above and
+                    quote your order number <strong>{order_number}</strong>.
                 </p>
 
                 <p style="margin-top: 20px; color: #666; font-size: 14px;">
@@ -291,15 +323,202 @@ class EmailService:
         {delivery_address.get('city', '')}, {delivery_address.get('county', '')}
 
         What's Next?
-        We'll send you another email once your order ships with tracking information.
+        Our team will be in touch to arrange payment and delivery. We'll send another
+        email once your order ships with tracking information.
 
-        If you have any questions, contact us at support@glambylynn.com
+        Have a question? Quote your order number {order_number}.{(chr(10) + '        Follow up on WhatsApp: ' + whatsapp_url) if whatsapp_url else ''}{(chr(10) + '        Call us: +' + call_number) if call_number else ''}
 
         Best regards,
         The Glam by Lynn Team
 
         © {datetime.now().year} Glam by Lynn. All rights reserved.
         Kitui & Nairobi, Kenya
+        """
+
+        return self.send_email(to_email, subject, html_content, text_content)
+
+    def send_order_admin_notification(
+        self,
+        to_email: str,
+        order_number: str,
+        customer_name: str,
+        customer_email: str,
+        customer_phone: str,
+        order_items: list,
+        subtotal: Decimal,
+        discount: Decimal,
+        delivery_fee: Decimal,
+        total: Decimal,
+        delivery_address: Dict[str, Any],
+        admin_url: str,
+        customer_whatsapp_url: Optional[str] = None,
+    ) -> bool:
+        """
+        Notify the admin/team that a new order needs to be processed.
+
+        Mirrors send_booking_admin_notification: order + customer details plus
+        Call / WhatsApp customer and open-in-dashboard action buttons.
+
+        Args:
+            to_email: Admin recipient
+            order_number: Order reference number
+            customer_name / customer_email / customer_phone: Customer contact
+            order_items: List of order items with product details
+            subtotal / discount / delivery_fee / total: Order totals
+            delivery_address: Delivery address details (address/city/county)
+            admin_url: Link to the order in the admin dashboard
+            customer_whatsapp_url: Pre-filled wa.me link to message the customer
+
+        Returns:
+            True if sent successfully
+        """
+        subject = f"New order to process - {order_number} ({customer_name})"
+
+        items_html = ""
+        for item in order_items:
+            items_html += f"""
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                    {item.get('product_title', 'Product')}
+                    {f"({item.get('variant_name', '')})" if item.get('variant_name') else ''}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
+                    {item.get('quantity', 1)}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+                    KES {item.get('total_price', 0):,.2f}
+                </td>
+            </tr>
+            """
+
+        phone_digits = re.sub(r"\D", "", customer_phone or "")
+        contact_buttons = (
+            f'<a href="tel:{customer_phone}" '
+            'style="display: inline-block; background: #111827; color: #ffffff; '
+            'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+            'font-weight: bold; margin: 6px;">Call customer</a>'
+            if phone_digits
+            else ""
+        )
+        if customer_whatsapp_url:
+            contact_buttons += (
+                f'<a href="{customer_whatsapp_url}" '
+                'style="display: inline-block; background: #22c55e; color: #ffffff; '
+                'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+                'font-weight: bold; margin: 6px;">WhatsApp customer</a>'
+            )
+        contact_buttons += (
+            f'<a href="{admin_url}" '
+            'style="display: inline-block; background: #ec4899; color: #ffffff; '
+            'padding: 12px 22px; border-radius: 8px; text-decoration: none; '
+            'font-weight: bold; margin: 6px;">Open in dashboard</a>'
+        )
+
+        discount_row = (
+            f'<p style="margin: 10px 0 0 0;"><strong>Discount:</strong> -KES {discount:,.2f}</p>'
+            if discount > 0
+            else ""
+        )
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #000 0%, #333 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">Glam by Lynn</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">New order to process</p>
+            </div>
+
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                <h2 style="color: #ec4899; margin-top: 0;">Order {order_number}</h2>
+
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>Action needed:</strong> Review the order below, then contact the
+                        customer to confirm payment and arrange delivery.
+                    </p>
+                </div>
+
+                <h3 style="color: #333; margin-top: 24px;">Customer</h3>
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <p style="margin: 0;"><strong>Name:</strong> {customer_name}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Email:</strong> {customer_email}</p>
+                    <p style="margin: 10px 0 0 0;"><strong>Phone:</strong> {customer_phone}</p>
+                </div>
+
+                <h3 style="color: #333; margin-top: 24px;">Order Items</h3>
+                <table style="width: 100%; background: white; border-radius: 8px; overflow: hidden; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f3f4f6;">
+                            <th style="padding: 10px; text-align: left;">Product</th>
+                            <th style="padding: 10px; text-align: center;">Qty</th>
+                            <th style="padding: 10px; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items_html}
+                    </tbody>
+                </table>
+
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                    <p style="margin: 0;"><strong>Subtotal:</strong> KES {subtotal:,.2f}</p>
+                    {discount_row}
+                    <p style="margin: 10px 0 0 0;"><strong>Delivery Fee:</strong> KES {delivery_fee:,.2f}</p>
+                    <p style="margin: 10px 0 0 0; font-size: 18px;"><strong>Total:</strong> <span style="color: #ec4899;">KES {total:,.2f}</span></p>
+                </div>
+
+                <h3 style="color: #333; margin-top: 24px;">Delivery Address</h3>
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <p style="margin: 0;">{delivery_address.get('address', '')}</p>
+                    <p style="margin: 5px 0 0 0;">{delivery_address.get('city', '')}, {delivery_address.get('county', '')}</p>
+                </div>
+
+                <div style="text-align: center; margin: 24px 0;">
+                    {contact_buttons}
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
+                <p>© {datetime.now().year} Glam by Lynn. Internal notification.</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_content = f"""
+        GLAM BY LYNN - NEW ORDER TO PROCESS
+
+        Order Number: {order_number}
+
+        ACTION NEEDED:
+        Review the order below, then contact the customer to confirm payment and
+        arrange delivery.
+
+        CUSTOMER
+        Name: {customer_name}
+        Email: {customer_email}
+        Phone: {customer_phone}
+
+        ORDER ITEMS:
+        {chr(10).join([f"        - {item.get('product_title', 'Product')} x{item.get('quantity', 1)} - KES {item.get('total_price', 0):,.2f}" for item in order_items])}
+
+        SUMMARY:
+        Subtotal: KES {subtotal:,.2f}
+        {'Discount: -KES ' + f'{discount:,.2f}' if discount > 0 else ''}
+        Delivery Fee: KES {delivery_fee:,.2f}
+        Total: KES {total:,.2f}
+
+        DELIVERY ADDRESS:
+        {delivery_address.get('address', '')}
+        {delivery_address.get('city', '')}, {delivery_address.get('county', '')}
+
+        Open in dashboard: {admin_url}
+
+        © {datetime.now().year} Glam by Lynn. Internal notification.
         """
 
         return self.send_email(to_email, subject, html_content, text_content)

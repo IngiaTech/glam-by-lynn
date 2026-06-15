@@ -1,7 +1,7 @@
 """Order API routes."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -21,6 +21,7 @@ router = APIRouter(tags=["Orders"])
 )
 def create_order(
     order_data: OrderCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user),
 ):
@@ -46,6 +47,8 @@ def create_order(
         promo_code=order_data.promo_code,
         payment_method=order_data.payment_method,
         cart_items=order_data.cart_items,
+        contact_phone=order_data.contact_phone,
+        background_tasks=background_tasks,
     )
 
     if not success:

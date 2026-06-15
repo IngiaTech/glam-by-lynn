@@ -78,10 +78,15 @@ SENDGRID_API_KEY=your_sendgrid_api_key_here
 
 The service includes responsive HTML templates for:
 
-### 1. Order Confirmation Email
-- Sent when customer places an order
-- Includes order details, items, totals, delivery address
-- Brand colors: Black background with pink accents
+### 1. Order Notification Emails
+Sent automatically when an order is created (via FastAPI background tasks, so a
+slow/failing provider never blocks or fails the order):
+- **Customer** (`send_order_confirmation`) — confirms the order, summarises
+  items/totals/delivery address, explains what happens next, and offers
+  "Follow up on WhatsApp" + "Call us" buttons.
+- **Team** (`send_order_admin_notification`) — sent to each `ADMIN_EMAILS`
+  address with the customer's contact, order details, and "Call customer" /
+  "WhatsApp customer" / "Open in dashboard" buttons.
 
 ### 2. Booking Notification Emails
 Sent automatically when a booking is created (via FastAPI background tasks, so

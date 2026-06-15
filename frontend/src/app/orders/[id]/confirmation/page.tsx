@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Order } from "@/types";
 import { getOrderById, formatCurrency, formatDateTime, formatStatus, getStatusBadgeVariant } from "@/lib/orders";
 import { useAuth } from "@/hooks/useAuth";
+import { usePublicSettings } from "@/hooks/usePublicSettings";
 import {
   Loader2,
   CheckCircle,
@@ -32,7 +33,19 @@ export default function OrderConfirmationPage() {
   const router = useRouter();
   const params = useParams();
   const { session, authenticated } = useAuth();
+  const { settings } = usePublicSettings();
   const orderId = params?.id as string;
+
+  // Admin-configurable payment / contact details (see SiteSettings PUBLIC_KEYS).
+  const mpesaPaybill = settings.payment_mpesa_paybill as string | undefined;
+  const bankName = settings.payment_bank_name as string | undefined;
+  const bankAccountName = settings.payment_bank_account_name as string | undefined;
+  const bankAccountNumber = settings.payment_bank_account_number as string | undefined;
+  const paymentPhone = settings.payment_confirmation_phone as string | undefined;
+  const paymentEmail = settings.payment_confirmation_email as string | undefined;
+  const contactPhone = settings.contact_phone as string | undefined;
+  const contactEmail = settings.contact_email as string | undefined;
+  const hasBankDetails = Boolean(bankName && bankAccountNumber);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -280,72 +293,97 @@ export default function OrderConfirmationPage() {
                 <CardDescription>Complete your payment to process your order</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-lg bg-muted p-4">
-                  <h4 className="mb-2 font-semibold">M-Pesa Payment</h4>
-                  <ol className="space-y-2 text-sm">
-                    <li className="flex gap-2">
-                      <span className="font-semibold">1.</span>
-                      <span>Go to M-Pesa on your phone</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">2.</span>
-                      <span>Select Lipa Na M-Pesa, then Pay Bill</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">3.</span>
-                      <span>
-                        Enter Business Number: <strong>123456</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">4.</span>
-                      <span>
-                        Enter Account Number: <strong>{order.orderNumber}</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">5.</span>
-                      <span>
-                        Enter Amount: <strong>{formatCurrency(order.totalAmount)}</strong>
-                      </span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-semibold">6.</span>
-                      <span>Enter your M-Pesa PIN and confirm</span>
-                    </li>
-                  </ol>
-                </div>
+                {mpesaPaybill && (
+                  <div className="rounded-lg bg-muted p-4">
+                    <h4 className="mb-2 font-semibold">M-Pesa Payment</h4>
+                    <ol className="space-y-2 text-sm">
+                      <li className="flex gap-2">
+                        <span className="font-semibold">1.</span>
+                        <span>Go to M-Pesa on your phone</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-semibold">2.</span>
+                        <span>Select Lipa Na M-Pesa, then Pay Bill</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-semibold">3.</span>
+                        <span>
+                          Enter Business Number: <strong>{mpesaPaybill}</strong>
+                        </span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-semibold">4.</span>
+                        <span>
+                          Enter Account Number: <strong>{order.orderNumber}</strong>
+                        </span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-semibold">5.</span>
+                        <span>
+                          Enter Amount: <strong>{formatCurrency(order.totalAmount)}</strong>
+                        </span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-semibold">6.</span>
+                        <span>Enter your M-Pesa PIN and confirm</span>
+                      </li>
+                    </ol>
+                  </div>
+                )}
 
-                <div className="rounded-lg border border-border p-4">
-                  <h4 className="mb-2 font-semibold">Bank Transfer</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Bank:</span>
-                      <span className="font-medium">Equity Bank</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Account Name:</span>
-                      <span className="font-medium">Glam by Lynn</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Account Number:</span>
-                      <span className="font-medium">1234567890</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Reference:</span>
-                      <span className="font-medium">{order.orderNumber}</span>
+                {hasBankDetails && (
+                  <div className="rounded-lg border border-border p-4">
+                    <h4 className="mb-2 font-semibold">Bank Transfer</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Bank:</span>
+                        <span className="font-medium">{bankName}</span>
+                      </div>
+                      {bankAccountName && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Account Name:</span>
+                          <span className="font-medium">{bankAccountName}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Account Number:</span>
+                        <span className="font-medium">{bankAccountNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Reference:</span>
+                        <span className="font-medium">{order.orderNumber}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950/20">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <p className="text-blue-900 dark:text-blue-100">
-                    After making payment, send confirmation via WhatsApp to{" "}
-                    <strong>+254 700 000 000</strong> or email to{" "}
-                    <strong>payments@glambylynn.com</strong>
-                  </p>
-                </div>
+                {!mpesaPaybill && !hasBankDetails && (
+                  <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+                    Our team will contact you shortly with payment instructions for
+                    order <strong>{order.orderNumber}</strong>.
+                  </div>
+                )}
+
+                {(paymentPhone || paymentEmail) && (
+                  <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950/20">
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                    <p className="text-blue-900 dark:text-blue-100">
+                      After making payment, send confirmation
+                      {paymentPhone && (
+                        <>
+                          {" "}via WhatsApp to <strong>{paymentPhone}</strong>
+                        </>
+                      )}
+                      {paymentPhone && paymentEmail && " or"}
+                      {paymentEmail && (
+                        <>
+                          {" "}email to <strong>{paymentEmail}</strong>
+                        </>
+                      )}
+                      .
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -414,27 +452,34 @@ export default function OrderConfirmationPage() {
               <CardDescription>Get in touch with us</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Phone / WhatsApp</p>
-                  <a href="tel:+254700000000" className="font-medium hover:text-secondary">
-                    +254 700 000 000
-                  </a>
+              {contactPhone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone / WhatsApp</p>
+                    <a
+                      href={`tel:${contactPhone.replace(/\s/g, "")}`}
+                      className="font-medium hover:text-secondary"
+                    >
+                      {contactPhone}
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <a
-                    href="mailto:info@glambylynn.com"
-                    className="font-medium hover:text-secondary"
-                  >
-                    info@glambylynn.com
-                  </a>
+              )}
+              {contactEmail && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <a
+                      href={`mailto:${contactEmail}`}
+                      className="font-medium hover:text-secondary"
+                    >
+                      {contactEmail}
+                    </a>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
                   Order placed on {formatDateTime(order.createdAt || new Date().toISOString())}
