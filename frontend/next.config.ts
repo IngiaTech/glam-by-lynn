@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
   compress: true,
   // Enable React strict mode for better development practices
   reactStrictMode: true,
+  // The vision section moved from /vision-2026 to /vision — keep old links and
+  // search-engine results working.
+  async redirects() {
+    return [
+      {
+        source: "/vision-2026",
+        destination: "/vision",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

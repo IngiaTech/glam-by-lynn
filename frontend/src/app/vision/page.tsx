@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles,
-  Scissors,
   Droplets,
   Truck,
   CheckCircle2,
@@ -28,7 +27,7 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api";
 
-export default function Vision2026Page() {
+export default function VisionPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -70,29 +69,18 @@ export default function Vision2026Page() {
   const services = [
     {
       icon: Sparkles,
-      title: "Full-Service Salon",
-      description: "Comprehensive hair care, styling, and treatments in a luxurious setting",
+      title: "Full Beauty Services",
+      description: "A complete range of makeup and beauty treatments under one roof",
       features: [
-        "Professional hair cutting and styling",
-        "Color treatments and highlights",
-        "Hair treatments and conditioning",
-        "Blowouts and special occasion styling",
-        "Bridal and event packages",
+        "Makeup",
+        "Makeup training",
+        "Facials",
+        "Lash extensions",
+        "Microblading",
+        "Deep tissue massages",
+        "Waxing",
       ],
-      image: "/placeholder-salon.jpg",
-    },
-    {
-      icon: Scissors,
-      title: "Modern Barbershop",
-      description: "Premium grooming services for the modern gentleman",
-      features: [
-        "Classic and contemporary haircuts",
-        "Hot towel shaves and beard grooming",
-        "Hair and scalp treatments",
-        "Grooming consultations",
-        "Membership packages available",
-      ],
-      image: "/placeholder-barber.jpg",
+      image: "/placeholder-beauty.jpg",
     },
     {
       icon: Droplets,
@@ -103,22 +91,22 @@ export default function Vision2026Page() {
         "Body massages and therapies",
         "Manicures and pedicures",
         "Waxing and threading services",
-        "Couples spa packages",
+        "Trusted authentic makeup products",
       ],
       image: "/placeholder-spa.jpg",
     },
     {
       icon: Truck,
-      title: "Mobile Beauty Van",
+      title: "Mobile Beauty",
       description: "Bringing premium beauty services directly to you",
       features: [
         "On-location makeup services",
-        "Mobile hair styling",
+        "Beauty products delivery",
         "Event and wedding services",
         "Corporate wellness programs",
         "Serving Kitui and Nairobi regions",
       ],
-      image: "/placeholder-van.jpg",
+      image: "/placeholder-mobile.jpg",
     },
   ];
 
@@ -166,16 +154,16 @@ export default function Vision2026Page() {
         <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
             <Badge className="mb-6 text-base bg-vision-gradient text-white border-0 shadow-lg shadow-pink-500/30">
-              Coming 2026
+              Coming Soon
             </Badge>
             <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl drop-shadow-lg">
               Our <span className="text-[#FFB6C1]">Vision</span> for Tomorrow
             </h1>
             <p className="mb-8 text-lg text-white/80 md:text-xl">
               Building on our foundation of excellence in makeup artistry and beauty products,
-              we're expanding to offer a complete beauty and wellness destination. From premium salon
-              services to rejuvenating spa treatments, we're bringing world-class experiences to
-              Kitui and Nairobi.
+              we're expanding into a complete beauty and wellness destination. From full beauty
+              services to rejuvenating spa treatments and trusted authentic makeup products, we're
+              bringing world-class experiences to Kitui and Nairobi.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button size="lg" asChild className="bg-pink-gradient hover:opacity-90 text-white border-0 shadow-lg shadow-pink-500/30">
@@ -207,7 +195,7 @@ export default function Vision2026Page() {
                   A Complete Beauty Ecosystem
                 </h2>
                 <p className="mb-6 text-lg text-muted-foreground">
-                  By 2026, Glam by Lynn will be East Africa's premier destination for comprehensive
+                  Glam by Lynn is set to become East Africa's premier destination for comprehensive
                   beauty and wellness services. We're creating spaces where artistry meets technology,
                   tradition meets innovation, and every client experiences transformation.
                 </p>
@@ -225,10 +213,10 @@ export default function Vision2026Page() {
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-              Our <span className="text-secondary">2026</span> Service Offerings
+              Our <span className="text-secondary">Service</span> Offerings
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Four distinct service categories designed to meet all your beauty and wellness needs
+              Distinct service categories designed to meet all your beauty and wellness needs
             </p>
           </div>
 
@@ -358,7 +346,7 @@ export default function Vision2026Page() {
                 Be the First to Know
               </h2>
               <p className="text-lg text-muted-foreground">
-                Register your interest and receive exclusive updates on our 2026 launch,
+                Register your interest and receive exclusive updates on our launch,
                 including early bird discounts and special offers.
               </p>
             </div>
@@ -370,7 +358,7 @@ export default function Vision2026Page() {
                   <span className="font-medium">Thank you for your interest!</span>
                 </div>
                 <p className="mt-1 text-sm text-green-700">
-                  We'll keep you updated on our 2026 launch and send you exclusive early access offers.
+                  We'll keep you updated on our launch and send you exclusive early access offers.
                 </p>
               </div>
             )}
@@ -432,7 +420,7 @@ export default function Vision2026Page() {
                       id="serviceInterest"
                       value={formData.serviceInterest}
                       onChange={(e) => setFormData({ ...formData, serviceInterest: e.target.value })}
-                      placeholder="e.g., Salon, Spa, Barbershop, Mobile Services"
+                      placeholder="e.g., Makeup, Beauty, Spa, Mobile Services"
                     />
                   </div>
 
@@ -442,7 +430,7 @@ export default function Vision2026Page() {
                       id="message"
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      placeholder="Tell us what excites you most about our 2026 vision..."
+                      placeholder="Tell us what excites you most about our vision..."
                       rows={4}
                     />
                   </div>
@@ -467,7 +455,7 @@ export default function Vision2026Page() {
                   </Button>
 
                   <p className="text-center text-sm text-muted-foreground">
-                    By submitting, you agree to receive updates about our 2026 launch.
+                    By submitting, you agree to receive updates about our launch.
                     You can unsubscribe at any time.
                   </p>
                 </form>

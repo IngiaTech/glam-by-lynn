@@ -171,10 +171,10 @@ export function Header() {
               Gallery
             </Link>
             <Link
-              href="/vision-2026"
-              className={`flex items-center gap-1.5 ${navLinkClass("/vision-2026")}`}
+              href="/vision"
+              className={`flex items-center gap-1.5 ${navLinkClass("/vision")}`}
             >
-              Vision 2026
+              Our Vision
               <Badge className="text-xs bg-vision-gradient text-white border-0">New</Badge>
             </Link>
             {isAdmin && (
@@ -335,11 +335,11 @@ export function Header() {
                     Gallery
                   </Link>
                   <Link
-                    href="/vision-2026"
-                    className={`flex items-center gap-2 ${mobileNavLinkClass("/vision-2026")}`}
+                    href="/vision"
+                    className={`flex items-center gap-2 ${mobileNavLinkClass("/vision")}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Vision 2026
+                    Our Vision
                     <Badge variant="secondary" className="text-xs">New</Badge>
                   </Link>
 
