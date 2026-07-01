@@ -120,7 +120,7 @@ export default function Home() {
         const categoriesRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CATEGORIES.LIST}?limit=4`);
         if (categoriesRes.ok) {
           const categoriesData = await categoriesRes.json();
-          setCategories(categoriesData);
+          setCategories(Array.isArray(categoriesData) ? categoriesData : categoriesData.items || []);
         }
 
         // Fetch featured testimonials
@@ -693,7 +693,18 @@ export default function Home() {
               </div>
             </FadeInSection>
 
-            {categories.length > 0 ? (
+            {loading ? (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <div className="aspect-square animate-pulse bg-muted" />
+                    <CardHeader>
+                      <div className="mx-auto h-5 w-24 animate-pulse rounded bg-muted" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : categories.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {categories.map((category, index) => (
                   <FadeInSection key={category.id} direction="up" delay={0.2 + (index % 4) * 0.1}>
@@ -705,6 +716,7 @@ export default function Home() {
                             src={resolveImageUrl(category.image_url)}
                             alt={category.name}
                             fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                             className="object-cover transition-transform group-hover:scale-105"
                           />
                         ) : (
