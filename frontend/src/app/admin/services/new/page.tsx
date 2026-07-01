@@ -326,6 +326,10 @@ export default function NewServicePackage() {
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Basic Information</h2>
 
+          <div className="mb-4 rounded-md border border-pink-100 bg-pink-50/50 p-3 text-sm text-muted-foreground">
+            💡 Save the service first, then add a <span className="font-medium text-foreground">showcase image</span> from its edit page.
+          </div>
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>

@@ -2,13 +2,14 @@
 Service Package service
 Business logic for service package management
 """
-from typing import Optional
+from typing import BinaryIO, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.models.service import ServicePackage
 from app.schemas.service_package import ServicePackageCreate, ServicePackageUpdate
+from app.services.file_storage_service import file_storage
 
 
 def get_package_by_id(db: Session, package_id: UUID) -> Optional[ServicePackage]:
@@ -242,3 +243,76 @@ def delete_package(db: Session, package_id: UUID) -> bool:
     db.commit()
 
     return True
+
+
+def upload_package_image(
+    db: Session,
+    package_id: UUID,
+    file: BinaryIO,
+    filename: str,
+) -> Optional[ServicePackage]:
+    """
+    Upload (or replace) the showcase image for a service package.
+
+    Uploads the file to storage, saves the resulting URL on the package, and
+    deletes the previously stored image file if one existed.
+
+    Args:
+        db: Database session
+        package_id: Service package ID
+        file: File-like object
+        filename: Original filename
+
+    Returns:
+        Updated service package, or None if the package was not found
+
+    Raises:
+        Exception: If the file upload fails
+    """
+    package = get_package_by_id(db, package_id)
+    if not package:
+        return None
+
+    old_image_url = package.image_url
+
+    image_url = file_storage.upload_file(
+        file=file,
+        filename=filename,
+        folder=f"services/{package_id}",
+    )
+
+    package.image_url = image_url
+    db.commit()
+    db.refresh(package)
+
+    # Best-effort cleanup of the previous image; never block the response on it.
+    if old_image_url and old_image_url != image_url:
+        try:
+            file_storage.delete_file(old_image_url)
+        except Exception:
+            pass
+
+    return package
+
+
+def delete_package_image(db: Session, package_id: UUID) -> Optional[ServicePackage]:
+    """
+    Remove the showcase image from a service package (clears the URL and deletes
+    the stored file). Returns the updated package, or None if not found.
+    """
+    package = get_package_by_id(db, package_id)
+    if not package:
+        return None
+
+    old_image_url = package.image_url
+    package.image_url = None
+    db.commit()
+    db.refresh(package)
+
+    if old_image_url:
+        try:
+            file_storage.delete_file(old_image_url)
+        except Exception:
+            pass
+
+    return package

@@ -70,6 +70,7 @@ interface ServicePackage {
   min_maids?: number;
   includes_facial: boolean;
   duration_minutes: number;
+  image_url?: string;
   display_order: number;
 }
 
@@ -360,9 +361,21 @@ export default function Home() {
                           router.push(`/services/${service.id}`);
                         }
                       }}
-                      className="group relative flex h-full flex-col overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                      className={`group relative flex h-full flex-col overflow-hidden transition-all hover:shadow-xl hover:border-secondary/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${service.image_url ? "pt-0" : ""}`}
                     >
-                    <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full" />
+                    {service.image_url ? (
+                      <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-secondary/20 to-muted">
+                        <Image
+                          src={resolveImageUrl(service.image_url)}
+                          alt={service.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      </div>
+                    ) : (
+                      <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full" />
+                    )}
                     <CardHeader className="relative">
                       <CardTitle className="text-xl mb-2">{service.name}</CardTitle>
                       <div className="flex items-baseline gap-2">

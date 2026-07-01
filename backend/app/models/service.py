@@ -39,6 +39,7 @@ class ServicePackage(Base):
     min_maids = Column(Integer, default=0)
     includes_facial = Column(Boolean, default=False)
     duration_minutes = Column(Integer)
+    image_url = Column(String(500))
     is_active = Column(Boolean, default=True, index=True)
     display_order = Column(Integer, default=0, index=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)

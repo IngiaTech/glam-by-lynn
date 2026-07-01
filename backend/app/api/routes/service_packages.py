@@ -2,7 +2,7 @@
 Service Package API routes
 Admin-only endpoints for service package management
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
@@ -197,3 +197,78 @@ async def delete_package(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+
+@router.post("/{package_id}/image", response_model=ServicePackageResponse)
+async def upload_package_image(
+    package_id: UUID,
+    file: UploadFile = File(..., description="Showcase image for the service"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Upload (or replace) the showcase image for a service package.
+
+    **Admin only**
+
+    Accepts multipart/form-data with a single image file (max 10MB). The image
+    is stored via the configured storage provider (S3/Cloudinary/local) and its
+    URL is saved on the package. Any previously stored image is removed.
+    """
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Expected image, got {file.content_type}"
+        )
+
+    # Validate file size (max 10MB)
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds maximum allowed size of 10MB"
+        )
+
+    try:
+        package = service_package_service.upload_package_image(
+            db=db,
+            package_id=package_id,
+            file=file.file,
+            filename=file.filename or "image.jpg",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image: {str(e)}"
+        )
+
+    if not package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service package with ID {package_id} not found"
+        )
+
+    return package
+
+
+@router.delete("/{package_id}/image", response_model=ServicePackageResponse)
+async def delete_package_image(
+    package_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Remove the showcase image from a service package.
+
+    **Admin only**
+    """
+    package = service_package_service.delete_package_image(db, package_id)
+    if not package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service package with ID {package_id} not found"
+        )
+    return package

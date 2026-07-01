@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,8 @@ import {
   getPricingDescription,
   getPackageFeatures,
 } from "@/lib/services";
-import { Loader2 } from "lucide-react";
+import { resolveImageUrl } from "@/lib/utils";
+import { Loader2, Sparkles } from "lucide-react";
 
 export default function ServicesPage() {
   const router = useRouter();
@@ -102,7 +104,7 @@ export default function ServicesPage() {
                 const isPopular = pkg.package_type === "bridal_large" || pkg.package_type === "bride_only";
 
                 return (
-                  <Card
+                  <div
                     key={pkg.id}
                     id={pkg.id}
                     data-testid="service-card"
@@ -115,24 +117,48 @@ export default function ServicesPage() {
                         handleViewDetails(pkg.id);
                       }
                     }}
-                    className={`flex h-full flex-col cursor-pointer transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${isPopular ? "service-card package-card border-secondary shadow-lg" : "service-card package-card"}`}
+                    className={`service-card package-card group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[2rem] border bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl hover:shadow-pink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${isPopular ? "border-secondary" : "border-pink-50"}`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-2xl">{pkg.name}</CardTitle>
-                          {pkg.description && (
-                            <CardDescription className="mt-2">
-                              {pkg.description}
-                            </CardDescription>
-                          )}
+                    {/* Showcase image */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-secondary/20 to-muted">
+                      {pkg.image_url ? (
+                        <Image
+                          src={resolveImageUrl(pkg.image_url)}
+                          alt={pkg.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Sparkles className="h-14 w-14 text-secondary/30" />
                         </div>
+                      )}
+                      {/* Legibility gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                      {/* Badges */}
+                      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-pink-600 shadow-sm backdrop-blur-sm">
+                          {getPackageTypeName(pkg.package_type)}
+                        </span>
                         {isPopular && (
-                          <Badge variant="secondary">Popular</Badge>
+                          <span className="inline-flex items-center rounded-full bg-pink-600 px-3 py-1 text-[10px] font-black uppercase tracking-tighter text-white shadow-lg">
+                            Popular
+                          </span>
                         )}
                       </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col space-y-6">
+                      {/* Name overlaid on image */}
+                      <h3 className="absolute inset-x-0 bottom-0 p-5 text-2xl font-bold text-white drop-shadow-md">
+                        {pkg.name}
+                      </h3>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex flex-1 flex-col space-y-6 p-6">
+                      {pkg.description && (
+                        <p className="text-sm text-muted-foreground">{pkg.description}</p>
+                      )}
+
                       {/* Features */}
                       <div className="flex-1">
                         <h4 className="mb-3 font-semibold">What&apos;s Included:</h4>
@@ -176,8 +202,8 @@ export default function ServicesPage() {
                           />
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>

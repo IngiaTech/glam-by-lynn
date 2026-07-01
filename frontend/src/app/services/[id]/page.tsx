@@ -10,6 +10,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import {
   getPackageFeatures,
   formatPrice,
 } from "@/lib/services";
+import { resolveImageUrl } from "@/lib/utils";
 import type { ServicePackage } from "@/types";
 
 interface ServiceDetailPageProps {
@@ -144,6 +146,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main column */}
           <div className="space-y-8 lg:col-span-2">
+            {pkg.image_url && (
+              <div className="relative aspect-[16/10] w-full overflow-hidden rounded-3xl border border-pink-50 bg-gradient-to-br from-secondary/20 to-muted shadow-lg">
+                <Image
+                  src={resolveImageUrl(pkg.image_url)}
+                  alt={pkg.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 66vw"
+                  className="object-cover"
+                />
+              </div>
+            )}
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">
