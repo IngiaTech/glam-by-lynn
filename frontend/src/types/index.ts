@@ -99,6 +99,7 @@ export interface ServicePackage {
   min_maids?: number;
   includes_facial: boolean;
   duration_minutes?: number;
+  image_url?: string;
   is_active: boolean;
   display_order: number;
   created_at: string;

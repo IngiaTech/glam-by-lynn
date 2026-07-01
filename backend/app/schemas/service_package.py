@@ -24,6 +24,7 @@ class ServicePackageBase(BaseModel):
     min_maids: int = Field(0, ge=0, description="Minimum number of maids")
     includes_facial: bool = Field(False, description="Whether package includes facial")
     duration_minutes: Optional[int] = Field(None, gt=0, description="Service duration in minutes")
+    image_url: Optional[str] = Field(None, max_length=500, description="Service showcase image URL")
     is_active: bool = Field(True, description="Whether package is active")
     display_order: int = Field(0, ge=0, description="Display order (lower = earlier)")
 
@@ -73,6 +74,7 @@ class ServicePackageUpdate(BaseModel):
     min_maids: Optional[int] = Field(None, ge=0)
     includes_facial: Optional[bool] = None
     duration_minutes: Optional[int] = Field(None, gt=0)
+    image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
     display_order: Optional[int] = Field(None, ge=0)
 

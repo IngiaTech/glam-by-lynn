@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ServiceImageUpload } from "@/components/admin/ServiceImageUpload";
 import axios from "axios";
 import { z } from "zod";
 
@@ -82,6 +83,7 @@ export default function EditServicePackage() {
     display_order: 0,
   });
 
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -122,6 +124,7 @@ export default function EditServicePackage() {
         }
         setDurationValue(bestValue);
         setDurationUnit(bestUnit);
+        setImageUrl(pkg.image_url || null);
 
         setFormData({
           package_type: pkg.package_type || "bridal_large",
@@ -465,6 +468,17 @@ export default function EditServicePackage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Showcase Image */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Showcase Image</h2>
+          <ServiceImageUpload
+            packageId={packageId}
+            imageUrl={imageUrl}
+            onChange={setImageUrl}
+            disabled={submitting}
+          />
         </div>
 
         {/* Pricing Configuration */}
