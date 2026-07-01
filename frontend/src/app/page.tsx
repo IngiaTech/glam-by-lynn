@@ -696,20 +696,22 @@ export default function Home() {
             {loading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <div className="aspect-square animate-pulse bg-muted" />
-                    <CardHeader>
+                  <div key={i} className="overflow-hidden rounded-[2rem] border border-pink-50 bg-white">
+                    <div className="aspect-square animate-pulse bg-pink-50" />
+                    <div className="p-4">
                       <div className="mx-auto h-5 w-24 animate-pulse rounded bg-muted" />
-                    </CardHeader>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : categories.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {categories.map((category, index) => (
                   <FadeInSection key={category.id} direction="up" delay={0.2 + (index % 4) * 0.1}>
-                    <Link href={`/products?category=${category.slug}`}>
-                      <Card className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg">
+                    <Link
+                      href={`/products?category=${category.slug}`}
+                      className="group relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-pink-50 bg-white transition-all duration-500 hover:shadow-2xl hover:shadow-pink-100 hover:-translate-y-2"
+                    >
                       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary/20 to-muted">
                         {category.image_url ? (
                           <Image
@@ -717,23 +719,32 @@ export default function Home() {
                             alt={category.name}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                            className="object-cover transition-transform group-hover:scale-105"
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">
                             <Sparkles className="h-16 w-16 text-muted-foreground/30" />
                           </div>
                         )}
+                        {/* Pink accent + hover CTA */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-pink-600/30 via-transparent to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-90" />
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center pb-4 opacity-0 translate-y-3 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-1.5 text-xs font-bold text-pink-600 shadow-lg backdrop-blur-sm">
+                            Shop Now
+                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                          </span>
+                        </div>
                       </div>
-                      <CardHeader>
-                        <CardTitle className="text-center">{category.name}</CardTitle>
+                      <div className="bg-gradient-to-b from-pink-50/40 to-white p-4 text-center">
+                        <h3 className="text-lg font-bold text-[#1a0f1c] transition-colors group-hover:text-pink-600">
+                          {category.name}
+                        </h3>
                         {category.product_count !== undefined && (
-                          <p className="text-center text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {category.product_count} products
                           </p>
                         )}
-                      </CardHeader>
-                      </Card>
+                      </div>
                     </Link>
                   </FadeInSection>
                 ))}
@@ -741,12 +752,12 @@ export default function Home() {
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {["Makeup", "Skincare", "Tools", "Accessories"].map((name) => (
-                  <Card key={name} className="overflow-hidden">
+                  <div key={name} className="overflow-hidden rounded-[2rem] border border-pink-50 bg-white">
                     <div className="aspect-square bg-gradient-to-br from-secondary/20 to-muted" />
-                    <CardHeader>
-                      <CardTitle className="text-center">{name}</CardTitle>
-                    </CardHeader>
-                  </Card>
+                    <div className="bg-gradient-to-b from-pink-50/40 to-white p-4 text-center">
+                      <h3 className="text-lg font-bold text-[#1a0f1c]">{name}</h3>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

@@ -5,8 +5,8 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Header } from "@/components/Header";
@@ -56,8 +56,9 @@ import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 import type { Product, Brand, Category } from "@/types";
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { authenticated, session } = useAuth();
 
   // State
@@ -114,19 +115,12 @@ export default function ProductsPage() {
         setTotalProducts(data.total);
 
         const uniqueBrands = new Map<string, Brand>();
-        const uniqueCategories = new Map<string, Category>();
-
         data.items.forEach((product) => {
           if (product.brand && !uniqueBrands.has(product.brand.id)) {
             uniqueBrands.set(product.brand.id, product.brand);
           }
-          if (product.category && !uniqueCategories.has(product.category.id)) {
-            uniqueCategories.set(product.category.id, product.category);
-          }
         });
-
         setBrands(Array.from(uniqueBrands.values()));
-        setCategories(Array.from(uniqueCategories.values()));
       } catch (error) {
         console.error("Error fetching products:", error);
         setProducts([]);
@@ -137,6 +131,40 @@ export default function ProductsPage() {
 
     fetchProducts();
   }, [filters]);
+
+  // Load all active categories (with slugs) for the filter Select and for
+  // resolving the ?category=<slug> deep link from the homepage category tiles.
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CATEGORIES.LIST}?limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(Array.isArray(data) ? data : data.items || []);
+        }
+      } catch { /* silently fail — filter Select just stays empty */ }
+    };
+    loadCategories();
+  }, []);
+
+  // Apply the ?category=<slug> deep link once, after categories have loaded, so
+  // the filter is active and the pill/Select reflect it. Guarded so it does not
+  // fight the user if they later clear or change the category filter.
+  const appliedCategoryParam = useRef(false);
+  useEffect(() => {
+    if (appliedCategoryParam.current) return;
+    const slug = searchParams.get("category");
+    if (!slug) {
+      appliedCategoryParam.current = true;
+      return;
+    }
+    if (categories.length === 0) return; // wait for categories to load
+    const match = categories.find((c) => c.slug === slug);
+    if (match) {
+      setFilters((prev) => ({ ...prev, categoryId: match.id, page: 1 }));
+    }
+    appliedCategoryParam.current = true;
+  }, [searchParams, categories]);
 
   // Load wishlist for authenticated users (cart is loaded by useCart)
   useEffect(() => {
@@ -860,5 +888,19 @@ export default function ProductsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+        </div>
+      }
+    >
+      <ProductsPageContent />
+    </Suspense>
   );
 }
