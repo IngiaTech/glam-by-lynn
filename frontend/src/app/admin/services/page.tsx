@@ -31,6 +31,7 @@ interface ServicePackage {
   min_maids: number;
   includes_facial: boolean;
   duration_minutes?: number;
+  is_featured: boolean;
   is_active: boolean;
   display_order: number;
   created_at: string;
@@ -336,11 +337,18 @@ export default function ServicePackagesManagement() {
                               {pkg.description}
                             </div>
                           )}
-                          {pkg.includes_facial && (
-                            <span className="inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
-                              Includes Facial
-                            </span>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {pkg.is_featured && (
+                              <span className="inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded bg-pink-100 text-pink-800">
+                                ★ Featured
+                              </span>
+                            )}
+                            {pkg.includes_facial && (
+                              <span className="inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
+                                Includes Facial
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">

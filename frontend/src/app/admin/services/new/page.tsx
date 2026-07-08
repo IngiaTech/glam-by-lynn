@@ -31,6 +31,7 @@ const servicePackageSchema = z.object({
   min_maids: z.number().int().min(0, "Min maids cannot be negative"),
   includes_facial: z.boolean(),
   duration_minutes: z.number().int().min(1, "Duration must be positive").optional(),
+  is_featured: z.boolean(),
   is_active: z.boolean(),
   display_order: z.number().int().min(0, "Display order cannot be negative"),
 }).refine(
@@ -72,6 +73,7 @@ export default function NewServicePackage() {
     min_maids: 0,
     includes_facial: false,
     duration_minutes: undefined,
+    is_featured: false,
     is_active: true,
     display_order: 0,
   });
@@ -529,6 +531,17 @@ export default function NewServicePackage() {
                 </Label>
               </div>
             )}
+
+            <div className="flex items-center gap-2">
+              <Switch
+                id="is_featured"
+                checked={formData.is_featured}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+              />
+              <Label htmlFor="is_featured" className="font-normal">
+                Feature on homepage (max 3 services)
+              </Label>
+            </div>
 
             <div className="flex items-center gap-2">
               <Switch

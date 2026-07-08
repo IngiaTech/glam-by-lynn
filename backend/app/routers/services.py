@@ -25,6 +25,7 @@ async def list_active_packages(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     package_type: Optional[str] = Query(None, description="Filter by package type"),
+    is_featured: Optional[bool] = Query(None, description="Filter by featured status"),
     db: Session = Depends(get_db)
 ):
     """
@@ -38,6 +39,7 @@ async def list_active_packages(
     - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
     - **package_type**: Filter by package type (bridal_large, bridal_small, bride_only, regular, classes)
+    - **is_featured**: Filter by featured status (true = homepage featured services)
 
     Returns:
     - Service packages with pricing breakdown
@@ -51,7 +53,8 @@ async def list_active_packages(
         skip=skip,
         limit=page_size,
         package_type=package_type,
-        is_active=True  # Force only active packages
+        is_active=True,  # Force only active packages
+        is_featured=is_featured
     )
 
     total_pages = math.ceil(total / page_size) if total > 0 else 1

@@ -44,6 +44,7 @@ async def list_packages(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     package_type: Optional[str] = Query(None, description="Filter by package type"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    is_featured: Optional[bool] = Query(None, description="Filter by featured status"),
     search: Optional[str] = Query(None, description="Search in name and description"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
@@ -68,6 +69,7 @@ async def list_packages(
         limit=page_size,
         package_type=package_type,
         is_active=is_active,
+        is_featured=is_featured,
         search=search
     )
 

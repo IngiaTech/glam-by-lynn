@@ -11,6 +11,21 @@ from app.models.service import ServicePackage
 from app.schemas.service_package import ServicePackageCreate, ServicePackageUpdate
 from app.services.file_storage_service import file_storage
 
+# Maximum number of packages that can be featured on the homepage at once
+MAX_FEATURED_PACKAGES = 3
+
+
+def _assert_featured_slot_available(db: Session, exclude_id: Optional[UUID] = None) -> None:
+    """Raise ValueError if all homepage featured slots are already taken."""
+    query = db.query(ServicePackage).filter(ServicePackage.is_featured == True)  # noqa: E712
+    if exclude_id is not None:
+        query = query.filter(ServicePackage.id != exclude_id)
+    if query.count() >= MAX_FEATURED_PACKAGES:
+        raise ValueError(
+            f"A maximum of {MAX_FEATURED_PACKAGES} services can be featured on the homepage. "
+            "Unfeature another service first."
+        )
+
 
 def get_package_by_id(db: Session, package_id: UUID) -> Optional[ServicePackage]:
     """Get service package by ID"""
@@ -28,6 +43,7 @@ def get_packages(
     limit: int = 100,
     package_type: Optional[str] = None,
     is_active: Optional[bool] = None,
+    is_featured: Optional[bool] = None,
     search: Optional[str] = None
 ) -> tuple[list[ServicePackage], int]:
     """
@@ -39,6 +55,7 @@ def get_packages(
         limit: Maximum number of records to return
         package_type: Filter by package type
         is_active: Filter by active status
+        is_featured: Filter by featured status
         search: Search in name and description
 
     Returns:
@@ -52,6 +69,9 @@ def get_packages(
 
     if is_active is not None:
         query = query.filter(ServicePackage.is_active == is_active)
+
+    if is_featured is not None:
+        query = query.filter(ServicePackage.is_featured == is_featured)
 
     if search:
         search_term = f"%{search}%"
@@ -112,6 +132,10 @@ def create_package(db: Session, package_data: ServicePackageCreate) -> ServicePa
         if package_data.max_maids < package_data.min_maids:
             raise ValueError("max_maids must be greater than or equal to min_maids")
 
+    # Enforce homepage featured slot limit
+    if package_data.is_featured:
+        _assert_featured_slot_available(db)
+
     # Create package
     package = ServicePackage(
         package_type=package_data.package_type.lower(),
@@ -125,6 +149,7 @@ def create_package(db: Session, package_data: ServicePackageCreate) -> ServicePa
         min_maids=package_data.min_maids,
         includes_facial=package_data.includes_facial,
         duration_minutes=package_data.duration_minutes,
+        is_featured=package_data.is_featured,
         is_active=package_data.is_active,
         display_order=package_data.display_order
     )
@@ -201,6 +226,11 @@ def update_package(
 
     if package_data.duration_minutes is not None:
         package.duration_minutes = package_data.duration_minutes
+
+    if package_data.is_featured is not None:
+        if package_data.is_featured and not package.is_featured:
+            _assert_featured_slot_available(db, exclude_id=package_id)
+        package.is_featured = package_data.is_featured
 
     if package_data.is_active is not None:
         package.is_active = package_data.is_active

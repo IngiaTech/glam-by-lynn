@@ -71,6 +71,7 @@ interface ServicePackage {
   includes_facial: boolean;
   duration_minutes: number;
   image_url?: string;
+  is_featured?: boolean;
   display_order: number;
 }
 
@@ -103,11 +104,20 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch featured services (bridal packages)
-        const servicesRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SERVICES.LIST}?limit=3`);
+        // Fetch featured services (admin-curated, max 3)
+        const servicesRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SERVICES.LIST}?is_featured=true&page_size=3`);
         if (servicesRes.ok) {
           const servicesData = await servicesRes.json();
-          setFeaturedServices(servicesData.items || servicesData);
+          let serviceItems: ServicePackage[] = servicesData.items || servicesData;
+          // Fallback: if no services are flagged as featured yet, show the first 3
+          if (!serviceItems.length) {
+            const fallbackRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SERVICES.LIST}?page_size=3`);
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json();
+              serviceItems = fallbackData.items || fallbackData;
+            }
+          }
+          setFeaturedServices(serviceItems);
         }
 
         // Fetch featured products
