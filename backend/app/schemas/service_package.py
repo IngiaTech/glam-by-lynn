@@ -25,6 +25,7 @@ class ServicePackageBase(BaseModel):
     includes_facial: bool = Field(False, description="Whether package includes facial")
     duration_minutes: Optional[int] = Field(None, gt=0, description="Service duration in minutes")
     image_url: Optional[str] = Field(None, max_length=500, description="Service showcase image URL")
+    is_featured: bool = Field(False, description="Whether package is featured on the homepage (max 3)")
     is_active: bool = Field(True, description="Whether package is active")
     display_order: int = Field(0, ge=0, description="Display order (lower = earlier)")
 
@@ -75,6 +76,7 @@ class ServicePackageUpdate(BaseModel):
     includes_facial: Optional[bool] = None
     duration_minutes: Optional[int] = Field(None, gt=0)
     image_url: Optional[str] = Field(None, max_length=500)
+    is_featured: Optional[bool] = None
     is_active: Optional[bool] = None
     display_order: Optional[int] = Field(None, ge=0)
 
