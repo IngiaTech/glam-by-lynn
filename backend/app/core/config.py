@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Glam by Lynn API"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    # Default to the safe (production-like) posture; opt into DEBUG explicitly
+    # in local development via the environment/.env.
+    DEBUG: bool = False
     ENVIRONMENT: str = "development"
 
     # Server

@@ -7,6 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
+
 from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token, verify_token
 from app.core.dependencies import get_current_user, get_current_active_user
@@ -30,12 +33,15 @@ async def google_auth(
     db: Session = Depends(get_db)
 ):
     """
-    Google OAuth authentication endpoint
-    Creates or retrieves user based on Google account info
-    Also links any guest orders/bookings if user previously placed orders as guest
+    Google OAuth authentication endpoint.
+
+    Verifies the Google-issued ID token server-side and creates or retrieves the
+    user from the *verified* token claims (email, sub). Client-supplied identity
+    is never trusted. Also links any guest orders/bookings placed under the same
+    verified email.
 
     Args:
-        auth_data: Google authentication data (email, googleId, name, image)
+        auth_data: Google authentication data (idToken, and optional name/image)
         db: Database session
 
     Returns:
@@ -43,15 +49,42 @@ async def google_auth(
         (guest data automatically linked if applicable)
 
     Raises:
-        HTTPException: If authentication fails
+        HTTPException: If the Google token is invalid or the email is unverified
     """
+    # Verify the ID token with Google. This validates the signature, audience
+    # (must equal our OAuth client id), issuer and expiry — raising ValueError
+    # on any failure.
+    try:
+        claims = google_id_token.verify_oauth2_token(
+            auth_data.id_token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google credentials",
+        )
+
+    # Only trust a verified email address from the token claims.
+    if not claims.get("email") or not claims.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google account email is not verified",
+        )
+
+    email = claims["email"]
+    google_id = claims["sub"]
+    name = auth_data.name or claims.get("name")
+    image = auth_data.image or claims.get("picture")
+
     # Use user service to handle OAuth login with guest data linking
     user, created, link_stats = user_service.get_or_create_user_from_oauth(
         db=db,
-        email=auth_data.email,
-        google_id=auth_data.google_id,
-        name=auth_data.name,
-        image=auth_data.image
+        email=email,
+        google_id=google_id,
+        name=name,
+        image=image
     )
 
     # Ensure user is active
@@ -196,60 +229,6 @@ async def logout(
     }
 
 
-@router.post("/token", response_model=TokenResponse)
-async def create_tokens_for_user(
-    user_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Create access and refresh tokens for a user (internal use)
-    This endpoint is typically called after successful Google OAuth
-
-    Args:
-        user_id: User ID to create tokens for
-        db: Database session
-
-    Returns:
-        Access and refresh tokens
-
-    Raises:
-        HTTPException: If user not found
-    """
-    from uuid import UUID
-    try:
-        user = db.query(User).filter(User.id == UUID(user_id)).first()
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
-        )
-
-    # Create tokens
-    access_token = create_access_token(
-        data={"sub": str(user.id), "email": user.email}
-    )
-    refresh_token = create_refresh_token(
-        data={"sub": str(user.id)}
-    )
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
-
-
 @router.post("/guest", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_guest_user(
     email: str,
@@ -292,11 +271,14 @@ async def link_guest_data(
     db: Session = Depends(get_db)
 ):
     """
-    Manually link guest orders and bookings to authenticated user account
-    Useful for cases where email doesn't match exactly
+    Link guest orders and bookings to the authenticated user's account.
+
+    A user may only link guest data placed under their *own* verified email
+    address. Linking arbitrary emails would let any authenticated user absorb
+    another person's guest orders and bookings.
 
     Args:
-        guest_email: Email address used for guest orders/bookings
+        guest_email: Must match the authenticated user's own email
         current_user: Current authenticated user
         db: Database session
 
@@ -304,13 +286,19 @@ async def link_guest_data(
         Link statistics
 
     Raises:
-        HTTPException: If linking fails
+        HTTPException: If the email does not match the authenticated user
     """
+    if guest_email.strip().lower() != (current_user.email or "").strip().lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only link guest data for your own verified email address"
+        )
+
     try:
         link_stats = user_service.link_guest_data_to_user(
             db=db,
             user_id=current_user.id,
-            guest_email=guest_email
+            guest_email=current_user.email
         )
         return {
             "message": "Guest data successfully linked",

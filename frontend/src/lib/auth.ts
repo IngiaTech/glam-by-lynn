@@ -52,28 +52,19 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (!account) return false;
 
+      // The backend only trusts the Google-issued ID token, which it verifies
+      // server-side. Bail out if the provider did not return one.
+      if (!account.id_token) return false;
+
       try {
         const url = `${API_BASE_URL}${API_ENDPOINTS.AUTH.GOOGLE_LOGIN}`;
-        console.log('[signIn callback] Attempting to call backend at:', url);
-        console.log('[signIn callback] Request data:', {
-          email: user.email,
-          googleId: account.providerAccountId,
+
+        // Send only the verified ID token (plus display-only profile hints).
+        const response = await axios.post(url, {
+          idToken: account.id_token,
           name: user.name,
           image: user.image,
         });
-
-        // Send Google auth info to backend
-        const response = await axios.post(
-          url,
-          {
-            email: user.email,
-            googleId: account.providerAccountId,
-            name: user.name,
-            image: user.image,
-          }
-        );
-
-        console.log('[signIn callback] Backend response:', response.data);
 
         // Store backend user data and JWT tokens
         if (response.data) {
@@ -86,12 +77,11 @@ export const authOptions: NextAuthOptions = {
 
         return true;
       } catch (error) {
-        console.error("[signIn callback] Error details:", {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          response: (error as any)?.response?.data,
-          status: (error as any)?.response?.status,
-          code: (error as any)?.code,
-        });
+        // Never log token/response bodies or PII. Surface only a status code.
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        console.error(
+          `[signIn] Backend authentication failed${status ? ` (status ${status})` : ""}`
+        );
         return false;
       }
     },
@@ -177,13 +167,17 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  // Events for logging
+  // Events for logging (development only — never log PII in production)
   events: {
     async signIn({ user }) {
-      console.log(`User signed in: ${user.email}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`User signed in: ${user.email}`);
+      }
     },
     async signOut({ token }) {
-      console.log(`User signed out: ${token.email}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`User signed out: ${token.email}`);
+      }
     },
   },
 

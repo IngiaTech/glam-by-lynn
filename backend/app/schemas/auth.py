@@ -2,15 +2,19 @@
 Auth schemas for request/response validation
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
 
 
 class GoogleAuthRequest(BaseModel):
-    """Request model for Google OAuth authentication"""
-    email: EmailStr
-    google_id: str = Field(..., alias="googleId")
+    """Request model for Google OAuth authentication.
+
+    Only the Google-issued ID token is trusted. The user's email and Google
+    account id are derived from the token's verified claims server-side — never
+    from client-supplied fields. ``name``/``image`` are display-only hints.
+    """
+    id_token: str = Field(..., alias="idToken", description="Google-issued OIDC ID token")
     name: Optional[str] = None
     image: Optional[str] = None
 
