@@ -3,6 +3,7 @@ Comprehensive tests for authentication flow
 Tests Google OAuth, JWT tokens, guest users, and role checking
 """
 import pytest
+from unittest.mock import patch
 from fastapi import status
 from uuid import uuid4
 
@@ -12,19 +13,44 @@ from app.models.order import Order
 from app.models.booking import Booking
 
 
+@pytest.fixture
+def google_signin(client):
+    """Helper to perform a Google login with a *verified* ID token.
+
+    Patches the Google ID-token verifier so the supplied identity is treated as
+    a verified claim set, mirroring what Google returns for a real token. Tests
+    never send a raw email/googleId — only the verified token is trusted.
+    """
+    def _signin(email, google_id, name=None, image=None, email_verified=True):
+        claims = {
+            "email": email,
+            "sub": google_id,
+            "email_verified": email_verified,
+            "name": name,
+            "picture": image,
+        }
+        with patch(
+            "app.routers.auth.google_id_token.verify_oauth2_token",
+            return_value=claims,
+        ):
+            return client.post(
+                "/api/auth/google-login",
+                json={"idToken": "fake.id.token", "name": name, "image": image},
+            )
+
+    return _signin
+
+
 class TestGoogleOAuthFlow:
     """Test Google OAuth authentication flow"""
 
-    def test_google_login_new_user(self, client, db_session):
-        """Test Google login creates new user"""
-        response = client.post(
-            "/api/auth/google-login",
-            json={
-                "email": "newuser@gmail.com",
-                "googleId": "google123",
-                "name": "New User",
-                "image": "https://example.com/photo.jpg",
-            },
+    def test_google_login_new_user(self, client, db_session, google_signin):
+        """Test Google login creates new user from verified token claims"""
+        response = google_signin(
+            email="newuser@gmail.com",
+            google_id="google123",
+            name="New User",
+            image="https://example.com/photo.jpg",
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -47,16 +73,13 @@ class TestGoogleOAuthFlow:
         assert user.google_id == "google123"
         assert user.is_active is True
 
-    def test_google_login_existing_user(self, client, regular_user):
+    def test_google_login_existing_user(self, client, regular_user, google_signin):
         """Test Google login with existing user"""
-        response = client.post(
-            "/api/auth/google-login",
-            json={
-                "email": regular_user.email,
-                "googleId": regular_user.google_id,
-                "name": "Updated Name",
-                "image": "https://example.com/new-photo.jpg",
-            },
+        response = google_signin(
+            email=regular_user.email,
+            google_id=regular_user.google_id,
+            name="Updated Name",
+            image="https://example.com/new-photo.jpg",
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -67,7 +90,7 @@ class TestGoogleOAuthFlow:
         assert "accessToken" in data
         assert "refreshToken" in data
 
-    def test_google_login_inactive_user(self, client, db_session):
+    def test_google_login_inactive_user(self, client, db_session, google_signin):
         """Test Google login fails for inactive user"""
         # Create inactive user
         user = User(
@@ -78,27 +101,21 @@ class TestGoogleOAuthFlow:
         db_session.add(user)
         db_session.commit()
 
-        response = client.post(
-            "/api/auth/google-login",
-            json={
-                "email": "inactive@test.com",
-                "googleId": "inactive123",
-                "name": "Inactive User",
-            },
+        response = google_signin(
+            email="inactive@test.com",
+            google_id="inactive123",
+            name="Inactive User",
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "inactive" in response.json()["detail"].lower()
 
-    def test_google_login_admin_user(self, client, admin_user):
+    def test_google_login_admin_user(self, client, admin_user, google_signin):
         """Test Google login with admin user returns admin info"""
-        response = client.post(
-            "/api/auth/google-login",
-            json={
-                "email": admin_user.email,
-                "googleId": admin_user.google_id,
-                "name": admin_user.full_name,
-            },
+        response = google_signin(
+            email=admin_user.email,
+            google_id=admin_user.google_id,
+            name=admin_user.full_name,
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -106,6 +123,47 @@ class TestGoogleOAuthFlow:
 
         assert data["isAdmin"] is True
         assert data["adminRole"] == "super_admin"
+
+    def test_google_login_rejects_invalid_token(self, client, admin_user):
+        """An unverifiable ID token is rejected — no admin takeover by email."""
+        with patch(
+            "app.routers.auth.google_id_token.verify_oauth2_token",
+            side_effect=ValueError("Invalid token"),
+        ):
+            response = client.post(
+                "/api/auth/google-login",
+                json={"idToken": "forged", "name": "Attacker"},
+            )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_google_login_rejects_unverified_email(self, client, google_signin):
+        """A token whose email is not verified is rejected."""
+        response = google_signin(
+            email="unverified@gmail.com",
+            google_id="unverified999",
+            email_verified=False,
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_google_login_requires_id_token(self, client):
+        """The endpoint requires an idToken — a bare email is not accepted."""
+        response = client.post(
+            "/api/auth/google-login",
+            json={"email": "attacker@gmail.com", "googleId": "x"},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_token_minting_endpoint_removed(self, client, admin_user):
+        """The unauthenticated /auth/token minting endpoint no longer exists."""
+        response = client.post(f"/api/auth/token?user_id={admin_user.id}")
+
+        assert response.status_code in (
+            status.HTTP_404_NOT_FOUND,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
 
 class TestJWTTokens:
@@ -283,7 +341,7 @@ class TestGuestUserCreation:
 class TestGuestDataLinking:
     """Test linking guest orders/bookings to authenticated user"""
 
-    def test_google_login_links_guest_orders(self, client, db_session):
+    def test_google_login_links_guest_orders(self, client, db_session, google_signin):
         """Test Google login automatically links guest orders"""
         # Create guest user with email
         guest_user = User(email="link@test.com", google_id=None)
@@ -291,38 +349,41 @@ class TestGuestDataLinking:
         db_session.commit()
         db_session.refresh(guest_user)
 
-        # Create guest order (simplified - would need service package and location)
-        # This is a conceptual test - actual implementation may vary
-        # order = Order(user_id=guest_user.id, ...)
-        # db_session.add(order)
-        # db_session.commit()
-
-        # Login with Google using same email
-        response = client.post(
-            "/api/auth/google-login",
-            json={
-                "email": "link@test.com",
-                "googleId": "google456",
-                "name": "Linked User",
-            },
+        # Login with Google using same (verified) email
+        response = google_signin(
+            email="link@test.com",
+            google_id="google456",
+            name="Linked User",
         )
 
         assert response.status_code == status.HTTP_200_OK
         # Guest data should be linked automatically
 
-    def test_manual_guest_data_linking(self, client, regular_user):
-        """Test manual guest data linking endpoint"""
+    def test_manual_linking_own_email_allowed(self, client, regular_user):
+        """A user may link guest data placed under their own verified email."""
         token = create_access_token(
             data={"sub": str(regular_user.id), "email": regular_user.email}
         )
 
         response = client.post(
-            f"/api/auth/link-guest-data?guest_email=guest@test.com",
+            f"/api/auth/link-guest-data?guest_email={regular_user.email}",
             headers={"Authorization": f"Bearer {token}"},
         )
 
-        # May return 400 if no guest user exists, which is expected
-        assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_manual_linking_other_email_forbidden(self, client, regular_user):
+        """A user may NOT link guest data belonging to someone else's email."""
+        token = create_access_token(
+            data={"sub": str(regular_user.id), "email": regular_user.email}
+        )
+
+        response = client.post(
+            "/api/auth/link-guest-data?guest_email=victim@test.com",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 class TestAdminRoleChecking:
