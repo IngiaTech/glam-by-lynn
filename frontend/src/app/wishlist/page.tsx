@@ -60,7 +60,7 @@ export default function WishlistPage() {
   const fetchWishlist = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/wishlist`, {
+      const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
         headers: { Authorization: `Bearer ${session?.accessToken}` },
       });
 
@@ -80,7 +80,7 @@ export default function WishlistPage() {
 
     try {
       // Add to cart
-      const cartRes = await fetch(`${API_BASE_URL}/cart/items`, {
+      const cartRes = await fetch(`${API_BASE_URL}/api/cart/items`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +117,7 @@ export default function WishlistPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/wishlist/${productId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/wishlist/${productId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${session?.accessToken}` },
       });

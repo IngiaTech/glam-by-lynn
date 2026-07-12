@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from sqlalchemy.orm import Session
 
 from app.models.order import PromoCode
@@ -281,6 +281,38 @@ def increment_usage(db: Session, promo_code_id: UUID) -> Optional[PromoCode]:
     db.refresh(promo_code)
 
     return promo_code
+
+
+def increment_usage_if_available(db: Session, promo_code_id: UUID) -> bool:
+    """
+    Atomically increment a promo code's usage count, but only while it is still
+    under its usage limit.
+
+    Unlike ``increment_usage``, this performs a single guarded UPDATE and does
+    NOT commit — the caller commits as part of the surrounding transaction. This
+    is race-safe: concurrent checkouts cannot both read the same usage_count and
+    each write limit+0, because the WHERE clause re-checks the limit atomically.
+
+    Args:
+        db: Database session
+        promo_code_id: Promo code ID
+
+    Returns:
+        True if the usage count was incremented (code was under its limit),
+        False if the limit is already reached or the code no longer exists.
+    """
+    result = db.execute(
+        update(PromoCode)
+        .where(
+            PromoCode.id == promo_code_id,
+            or_(
+                PromoCode.usage_limit.is_(None),
+                PromoCode.usage_count < PromoCode.usage_limit,
+            ),
+        )
+        .values(usage_count=PromoCode.usage_count + 1)
+    )
+    return result.rowcount > 0
 
 
 def is_expired(promo_code: PromoCode) -> bool:

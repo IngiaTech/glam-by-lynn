@@ -106,10 +106,13 @@ export const authOptions: NextAuthOptions = {
         token.adminRole = session.adminRole;
       }
 
-      // Refresh access token and user data periodically
-      // Backend access token expires after 15 minutes, so refresh every 14 minutes
-      if (token.refreshToken && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 14 * 60 * 1000)) {
+      // Refresh access token and user data periodically. The backend access
+      // token expires after 15 minutes; refresh at 10 to leave margin before a
+      // request would 401.
+      if (token.refreshToken && (!token.lastRefresh || Date.now() - (token.lastRefresh as number) > 10 * 60 * 1000)) {
         try {
+          // Clear any prior refresh error — we're attempting again.
+          delete token.error;
           // First, refresh the access token using the refresh token
           const refreshResponse = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`, {
             refresh_token: token.refreshToken,
@@ -135,7 +138,10 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error("Error refreshing token and user data:", error);
-          // If refresh fails, user will need to sign in again
+          // Flag the session so the client treats it as expired instead of
+          // silently carrying a stale/invalid token (which would 401 every
+          // write and empty the cart). useAuth reads this to force re-auth.
+          token.error = "RefreshTokenError";
         }
       }
 
@@ -162,6 +168,11 @@ export const authOptions: NextAuthOptions = {
       // Add tokens at session level
       session.accessToken = token.accessToken as string;
       session.refreshToken = token.refreshToken as string;
+
+      // Surface a failed token refresh so the client can force re-auth.
+      if (token.error) {
+        session.error = token.error as string;
+      }
 
       return session;
     },

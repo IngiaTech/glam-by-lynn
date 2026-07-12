@@ -2,6 +2,8 @@
 Booking service
 Business logic for booking availability and management
 """
+import secrets
+import string
 from datetime import datetime, timedelta
 from datetime import date as date_type
 from datetime import time as time_type
@@ -10,6 +12,7 @@ from uuid import UUID
 from decimal import Decimal, ROUND_UP
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
+from sqlalchemy.exc import IntegrityError
 
 from app.models.booking import Booking
 from app.models.service import CalendarAvailability, ServicePackage, TransportLocation
@@ -188,35 +191,22 @@ def get_availability(
     )
 
 
-def generate_booking_number(db: Session) -> str:
+def generate_booking_number() -> str:
     """
-    Generate a unique booking number
+    Generate a booking number.
 
-    Format: BK{YYYYMMDD}{####} where #### is a 4-digit counter
+    Format: BK{YYYYMMDD}{#####} where ##### is a random 5-digit suffix.
 
-    Args:
-        db: Database session
-
-    Returns:
-        Unique booking number
+    A random suffix (rather than a count-then-format counter) avoids the
+    check-then-insert race where two concurrent bookings compute the same
+    sequential number. The unique constraint on ``booking_number`` plus the
+    retry loop in ``create_booking`` guarantee uniqueness even on a rare
+    random collision.
     """
     today = date_type.today()
     date_prefix = f"BK{today.strftime('%Y%m%d')}"
-
-    # Get the count of bookings created today
-    count = db.query(func.count(Booking.id)).filter(
-        Booking.booking_number.like(f"{date_prefix}%")
-    ).scalar() or 0
-
-    # Generate number with padding
-    booking_number = f"{date_prefix}{(count + 1):04d}"
-
-    # Ensure uniqueness (in case of concurrent requests)
-    while db.query(Booking).filter(Booking.booking_number == booking_number).first():
-        count += 1
-        booking_number = f"{date_prefix}{(count + 1):04d}"
-
-    return booking_number
+    suffix = "".join(secrets.choice(string.digits) for _ in range(5))
+    return f"{date_prefix}{suffix}"
 
 
 def calculate_booking_price(
@@ -334,7 +324,7 @@ def create_booking(
     deposit_amount = (total_amount * Decimal('0.5')).quantize(Decimal('0.01'), rounding=ROUND_UP)
 
     # Generate booking number
-    booking_number = generate_booking_number(db)
+    booking_number = generate_booking_number()
 
     # Create booking
     booking = Booking(
@@ -365,8 +355,18 @@ def create_booking(
         status="pending"
     )
 
-    db.add(booking)
-    db.commit()
+    # Persist, retrying on the rare chance two bookings drew the same random
+    # number (the unique constraint raises IntegrityError for the loser).
+    for attempt in range(5):
+        db.add(booking)
+        try:
+            db.commit()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 4:
+                raise
+            booking.booking_number = generate_booking_number()
     db.refresh(booking)
 
     # TODO: Send confirmation email (implement email service)

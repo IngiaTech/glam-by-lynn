@@ -35,6 +35,8 @@ declare module "next-auth" {
     };
     accessToken?: string;
     refreshToken?: string;
+    /** Set to "RefreshTokenError" when a backend token refresh failed. */
+    error?: string;
   }
 }
 
@@ -49,5 +51,7 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     lastRefresh?: number;
+    /** Set to "RefreshTokenError" when a backend token refresh failed. */
+    error?: string;
   }
 }

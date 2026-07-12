@@ -155,7 +155,7 @@ export default function Home() {
     const loadWishlist = async () => {
       if (!authenticated || !session?.accessToken) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
           headers: { Authorization: `Bearer ${session.accessToken}` },
         });
         if (res.ok) {
@@ -213,7 +213,7 @@ export default function Home() {
     setTogglingWishlistId(product.id);
     try {
       if (isInWishlist) {
-        const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist/${product.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
@@ -222,7 +222,7 @@ export default function Home() {
           toast.success("Removed from wishlist");
         }
       } else {
-        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

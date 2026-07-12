@@ -17,6 +17,16 @@ _cached_provider: Optional[StorageProvider] = None
 _cached_fingerprint: Optional[str] = None
 
 
+def _is_production() -> bool:
+    """True when running in production, where silently falling back to the
+    ephemeral local disk would lose uploads on the next redeploy."""
+    try:
+        from app.core.config import settings
+        return settings.ENVIRONMENT == "production"
+    except Exception:
+        return False
+
+
 def _read_storage_settings() -> dict:
     """Read storage-related keys from site_settings using a short-lived session."""
     from app.core.database import SessionLocal
@@ -66,6 +76,12 @@ def _build_provider(config: dict) -> StorageProvider:
                 region=config.get("storage_s3_region", "us-east-1"),
             )
         except Exception as e:
+            if _is_production():
+                logger.error(
+                    f"Failed to create S3 provider in production; refusing to fall "
+                    f"back to ephemeral local storage: {e}"
+                )
+                raise
             logger.warning(f"Failed to create S3 provider, falling back to local: {e}")
             return LocalStorageProvider()
 
@@ -86,6 +102,12 @@ def _build_provider(config: dict) -> StorageProvider:
                 api_secret=api_secret,
             )
         except Exception as e:
+            if _is_production():
+                logger.error(
+                    f"Failed to create Cloudinary provider in production; refusing to "
+                    f"fall back to ephemeral local storage: {e}"
+                )
+                raise
             logger.warning(f"Failed to create Cloudinary provider, falling back to local: {e}")
             return LocalStorageProvider()
 

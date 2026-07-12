@@ -157,7 +157,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     const checkWishlist = async () => {
       if (!authenticated || !product) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
           headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
         if (res.ok) {
@@ -231,7 +231,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     setAddingToWishlist(true);
     try {
       if (inWishlist) {
-        const res = await fetch(`${API_BASE_URL}/wishlist/${product?.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist/${product?.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
@@ -240,7 +240,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           toast.success("Removed from wishlist");
         }
       } else {
-        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -322,7 +322,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     setRelatedTogglingWishlistId(rp.id);
     try {
       if (isIn) {
-        const res = await fetch(`${API_BASE_URL}/wishlist/${rp.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist/${rp.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${session?.accessToken}` },
         });
@@ -331,7 +331,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           toast.success("Removed from wishlist");
         }
       } else {
-        const res = await fetch(`${API_BASE_URL}/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
