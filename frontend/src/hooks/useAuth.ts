@@ -25,9 +25,11 @@ export function useAuth() {
   const { data: session, status } = useSession();
   const loading = status === "loading";
 
-  // Check if we have a valid session with an access token
-  // If session exists but no accessToken, consider it expired/invalid
-  const hasValidToken = session?.accessToken != null;
+  // Check if we have a valid session with an access token.
+  // If the session has no accessToken, or a refresh failed (error flag set),
+  // consider it expired/invalid so the app forces re-authentication instead of
+  // carrying a stale token that 401s every request.
+  const hasValidToken = session?.accessToken != null && session?.error == null;
   const authenticated = status === "authenticated" && hasValidToken;
 
   const user = authenticated ? (session?.user as NextAuthUser | undefined) : undefined;

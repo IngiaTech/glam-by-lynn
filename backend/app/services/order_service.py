@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 from fastapi import BackgroundTasks
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.models.order import Cart, CartItem, Order, OrderItem
@@ -333,28 +334,57 @@ def create_order(
         )
         db.add(order_item)
 
-        # Update stock
-        product = db.query(Product).filter(Product.id == item_data["product_id"]).first()
-        product.inventory_count -= item_data["quantity"]
+        # Decrement stock atomically. The guarded UPDATE (only decrements when
+        # enough stock remains) plus the rowcount check prevents two concurrent
+        # orders from both passing the earlier validation and overselling — a
+        # plain read-modify-write would lose one update under READ COMMITTED.
+        result = db.execute(
+            update(Product)
+            .where(
+                Product.id == item_data["product_id"],
+                Product.inventory_count >= item_data["quantity"],
+            )
+            .values(inventory_count=Product.inventory_count - item_data["quantity"])
+        )
+        if result.rowcount == 0:
+            db.rollback()
+            return False, f"Insufficient stock for '{item_data['product_title']}'", None
 
         if item_data["product_variant_id"]:
-            variant = (
-                db.query(ProductVariant)
-                .filter(ProductVariant.id == item_data["product_variant_id"])
-                .first()
+            variant_result = db.execute(
+                update(ProductVariant)
+                .where(
+                    ProductVariant.id == item_data["product_variant_id"],
+                    ProductVariant.inventory_count >= item_data["quantity"],
+                )
+                .values(
+                    inventory_count=ProductVariant.inventory_count - item_data["quantity"]
+                )
             )
-            variant.inventory_count -= item_data["quantity"]
+            if variant_result.rowcount == 0:
+                db.rollback()
+                return (
+                    False,
+                    f"Insufficient stock for '{item_data['product_title']}' variant",
+                    None,
+                )
 
-    # Increment promo code usage if used
+    # Increment promo code usage if used. This is the authoritative usage-limit
+    # gate: the atomic UPDATE only increments while the code is under its limit,
+    # so concurrent checkouts can't push it past usage_limit. No internal commit
+    # here — the whole order commits once below, so a crash can't leave the order
+    # persisted with the cart un-cleared (which would let the user re-order).
     if promo_code_id:
-        promo_code_service.increment_usage(db, promo_code_id)
+        if not promo_code_service.increment_usage_if_available(db, promo_code_id):
+            db.rollback()
+            return False, "This promo code has reached its usage limit", None
 
     # Clear cart
     if cart:
         for cart_item in cart.cart_items:
             db.delete(cart_item)
 
-    # Commit transaction
+    # Commit the entire order (order, items, stock, promo, cart clear) atomically
     db.commit()
     db.refresh(order)
 

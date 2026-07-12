@@ -1,6 +1,5 @@
 """Email service for sending transactional emails."""
 import logging
-import os
 import re
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -30,18 +29,21 @@ class EmailService:
 
     def __init__(self):
         """Initialize email service with configured provider."""
-        self.provider = os.getenv("EMAIL_PROVIDER", "console")  # console, resend, sendgrid, smtp
-        self.from_email = os.getenv("EMAIL_FROM", "noreply@glambylynn.com")
-        self.from_name = os.getenv("EMAIL_FROM_NAME", "Glam by Lynn")
+        # Read from centralized settings so config validation (fail-fast in
+        # production) applies and the provider/from-address can't silently drift
+        # from what the deploy sets.
+        self.provider = settings.EMAIL_PROVIDER  # console | resend | sendgrid
+        self.from_email = settings.FROM_EMAIL
+        self.from_name = settings.EMAIL_FROM_NAME
 
         if self.provider == "resend":
             if not RESEND_AVAILABLE:
                 raise ImportError("Resend package not installed. Run: pip install resend")
-            resend.api_key = os.getenv("RESEND_API_KEY")
+            resend.api_key = settings.RESEND_API_KEY
         elif self.provider == "sendgrid":
             if not SENDGRID_AVAILABLE:
                 raise ImportError("SendGrid package not installed. Run: pip install sendgrid")
-            self.sendgrid_key = os.getenv("SENDGRID_API_KEY")
+            self.sendgrid_key = settings.SENDGRID_API_KEY
 
     def send_email(
         self,

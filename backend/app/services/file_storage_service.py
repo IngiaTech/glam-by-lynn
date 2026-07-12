@@ -53,6 +53,16 @@ class FileStorageService:
         try:
             return provider.upload(file_data, file_key, content_type)
         except Exception as e:
+            # In production, falling back to the ephemeral local disk would lose
+            # the file on the next redeploy while persisting a dead URL — fail
+            # loudly instead so the caller sees the error.
+            from app.core.config import settings
+            if settings.ENVIRONMENT == "production":
+                logger.error(
+                    f"Upload via {type(provider).__name__} failed in production; not "
+                    f"falling back to ephemeral local storage: {e}"
+                )
+                raise
             logger.warning(f"Upload via {type(provider).__name__} failed, falling back to local: {e}")
             return LocalStorageProvider().upload(file_data, file_key, content_type)
 

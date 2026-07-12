@@ -55,8 +55,11 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = ""
 
     # Email
+    EMAIL_PROVIDER: str = "console"  # console | resend | sendgrid
     RESEND_API_KEY: str = ""
+    SENDGRID_API_KEY: str = ""
     FROM_EMAIL: str = "noreply@glambylynn.com"
+    EMAIL_FROM_NAME: str = "Glam by Lynn"
 
     # Admin
     ADMIN_EMAILS: List[str] = []
@@ -132,6 +135,18 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "DEBUG should be set to False in production for security"
                 )
+
+            # Email must actually be deliverable in production. The console
+            # provider only prints to logs while reporting success, so orders
+            # and bookings would silently never notify anyone.
+            if self.EMAIL_PROVIDER == "console":
+                raise ValueError(
+                    "EMAIL_PROVIDER must be a real provider (e.g. 'resend') in production, not 'console'"
+                )
+            if self.EMAIL_PROVIDER == "resend" and not self.RESEND_API_KEY:
+                raise ValueError("RESEND_API_KEY must be set when EMAIL_PROVIDER=resend")
+            if self.EMAIL_PROVIDER == "sendgrid" and not self.SENDGRID_API_KEY:
+                raise ValueError("SENDGRID_API_KEY must be set when EMAIL_PROVIDER=sendgrid")
 
         return self
 

@@ -130,20 +130,30 @@ export default function CheckoutPage() {
         0
       );
 
-      const res = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.PROMO_CODES.VALIDATE}?code=${encodeURIComponent(
-          promoCode
-        )}&orderAmount=${subtotal}`,
-        { headers: { Authorization: `Bearer ${session?.accessToken}` } }
-      );
+      // Public endpoint: POST a JSON body (the route is @router.post and takes
+      // { code, orderAmount }). No auth header — it's public, and a guest has
+      // no access token.
+      const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PROMO_CODES.VALIDATE}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode.trim(), orderAmount: subtotal }),
+      });
 
       if (res.ok) {
         const data = await res.json();
-        setPromoDiscount(data.discountAmount || 0);
+        if (data.valid) {
+          setPromoDiscount(Number(data.discountAmount) || 0);
+          setError("");
+        } else {
+          // Valid HTTP 200 but the code was rejected — surface the reason.
+          setPromoDiscount(0);
+          setError(data.message || "Invalid promo code");
+          setTimeout(() => setError(""), 3000);
+        }
       } else {
         setPromoDiscount(0);
-        const errorData = await res.json();
-        setError(errorData.detail || "Invalid promo code");
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.detail || "Could not validate promo code");
         setTimeout(() => setError(""), 3000);
       }
     } catch (err) {
