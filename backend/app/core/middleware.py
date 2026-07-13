@@ -154,7 +154,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         return False, None
 
+    # Paths exempt from the general limiter: static media and health probes,
+    # which are high-volume/benign and shouldn't consume a user's budget.
+    _EXEMPT_PREFIXES = ("/uploads", "/health", "/docs", "/redoc", "/openapi.json")
+
     async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if path == "/" or path.startswith(self._EXEMPT_PREFIXES):
+            return await call_next(request)
+
         # Cleanup old requests periodically
         self._cleanup_old_requests()
 

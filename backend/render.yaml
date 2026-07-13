@@ -3,7 +3,12 @@ services:
     name: glam-by-lynn-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Run migrations once per release (before the new instance is promoted),
+    # not on every instance start, so a bad migration can't break the old
+    # instance still serving traffic during a zero-downtime deploy.
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health/db
     envVars:
       - key: PYTHON_VERSION
         value: 3.11

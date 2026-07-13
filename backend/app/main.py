@@ -1,9 +1,10 @@
 """
 Glam by Lynn - Main FastAPI Application
 """
+import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,25 @@ from app.core.middleware import (
     RateLimitMiddleware,
     AuthRateLimitMiddleware,
 )
+from app.core.observability import (
+    RequestIDMiddleware,
+    request_id_ctx,
+    setup_logging,
+)
+
+# Configure logging before anything else so startup logs are captured.
+setup_logging(settings.LOG_LEVEL)
+logger = logging.getLogger(__name__)
+
+# Initialize error tracking when a DSN is configured (production).
+if settings.SENTRY_DSN:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(dsn=settings.SENTRY_DSN, environment=settings.ENVIRONMENT)
+        logger.info("Sentry error tracking initialized")
+    except Exception as exc:  # never let observability wiring break boot
+        logger.warning("Sentry initialization failed: %s", exc)
 
 # Import routers
 from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision, classes, site_settings as public_site_settings, whatsapp as whatsapp_router, categories as public_categories
@@ -52,6 +72,31 @@ app.add_middleware(
 # Add stricter rate limiting for auth endpoints
 app.add_middleware(AuthRateLimitMiddleware)
 
+# Request-ID middleware is added last so it is the outermost layer — every
+# request (and its logs) carries a correlation id from the very start.
+app.add_middleware(RequestIDMiddleware)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Return a consistent JSON envelope for unhandled errors and log the trace.
+
+    Without this, unhandled exceptions fall through to a plain-text 500 with no
+    correlation id and no CORS headers, which reads as an opaque network error
+    in the browser.
+    """
+    request_id = request_id_ctx.get()
+    logger.exception(
+        "Unhandled error on %s %s (request_id=%s)",
+        request.method,
+        request.url.path,
+        request_id,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "request_id": request_id},
+    )
+
 
 # Health check endpoint
 @app.get("/", tags=["Health"])
@@ -76,9 +121,13 @@ async def health_check():
 
 
 @app.get("/health/db", tags=["Health"])
-async def database_health_check():
+def database_health_check():
     """
-    Database health check endpoint
+    Database health check endpoint.
+
+    Defined as a plain (sync) function so FastAPI runs the blocking DB round-trip
+    in the threadpool instead of on the event loop. Use this as the deploy's
+    health check path so a broken DB fails the deploy.
 
     Returns:
         JSONResponse: Database connection status
