@@ -2,8 +2,9 @@
 Application configuration using Pydantic Settings
 """
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Any
+from pydantic_settings import BaseSettings, SettingsConfigDict, NoDecode
+from typing import Annotated, List, Any
+import json
 import secrets
 
 
@@ -46,7 +47,9 @@ class Settings(BaseSettings):
 
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    # NoDecode: parse this ourselves (see _split_csv) so a natural
+    # comma-separated env value doesn't crash boot on JSON decoding.
+    ALLOWED_ORIGINS: Annotated[List[str], NoDecode] = ["http://localhost:3000"]
 
     # AWS S3
     AWS_ACCESS_KEY_ID: str = ""
@@ -62,10 +65,32 @@ class Settings(BaseSettings):
     EMAIL_FROM_NAME: str = "Glam by Lynn"
 
     # Admin
-    ADMIN_EMAILS: List[str] = []
+    ADMIN_EMAILS: Annotated[List[str], NoDecode] = []
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
+
+    # Observability
+    LOG_LEVEL: str = "INFO"
+    SENTRY_DSN: str = ""
+
+    @field_validator("ALLOWED_ORIGINS", "ADMIN_EMAILS", mode="before")
+    @classmethod
+    def _split_csv(cls, v: Any) -> Any:
+        """Accept either a JSON array or a comma-separated string from the env.
+
+        pydantic-settings would otherwise JSON-decode these list fields and
+        crash the whole app (and the alembic migration step, which imports
+        settings) if an operator enters the natural "a.com,b.com" form.
+        """
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            if s.startswith("["):
+                return json.loads(s)
+            return [item.strip() for item in s.split(",") if item.strip()]
+        return v
 
     @field_validator("SECRET_KEY")
     @classmethod

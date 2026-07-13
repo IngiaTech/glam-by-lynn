@@ -358,11 +358,15 @@ def test_update_booking_date_and_time(client, admin_token, sample_bookings):
     assert data["booking_time"] == new_time
 
 
-def test_update_booking_to_unavailable_slot(client, admin_token, sample_bookings):
-    """Test that updating to an unavailable slot fails."""
+def test_update_booking_to_occupied_slot_allowed(client, admin_token, sample_bookings):
+    """Admin can move a booking into an already-occupied slot.
+
+    Availability is managed manually by the artist, so updates are not blocked
+    on slot exclusivity.
+    """
     booking1, booking2 = sample_bookings[0], sample_bookings[1]
 
-    # Try to change booking1 to booking2's slot
+    # Change booking1 to booking2's slot
     update_data = {
         "booking_date": str(booking2.booking_date),
         "booking_time": str(booking2.booking_time)
@@ -374,8 +378,8 @@ def test_update_booking_to_unavailable_slot(client, admin_token, sample_bookings
         headers={"Authorization": f"Bearer {admin_token}"}
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "not available" in response.json()["detail"].lower()
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["booking_time"] == str(booking2.booking_time)
 
 
 def test_mark_deposit_paid(client, admin_token, sample_bookings):
@@ -610,7 +614,9 @@ def test_pricing_recalculation_on_update(client, admin_token, sample_bookings, t
 
     # Verify pricing changed
     assert float(data["total_amount"]) != original_total
-    # New total: 15000 (bride) + 12000 (4 maids) + 4000 (1 mother) + 5000 (transport) = 36000
-    assert float(data["total_amount"]) == 36000.0
-    assert float(data["transport_cost"]) == 5000.0
-    assert float(data["deposit_amount"]) == 18000.0  # 50% of 36000
+    # New subtotal: 15000 (bride) + 12000 (4 maids) + 4000 (1 mother) = 31000.
+    # Transport cost is preserved (set manually), not recomputed from the new
+    # location, so it stays at the booking's existing 2000 → total 33000.
+    assert float(data["total_amount"]) == 33000.0
+    assert float(data["transport_cost"]) == 2000.0
+    assert float(data["deposit_amount"]) == 16500.0  # 50% of 33000
