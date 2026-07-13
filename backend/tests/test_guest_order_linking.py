@@ -70,6 +70,7 @@ def product(db_session, brand_and_category):
     product = Product(
         title="Test Lipstick",  # Product uses 'title', not 'name'
         slug="test-lipstick",
+        description="A test lipstick",
         brand_id=brand.id,
         category_id=category.id,
         base_price=Decimal("500.00"),  # Product uses 'base_price', not 'price'

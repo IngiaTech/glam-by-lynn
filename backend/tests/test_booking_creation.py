@@ -37,6 +37,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_brides": 0,
             "num_maids": 0,
             "num_mothers": 0,
@@ -54,9 +55,10 @@ class TestBookingCreationAPI:
         assert data["guest_email"] == "guest@example.com"
         assert data["guest_name"] == "Jane Doe"
         assert float(data["subtotal"]) == 3000
-        assert float(data["transport_cost"]) == 500
-        assert float(data["total_amount"]) == 3500
-        assert float(data["deposit_amount"]) == 1750  # 50%
+        # Transport cost is determined manually after booking (0 at creation)
+        assert float(data["transport_cost"]) == 0
+        assert float(data["total_amount"]) == 3000
+        assert float(data["deposit_amount"]) == 1500  # 50%
         assert "booking_number" in data
         assert data["booking_number"].startswith("BK")
 
@@ -89,6 +91,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "14:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_brides": 1,
             "num_maids": 0,
             "num_mothers": 0,
@@ -102,9 +105,9 @@ class TestBookingCreationAPI:
         assert data["status"] == "pending"
         assert data["user_id"] is not None  # Should have user_id
         assert float(data["subtotal"]) == 10000
-        assert float(data["transport_cost"]) == 1000
-        assert float(data["total_amount"]) == 11000
-        assert float(data["deposit_amount"]) == 5500
+        assert float(data["transport_cost"]) == 0
+        assert float(data["total_amount"]) == 10000
+        assert float(data["deposit_amount"]) == 5000
 
     def test_create_booking_missing_guest_info(self, client, db_session):
         """Test that guest bookings without contact info fail"""
@@ -134,6 +137,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_others": 1
         }
 
@@ -141,8 +145,12 @@ class TestBookingCreationAPI:
         assert response.status_code == 400
         assert "require email, name, and phone" in response.json()["detail"]
 
-    def test_create_booking_unavailable_slot(self, client, db_session):
-        """Test that booking unavailable slot fails"""
+    def test_create_booking_allowed_when_slot_taken(self, client, db_session):
+        """Bookings are not blocked by an existing booking in the same slot.
+
+        Availability is confirmed manually with the customer after the booking
+        is placed, so creation intentionally does not enforce slot exclusivity.
+        """
         from app.models.service import ServicePackage, TransportLocation
         from app.models.booking import Booking
 
@@ -190,6 +198,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date.isoformat(),
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_others": 1,
             "guest_email": "new@example.com",
             "guest_name": "New User",
@@ -197,8 +206,8 @@ class TestBookingCreationAPI:
         }
 
         response = client.post("/api/bookings", json=booking_data)
-        assert response.status_code == 400
-        assert "not available" in response.json()["detail"]
+        assert response.status_code == 201
+        assert response.json()["status"] == "pending"
 
     def test_create_booking_inactive_package(self, client, db_session):
         """Test that booking inactive package fails"""
@@ -227,6 +236,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_others": 1,
             "guest_email": "guest@example.com",
             "guest_name": "Jane Doe",
@@ -267,6 +277,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_brides": 1,
             "num_maids": 5,  # Exceeds max of 3
             "guest_email": "guest@example.com",
@@ -308,6 +319,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_brides": 1,
             "num_maids": 0,  # Below min of 1
             "guest_email": "guest@example.com",
@@ -351,6 +363,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "09:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_brides": 1,
             "num_maids": 5,
             "num_mothers": 2,
@@ -367,13 +380,13 @@ class TestBookingCreationAPI:
 
         data = response.json()
         # 1 bride (15000) + 5 maids (25000) + 2 mothers (14000) + 3 others (12000) = 66000
-        # Transport = 800
-        # Total = 66800
-        # Deposit = 33400
+        # Transport is set manually after booking (0 at creation)
+        # Total = 66000
+        # Deposit = 33000
         assert float(data["subtotal"]) == 66000
-        assert float(data["transport_cost"]) == 800
-        assert float(data["total_amount"]) == 66800
-        assert float(data["deposit_amount"]) == 33400
+        assert float(data["transport_cost"]) == 0
+        assert float(data["total_amount"]) == 66000
+        assert float(data["deposit_amount"]) == 33000
         assert data["wedding_theme"] == "Rustic Outdoor"
         assert data["special_requests"] == "Natural makeup look preferred"
 
@@ -405,6 +418,7 @@ class TestBookingCreationAPI:
             "booking_date": booking_date,
             "booking_time": "10:00:00",
             "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
             "num_others": 1,
             "guest_email": "guest@example.com",
             "guest_name": "Jane Doe",
@@ -415,8 +429,8 @@ class TestBookingCreationAPI:
         assert response.status_code == 201
 
         data = response.json()
-        # Format: BK{YYYYMMDD}{####}
-        pattern = r"^BK\d{8}\d{4}$"
+        # Format: BK{YYYYMMDD}{#####} (5 random digits)
+        pattern = r"^BK\d{8}\d{5}$"
         assert re.match(pattern, data["booking_number"])
 
     def test_booking_number_uniqueness(self, client, db_session):
@@ -450,6 +464,7 @@ class TestBookingCreationAPI:
                 "booking_date": booking_date,
                 "booking_time": f"{10 + i}:00:00",
                 "location_id": str(location.id),
+            "custom_location_address": "Nairobi CBD, Kenya",
                 "num_others": 1,
                 "guest_email": f"guest{i}@example.com",
                 "guest_name": f"Guest {i}",

@@ -199,6 +199,7 @@ class TestBrandAPI:
         product = Product(
             title="Test Product",
             slug="test-product",
+            description="A test product",
             brand_id=brand.id,
             category_id=category.id,
             base_price=100
