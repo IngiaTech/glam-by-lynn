@@ -45,6 +45,9 @@ faker>=22.5.1
 # Observability
 sentry-sdk[fastapi]>=2.0.0
 
+# Image validation (magic-byte checks on uploads)
+Pillow>=10.2.0
+
 # Code quality
 black>=24.1.0
 flake8>=7.0.0
