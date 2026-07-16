@@ -9,6 +9,7 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
+from app.core.upload_validation import validate_image_upload
 from app.models.user import User
 from app.schemas.product_image import (
     ProductImageResponse,
@@ -56,23 +57,8 @@ async def upload_product_image(
     The image will be uploaded to S3 (or local storage if S3 not configured).
     The first image uploaded is automatically set as primary.
     """
-    # Validate file type
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Expected image, got {file.content_type}"
-        )
-
-    # Validate file size (max 10MB)
-    file.file.seek(0, 2)  # Seek to end
-    file_size = file.file.tell()
-    file.file.seek(0)  # Reset to beginning
-
-    if file_size > 10 * 1024 * 1024:  # 10MB
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds maximum allowed size of 10MB"
-        )
+    # Validate extension, size, and real image content (magic bytes).
+    validate_image_upload(file)
 
     try:
         image = product_image_service.upload_product_image(

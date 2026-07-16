@@ -36,6 +36,11 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = "dev-secret-key-change-in-production"
+    # Dedicated key for encrypting stored secrets (S3/Cloudinary/Instagram). When
+    # set, it decouples data-at-rest encryption from SECRET_KEY so the JWT secret
+    # can be rotated without making stored ciphertext undecryptable. Falls back to
+    # SECRET_KEY-derived encryption when empty (see core/encryption.py).
+    ENCRYPTION_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

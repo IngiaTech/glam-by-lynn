@@ -1,21 +1,36 @@
 """
 Encryption utility for storing sensitive values in the database.
-Uses Fernet symmetric encryption with a key derived from SECRET_KEY.
+
+Uses Fernet symmetric encryption. When ENCRYPTION_KEY is configured it is the
+primary key; the SECRET_KEY-derived key is always kept as a secondary decryption
+key so values encrypted before ENCRYPTION_KEY existed still decrypt. This lets
+SECRET_KEY be rotated without losing access to stored ciphertext.
 """
 import base64
 import hashlib
 import logging
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Derive a Fernet key from SECRET_KEY using SHA-256
-_raw = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
-_fernet_key = base64.urlsafe_b64encode(_raw)
-_fernet = Fernet(_fernet_key)
+
+def _derive_fernet(secret: str) -> Fernet:
+    """Derive a Fernet instance from an arbitrary secret string via SHA-256."""
+    raw = hashlib.sha256(secret.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(raw))
+
+
+# Primary key first (used for new encryptions); SECRET_KEY-derived key last so
+# legacy ciphertext still decrypts. MultiFernet encrypts with keys[0] and
+# decrypts by trying each key in order.
+_keys = []
+if settings.ENCRYPTION_KEY:
+    _keys.append(_derive_fernet(settings.ENCRYPTION_KEY))
+_keys.append(_derive_fernet(settings.SECRET_KEY))
+_fernet = MultiFernet(_keys)
 
 
 def encrypt_value(plaintext: str) -> str:

@@ -10,6 +10,7 @@ import math
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
+from app.core.upload_validation import validate_image_upload
 from app.models.user import User
 from app.schemas.service_package import (
     ServicePackageCreate,
@@ -217,22 +218,8 @@ async def upload_package_image(
     is stored via the configured storage provider (S3/Cloudinary/local) and its
     URL is saved on the package. Any previously stored image is removed.
     """
-    # Validate file type
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Expected image, got {file.content_type}"
-        )
-
-    # Validate file size (max 10MB)
-    file.file.seek(0, 2)
-    file_size = file.file.tell()
-    file.file.seek(0)
-    if file_size > 10 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds maximum allowed size of 10MB"
-        )
+    # Validate extension, size, and real image content (magic bytes).
+    validate_image_upload(file)
 
     try:
         package = service_package_service.upload_package_image(
