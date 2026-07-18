@@ -2,7 +2,7 @@
 Tests for booking cancellation API endpoints
 """
 import pytest
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 
 class TestBookingCancellationAPI:
@@ -168,14 +168,16 @@ class TestBookingCancellationAPI:
         db_session.refresh(package)
         db_session.refresh(location)
 
-        # Create booking for tomorrow (less than 24 hours)
+        # Create a booking ~2 hours from now so it is deterministically inside
+        # the 24-hour cancellation window regardless of what time the tests run.
+        soon = datetime.now() + timedelta(hours=2)
         booking = Booking(
             booking_number="BK0001",
             user_id=admin_user.id,
             package_id=package.id,
             location_id=location.id,
-            booking_date=date.today() + timedelta(days=1),
-            booking_time=time(10, 0),
+            booking_date=soon.date(),
+            booking_time=soon.time(),
             num_others=1,
             subtotal=3000,
             transport_cost=500,

@@ -38,7 +38,14 @@ function SignInContent() {
     try {
       setIsLoading(true);
       setError(null);
-      await signIn("google", { callbackUrl: "/" });
+      // Return the user to where they came from (e.g. mid-checkout), but only
+      // allow same-origin relative paths — never an absolute or protocol-
+      // relative URL, which would be an open-redirect.
+      const requested =
+        searchParams.get("redirect") || searchParams.get("callbackUrl") || "/";
+      const callbackUrl =
+        requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+      await signIn("google", { callbackUrl });
     } catch (err) {
       setError("Failed to initiate sign in. Please try again.");
       setIsLoading(false);
