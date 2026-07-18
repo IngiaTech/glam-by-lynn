@@ -298,9 +298,10 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.basePrice) * item.quantity,
     0
   );
-  const deliveryFee = 200; // Fixed for now
+  // Delivery is confirmed by the team after the order is placed, so it isn't
+  // part of the checkout total.
   const discount = promoDiscount;
-  const total = subtotal + deliveryFee - discount;
+  const total = subtotal - discount;
 
   if (loading) {
     return (
@@ -602,9 +603,9 @@ export default function CheckoutPage() {
                       <span>Subtotal</span>
                       <span>KSh {subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Delivery Fee</span>
-                      <span>KSh {deliveryFee.toFixed(2)}</span>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Delivery</span>
+                      <span>Confirmed after order</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
