@@ -197,17 +197,6 @@ def validate_inline_items_and_calculate_totals(
     return True, "", subtotal, items_data
 
 
-def calculate_delivery_fee(delivery_county: str) -> Decimal:
-    """
-    Calculate delivery fee based on county.
-
-    For now, returns fixed fee. Can be enhanced later with location-based pricing.
-    """
-    # TODO: Implement location-based delivery fee calculation
-    # For now, return fixed fee (can be 0 for local, higher for distant counties)
-    return Decimal("200.00")  # Fixed fee for now
-
-
 def create_order(
     db: Session,
     user: Optional[User],
@@ -267,8 +256,10 @@ def create_order(
     if not is_valid:
         return False, error_msg, None
 
-    # Calculate delivery fee
-    delivery_fee = calculate_delivery_fee(delivery_info.county)
+    # Delivery fee is determined manually by the admin when confirming the
+    # order (the customer is contacted with the delivery cost), so it starts at
+    # 0 and is not part of the total at checkout time.
+    delivery_fee = Decimal(0)
 
     # Calculate order total
     order_total = subtotal + delivery_fee

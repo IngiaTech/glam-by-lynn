@@ -312,9 +312,9 @@ export default function CartPage() {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-muted-foreground">Delivery</span>
                       <span className="text-muted-foreground">
-                        Calculated at checkout
+                        Confirmed after order
                       </span>
                     </div>
                   </div>
@@ -351,9 +351,10 @@ export default function CartPage() {
                   </Button>
 
                   <div className="rounded-lg bg-muted p-4 text-sm">
-                    <p className="font-medium">Free Shipping</p>
+                    <p className="font-medium">Delivery</p>
                     <p className="text-muted-foreground">
-                      On orders over KSh 5,000
+                      We confirm delivery availability and cost with you after
+                      you place your order.
                     </p>
                   </div>
                 </CardContent>
