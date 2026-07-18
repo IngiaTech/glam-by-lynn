@@ -29,7 +29,6 @@ export const API_ENDPOINTS = {
   CATEGORIES: {
     LIST: "/api/categories",
     DETAIL: (id: string) => `/api/categories/${id}`,
-    HIERARCHY: "/api/categories/hierarchy",
   },
   // Services
   SERVICES: {
