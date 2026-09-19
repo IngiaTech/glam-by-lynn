@@ -11,11 +11,6 @@ import {
   isAdmin,
   hasAdminRole,
   isSuperAdmin,
-  hasAnyAdminRole,
-  canManageProducts,
-  canManageBookings,
-  canEditContent,
-  isArtist,
 } from "@/lib/auth";
 
 /**
@@ -41,10 +36,6 @@ export function useAuth() {
     authenticated,
     isAdmin: isAdmin(user),
     isSuperAdmin: isSuperAdmin(user),
-    canManageProducts: canManageProducts(user),
-    canManageBookings: canManageBookings(user),
-    canEditContent: canEditContent(user),
-    isArtist: isArtist(user),
     adminRole: user?.adminRole ?? null,
   };
 }
@@ -53,7 +44,7 @@ export function useAuth() {
  * Hook to check if user has specific admin role
  */
 export function useAdminRole(
-  role: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist"
+  role: "super_admin" | "admin"
 ) {
   const { user } = useAuth();
   return hasAdminRole(user as NextAuthUser | null | undefined, role);

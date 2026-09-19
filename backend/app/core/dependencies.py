@@ -5,7 +5,7 @@ FastAPI dependencies for authentication and authorization
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 
 from app.core.database import get_db
@@ -210,117 +210,12 @@ async def get_current_super_admin(
     return current_user
 
 
-def require_role(allowed_roles: List[str]):
-    """
-    Factory function to create role-based dependency
-
-    Args:
-        allowed_roles: List of allowed admin roles
-
-    Returns:
-        Dependency function that checks for required roles
-
-    Example:
-        @router.get("/products", dependencies=[Depends(require_role(["product_manager", "super_admin"]))])
-    """
-    async def role_checker(current_user: User = Depends(get_current_admin_user)) -> User:
-        if current_user.admin_role not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Required role: {' or '.join(allowed_roles)}"
-            )
-        return current_user
-
-    return role_checker
-
-
-async def get_product_manager(
-    current_user: User = Depends(get_current_admin_user)
-) -> User:
-    """
-    Dependency to ensure user has product management permissions
-
-    Args:
-        current_user: Current admin user
-
-    Returns:
-        Product manager or super admin user
-
-    Raises:
-        HTTPException: If user doesn't have product management permissions
-    """
-    if current_user.admin_role not in ["product_manager", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Product management permissions required"
-        )
-    return current_user
-
-
-async def get_booking_manager(
-    current_user: User = Depends(get_current_admin_user)
-) -> User:
-    """
-    Dependency to ensure user has booking management permissions
-
-    Args:
-        current_user: Current admin user
-
-    Returns:
-        Booking manager or super admin user
-
-    Raises:
-        HTTPException: If user doesn't have booking management permissions
-    """
-    if current_user.admin_role not in ["booking_manager", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Booking management permissions required"
-        )
-    return current_user
-
-
-async def get_content_editor(
-    current_user: User = Depends(get_current_admin_user)
-) -> User:
-    """
-    Dependency to ensure user has content editing permissions
-
-    Args:
-        current_user: Current admin user
-
-    Returns:
-        Content editor or super admin user
-
-    Raises:
-        HTTPException: If user doesn't have content editing permissions
-    """
-    if current_user.admin_role not in ["content_editor", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Content editing permissions required"
-        )
-    return current_user
-
-
-async def get_artist(
-    current_user: User = Depends(get_current_admin_user)
-) -> User:
-    """
-    Dependency to ensure user is an artist
-
-    Args:
-        current_user: Current admin user
-
-    Returns:
-        Artist or super admin user
-
-    Raises:
-        HTTPException: If user is not an artist
-    """
-    if current_user.admin_role not in ["artist", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Artist permissions required"
-        )
-    return current_user
+# The granular admin roles (product_manager, booking_manager, content_editor,
+# artist) were declared but never enforced: no router depended on their guards,
+# so every admin had full access regardless of the role assigned to them. The
+# guards and the require_role factory are gone rather than wired up — the
+# business is one artist plus occasional help, and a role UI that implies a
+# restriction it doesn't apply is worse than no roles at all.
+#
+# What remains is the distinction that is actually enforced: admin, and
+# super_admin for user and storage management (see get_current_super_admin).

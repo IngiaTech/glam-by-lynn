@@ -26,7 +26,7 @@ class AdminRoleUpdate(BaseModel):
         json_schema_extra = {
             "example": {
                 "is_admin": True,
-                "admin_role": "product_manager"
+                "admin_role": "admin"
             }
         }
 
@@ -150,7 +150,10 @@ async def assign_admin_role(
     Assign or update admin role for a user (super admin only).
 
     Only whitelisted emails can be made admin.
-    Super admin can assign any role: super_admin, product_manager, booking_manager, content_editor, artist.
+    Roles are `admin` (full access to the admin dashboard) and `super_admin`
+    (additionally manages users and storage settings). The granular roles that
+    used to be assignable here enforced nothing — every admin had full access
+    whatever they were assigned — so they were removed rather than implied.
     """
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -161,7 +164,7 @@ async def assign_admin_role(
         )
 
     # Validate admin role
-    valid_roles = ["super_admin", "product_manager", "booking_manager", "content_editor", "artist"]
+    valid_roles = ["super_admin", "admin"]
     if role_data.admin_role not in valid_roles:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

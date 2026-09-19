@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
 
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
-    setSelectedRole(user.adminRole || "product_manager");
+    setSelectedRole(user.adminRole || "admin");
     setRoleModalOpen(true);
   };
 
@@ -223,13 +223,7 @@ export default function AdminUsersPage() {
     switch (role) {
       case "super_admin":
         return "destructive";
-      case "product_manager":
-        return "default";
-      case "booking_manager":
-        return "secondary";
-      case "content_editor":
-        return "outline";
-      case "artist":
+      case "admin":
         return "default";
       default:
         return "outline";
@@ -459,23 +453,15 @@ export default function AdminUsersPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
-                <SelectItem value="product_manager">Product Manager</SelectItem>
-                <SelectItem value="booking_manager">Booking Manager</SelectItem>
-                <SelectItem value="content_editor">Content Editor</SelectItem>
-                <SelectItem value="artist">Artist</SelectItem>
               </SelectContent>
             </Select>
             <p className="mt-2 text-sm text-muted-foreground">
+              {selectedRole === "admin" &&
+                "Full access to the admin dashboard — products, bookings, orders, content"}
               {selectedRole === "super_admin" &&
-                "Full system access with all permissions"}
-              {selectedRole === "product_manager" &&
-                "Manage products, categories, and inventory"}
-              {selectedRole === "booking_manager" &&
-                "Manage bookings and appointments"}
-              {selectedRole === "content_editor" &&
-                "Manage content, testimonials, and gallery"}
-              {selectedRole === "artist" && "Manage own bookings and portfolio"}
+                "Everything an admin can do, plus managing users and storage settings"}
             </p>
           </div>
 

@@ -155,7 +155,7 @@ def test_custom_user(create_user):
         email="custom@example.com",
         full_name="Custom User",
         is_admin=True,
-        admin_role="product_manager"
+        admin_role="admin"
     )
     assert user.email == "custom@example.com"
     assert user.is_admin is True

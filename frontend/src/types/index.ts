@@ -11,7 +11,7 @@ export interface User {
   profilePictureUrl?: string;
   googleId?: string;
   isAdmin: boolean;
-  adminRole?: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist";
+  adminRole?: "super_admin" | "admin";
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
