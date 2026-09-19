@@ -25,7 +25,10 @@ from app.schemas.booking import (
 )
 from app.services import booking_service
 from app.services.booking_notifications import schedule_booking_notifications
+import logging
 import math
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -267,7 +270,17 @@ async def create_booking(
         # Notify the customer (with follow-up options) and the team (to review
         # and reach out). Runs after the response is sent; never blocks or
         # fails the booking itself.
-        schedule_booking_notifications(db, booking, background_tasks)
+        #
+        # The booking is already committed at this point, so nothing in here may
+        # reach the caller: gathering the email data touches lazy relationships
+        # and site settings, and any exception would otherwise 500 (or, via the
+        # ValueError handler below, 400) a booking that genuinely exists.
+        try:
+            schedule_booking_notifications(db, booking, background_tasks)
+        except Exception:
+            logger.exception(
+                "Failed to schedule notifications for booking %s", booking.booking_number
+            )
 
         return {
             **BookingResponse.model_validate(booking).model_dump(),

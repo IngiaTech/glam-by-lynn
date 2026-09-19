@@ -32,8 +32,9 @@ const values = [
 ];
 
 const achievements = [
+  "Award-Winning Makeup Artist",
   "Certified Professional Makeup Artist",
-  "10+ Years of Industry Experience",
+  "Almost a Decade of Industry Experience",
   "500+ Satisfied Clients",
   "Specialized in Bridal & Event Makeup",
   "Featured in Local Beauty Publications",
@@ -71,7 +72,7 @@ export default function AboutPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-muted-foreground">
               <p>
-                With over a decade of experience in the beauty industry, Lynn has built a reputation
+                With almost a decade of experience in the beauty industry, Lynn has built a reputation
                 for creating stunning, personalized makeup looks that enhance each client's natural beauty.
               </p>
               <p>
