@@ -6,9 +6,65 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from typing import Dict, Optional
+import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+def get_trusted_client_ip(request: Request) -> Optional[str]:
+    """
+    Resolve the client IP that rate-limit buckets are keyed on.
+
+    Only values a client cannot set itself are trusted. Taking the first entry
+    of X-Forwarded-For — the obvious reading — is exactly what makes a limiter
+    useless: proxies *append* to XFF rather than replacing it, so a request
+    carrying its own `X-Forwarded-For: 9.9.9.9` arrives as `9.9.9.9, <real ip>`
+    and the leftmost value is whatever the attacker chose. Rotating it per
+    request then yields a fresh bucket every time.
+
+    Resolution order:
+
+    1. ``CF-Connecting-IP`` — set by Cloudflare, which overwrites any value the
+       client supplies. Render fronts every service with Cloudflare, so this is
+       the authoritative source in the current deployment.
+    2. The Nth entry from the right of ``X-Forwarded-For``, where N is
+       ``TRUSTED_PROXY_HOPS`` — the value appended by our own proxies. Disabled
+       by default (0), because trusting XFF without knowing the hop count is
+       what created the bypass in the first place.
+    3. The peer address, but only when no ``X-Forwarded-For`` is present at all
+       (a direct connection, e.g. local development). Behind an untrusted proxy
+       the peer is the proxy itself, and keying on it would put every visitor in
+       one shared bucket.
+
+    Returns None when no trustworthy identity is available. Callers must treat
+    that as "do not limit" rather than lumping requests together — see the note
+    in RateLimitMiddleware.dispatch.
+    """
+    cf_connecting_ip = request.headers.get("CF-Connecting-IP")
+    if cf_connecting_ip and cf_connecting_ip.strip():
+        return cf_connecting_ip.strip()
+
+    forwarded = request.headers.get("X-Forwarded-For")
+    hops = settings.TRUSTED_PROXY_HOPS
+
+    if forwarded:
+        if hops > 0:
+            parts = [part.strip() for part in forwarded.split(",") if part.strip()]
+            # Fewer entries than proxies means the chain isn't what we think it
+            # is; refuse rather than trust a client-supplied value.
+            if len(parts) >= hops:
+                return parts[-hops]
+        return None
+
+    if request.client:
+        return request.client.host
+
+    return None
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -85,24 +141,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.request_counts: Dict[str, list] = defaultdict(list)
         self.cleanup_interval = 3600  # Clean up old entries every hour
         self.last_cleanup = time.time()
+        self._last_untrusted_warning = 0.0
 
-    def _get_client_ip(self, request: Request) -> str:
-        """Get client IP address from request."""
-        # Check X-Forwarded-For header (for requests behind proxy/load balancer)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-
-        # Check X-Real-IP header
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
-
-        # Fall back to direct client IP
-        if request.client:
-            return request.client.host
-
-        return "unknown"
+    def _get_client_ip(self, request: Request) -> Optional[str]:
+        """Resolve the bucket key for this request; None when untrustworthy."""
+        return get_trusted_client_ip(request)
 
     def _cleanup_old_requests(self):
         """Remove old request timestamps to prevent memory leaks."""
@@ -158,6 +201,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     # which are high-volume/benign and shouldn't consume a user's budget.
     _EXEMPT_PREFIXES = ("/uploads", "/health", "/docs", "/redoc", "/openapi.json")
 
+    def _warn_untrusted_ip(self) -> None:
+        """Warn that limiting is disabled, at most once a minute.
+
+        This fires per request when misconfigured, so it is throttled to keep a
+        misconfiguration from flooding the logs it needs to be visible in.
+        """
+        now = time.time()
+        if now - self._last_untrusted_warning < 60:
+            return
+        self._last_untrusted_warning = now
+        logger.warning(
+            "Rate limiting skipped: no trusted client IP for this request. "
+            "Expected CF-Connecting-IP (Render/Cloudflare) or TRUSTED_PROXY_HOPS "
+            "set to match the proxy chain."
+        )
+
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         if path == "/" or path.startswith(self._EXEMPT_PREFIXES):
@@ -168,6 +227,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Get client IP
         client_ip = self._get_client_ip(request)
+
+        # No trustworthy client identity. Fail open rather than key on a shared
+        # value: behind a proxy the only alternative is the proxy's own address,
+        # which would put every visitor in one bucket and 429 the whole site
+        # once that bucket filled. Availability beats a limiter that is, in this
+        # situation, already unenforceable.
+        if client_ip is None:
+            self._warn_untrusted_ip()
+            return await call_next(request)
 
         # Check if IP is rate limited
         is_limited, retry_after = self._is_rate_limited(client_ip)
@@ -221,20 +289,9 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         self.requests_per_minute = 5
         self.requests_per_hour = 20
 
-    def _get_client_ip(self, request: Request) -> str:
-        """Get client IP address from request."""
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
-
-        if request.client:
-            return request.client.host
-
-        return "unknown"
+    def _get_client_ip(self, request: Request) -> Optional[str]:
+        """Resolve the bucket key for this request; None when untrustworthy."""
+        return get_trusted_client_ip(request)
 
     def _cleanup_old_requests(self):
         """Remove old request timestamps."""
@@ -260,6 +317,15 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         self._cleanup_old_requests()
 
         client_ip = self._get_client_ip(request)
+        if client_ip is None:
+            # Same reasoning as the general limiter: a shared bucket here would
+            # lock every customer out of signing in.
+            logger.warning(
+                "Auth rate limiting skipped: no trusted client IP. "
+                "Set TRUSTED_PROXY_HOPS to match your proxy chain."
+            )
+            return await call_next(request)
+
         current_time = time.time()
         minute_ago = current_time - 60
         hour_ago = current_time - 3600
