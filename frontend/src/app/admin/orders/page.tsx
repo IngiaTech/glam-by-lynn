@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getUserOrders, formatCurrency, formatDateTime, formatStatus } from "@/lib/orders";
+import { formatDateTime, formatStatus } from "@/lib/orders";
+import {
+  allowedNextStatuses,
+  getAllOrders,
+  setOrderDeliveryFee,
+  updateOrderDetails,
+  updateOrderStatus,
+} from "@/lib/adminOrders";
 import { extractErrorMessage } from "@/lib/error-utils";
-import type { Order } from "@/types";
+import type { AdminOrder } from "@/types";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -16,23 +23,38 @@ const STATUS_OPTIONS = [
   { value: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-800" },
 ];
 
+const statusLabel = (value: string) =>
+  STATUS_OPTIONS.find((option) => option.value === value)?.label || formatStatus(value);
+
 export default function AdminOrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Filters
+  // Filters — applied server-side so pagination counts stay correct
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
 
   // Pagination
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
-  const [limit] = useState(20);
+  const limit = 20;
+
+  // Per-order action state, scoped to the details modal
+  const [nextStatus, setNextStatus] = useState("");
+  const [statusNote, setStatusNote] = useState("");
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
+  const [trackingInput, setTrackingInput] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -43,41 +65,140 @@ export default function AdminOrdersPage() {
     }
   }, [status, session, router]);
 
-  // Load orders
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.isAdmin) {
-      loadOrders();
-    }
-  }, [status, session, skip]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     if (!session?.accessToken) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data = await getUserOrders(session?.accessToken, skip, limit);
+      const data = await getAllOrders(session.accessToken, {
+        status: statusFilter || undefined,
+        search: appliedSearch || undefined,
+        skip,
+        limit,
+      });
 
-      // Filter by status if selected
-      const filteredOrders = statusFilter
-        ? data.orders.filter((order) => order.status === statusFilter)
-        : data.orders;
-
-      setOrders(filteredOrders);
+      setOrders(data.orders);
       setTotal(data.total);
-    } catch (err: any) {
-      console.error("Error loading orders:", err);
-      setError(err.message || "Failed to load orders");
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Failed to load orders"));
     } finally {
       setLoading(false);
     }
+  }, [session?.accessToken, statusFilter, appliedSearch, skip]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.isAdmin) {
+      loadOrders();
+    }
+  }, [status, session?.user?.isAdmin, loadOrders]);
+
+  const openOrder = (order: AdminOrder) => {
+    setSelectedOrder(order);
+    setNextStatus("");
+    setStatusNote("");
+    setDeliveryFeeInput(String(order.deliveryFee ?? 0));
+    setTrackingInput(order.trackingNumber || "");
+    setActionError(null);
+    setActionMessage(null);
+    setConfirmCancel(false);
+    setShowDetailsModal(true);
+  };
+
+  /**
+   * Run an admin action, then reflect the updated order in both the modal and
+   * the table row so the list never shows a stale status or total.
+   */
+  const runAction = async (
+    key: string,
+    action: (token: string, orderId: string) => Promise<AdminOrder>,
+    successMessage: string
+  ) => {
+    if (!session?.accessToken || !selectedOrder) return;
+
+    setSaving(key);
+    setActionError(null);
+    setActionMessage(null);
+
+    try {
+      const updated = await action(session.accessToken, selectedOrder.id);
+
+      setSelectedOrder(updated);
+      setOrders((current) =>
+        current.map((order) => (order.id === updated.id ? updated : order))
+      );
+      setNextStatus("");
+      setStatusNote("");
+      setDeliveryFeeInput(String(updated.deliveryFee ?? 0));
+      setTrackingInput(updated.trackingNumber || "");
+      setConfirmCancel(false);
+      setActionMessage(successMessage);
+    } catch (err: unknown) {
+      setActionError(extractErrorMessage(err, "Action failed"));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleStatusChange = () => {
+    if (!nextStatus) return;
+
+    // Cancelling returns stock to inventory, so make the admin confirm first.
+    if (nextStatus === "cancelled" && !confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+
+    runAction(
+      "status",
+      (token, orderId) => updateOrderStatus(token, orderId, nextStatus, statusNote || undefined),
+      nextStatus === "cancelled"
+        ? "Order cancelled and items returned to stock"
+        : `Status updated to ${statusLabel(nextStatus)}`
+    );
+  };
+
+  const handleDeliveryFee = () => {
+    const fee = Number(deliveryFeeInput);
+
+    if (!Number.isFinite(fee) || fee < 0) {
+      setActionError("Enter a delivery fee of 0 or more");
+      return;
+    }
+
+    runAction(
+      "delivery",
+      (token, orderId) => setOrderDeliveryFee(token, orderId, fee),
+      "Delivery fee saved and total updated"
+    );
+  };
+
+  const handleTracking = () => {
+    runAction(
+      "tracking",
+      (token, orderId) => updateOrderDetails(token, orderId, { trackingNumber: trackingInput }),
+      trackingInput ? "Tracking number saved" : "Tracking number cleared"
+    );
+  };
+
+  const handlePaymentToggle = () => {
+    if (!selectedOrder) return;
+    const nextValue = !selectedOrder.paymentConfirmed;
+
+    runAction(
+      "payment",
+      (token, orderId) => updateOrderDetails(token, orderId, { paymentConfirmed: nextValue }),
+      nextValue ? "Payment marked as received" : "Payment marked as unpaid"
+    );
   };
 
   const getStatusBadge = (statusValue: string) => {
     const statusOption = STATUS_OPTIONS.find((s) => s.value === statusValue);
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusOption?.color || "bg-gray-100"}`}>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusOption?.color || "bg-gray-100"}`}
+      >
         {statusOption?.label || formatStatus(statusValue)}
       </span>
     );
@@ -96,7 +217,9 @@ export default function AdminOrdersPage() {
   }
 
   const currentPage = Math.floor(skip / limit) + 1;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const nextOptions = selectedOrder ? allowedNextStatuses(selectedOrder.status) : [];
+  const isFinal = selectedOrder ? nextOptions.length === 0 : false;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -130,16 +253,43 @@ export default function AdminOrdersPage() {
               </select>
             </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Search</label>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSkip(0);
+                  setAppliedSearch(searchTerm.trim());
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Order number, name or email"
+                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
+                >
+                  Search
+                </button>
+              </form>
+            </div>
+
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setStatusFilter("");
+                  setSearchTerm("");
+                  setAppliedSearch("");
                   setSkip(0);
-                  loadOrders();
                 }}
                 className="w-full px-4 py-2 border rounded hover:bg-accent transition-colors"
               >
-                Clear & Reload
+                Clear filters
               </button>
             </div>
           </div>
@@ -173,6 +323,7 @@ export default function AdminOrdersPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
                       <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                       <th className="px-4 py-3 text-left text-sm font-medium">Payment</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium">Delivery</th>
                       <th className="px-4 py-3 text-left text-sm font-medium">Total</th>
                       <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
                     </tr>
@@ -182,10 +333,7 @@ export default function AdminOrdersPage() {
                       <tr key={order.id} className="border-t hover:bg-accent/5">
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setShowDetailsModal(true);
-                            }}
+                            onClick={() => openOrder(order)}
                             className="text-secondary hover:underline font-medium"
                           >
                             {order.orderNumber}
@@ -193,9 +341,7 @@ export default function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div>
-                            <div className="font-medium">
-                              {order.guestName || `User ${order.userId}`}
-                            </div>
+                            <div className="font-medium">{order.guestName || "Account holder"}</div>
                             <div className="text-sm text-muted-foreground">
                               {order.guestEmail || order.guestPhone}
                             </div>
@@ -206,9 +352,7 @@ export default function AdminOrdersPage() {
                             {new Date(order.createdAt).toLocaleDateString()}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          {getStatusBadge(order.status)}
-                        </td>
+                        <td className="px-4 py-3">{getStatusBadge(order.status)}</td>
                         <td className="px-4 py-3">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -220,18 +364,22 @@ export default function AdminOrdersPage() {
                             {order.paymentConfirmed ? "Confirmed" : "Pending"}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-sm">
+                          {Number(order.deliveryFee) > 0 ? (
+                            `KES ${Number(order.deliveryFee).toLocaleString()}`
+                          ) : (
+                            <span className="text-muted-foreground">Not set</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 font-medium">
-                          KES {(order.totalAmount || 0).toLocaleString()}
+                          KES {Number(order.totalAmount || 0).toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setShowDetailsModal(true);
-                            }}
+                            onClick={() => openOrder(order)}
                             className="px-3 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 text-sm"
                           >
-                            Details
+                            Manage
                           </button>
                         </td>
                       </tr>
@@ -269,26 +417,39 @@ export default function AdminOrdersPage() {
           </>
         )}
 
-        {/* Order Details Modal */}
+        {/* Order Details & Management Modal */}
         {showDetailsModal && selectedOrder && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Order Details</h2>
+                  <h2 className="text-2xl font-bold">Order {selectedOrder.orderNumber}</h2>
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     className="text-muted-foreground hover:text-foreground"
+                    aria-label="Close"
                   >
                     ✕
                   </button>
                 </div>
 
+                {actionError && (
+                  <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded border border-destructive text-sm">
+                    {actionError}
+                  </div>
+                )}
+
+                {actionMessage && (
+                  <div className="mb-4 p-3 bg-green-50 text-green-800 rounded border border-green-200 text-sm">
+                    {actionMessage}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm text-muted-foreground">Order Number</div>
-                      <div className="font-medium">{selectedOrder.orderNumber}</div>
+                      <div className="text-sm text-muted-foreground">Placed</div>
+                      <div className="font-medium">{formatDateTime(selectedOrder.createdAt)}</div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Status</div>
@@ -323,56 +484,189 @@ export default function AdminOrdersPage() {
                     </div>
                   )}
 
+                  {selectedOrder.orderItems && selectedOrder.orderItems.length > 0 && (
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold mb-2">Items</h3>
+                      <div className="space-y-2">
+                        {selectedOrder.orderItems.map((item) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span>
+                              {item.productTitle} × {item.quantity}
+                            </span>
+                            <span>KES {Number(item.totalPrice).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="border-t pt-4">
                     <h3 className="font-semibold mb-2">Pricing</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>KES {(selectedOrder.subtotal || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
                       </div>
-                      {selectedOrder.discountAmount > 0 && (
+                      {Number(selectedOrder.discountAmount) > 0 && (
                         <div className="flex justify-between text-green-600">
                           <span>Discount:</span>
-                          <span>-KES {selectedOrder.discountAmount.toLocaleString()}</span>
+                          <span>
+                            -KES {Number(selectedOrder.discountAmount).toLocaleString()}
+                          </span>
                         </div>
                       )}
                       <div className="flex justify-between">
                         <span>Delivery Fee:</span>
-                        <span>KES {(selectedOrder.deliveryFee || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedOrder.deliveryFee || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total:</span>
-                        <span>KES {(selectedOrder.totalAmount || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedOrder.totalAmount || 0).toLocaleString()}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Delivery fee — the figure agreed with the customer */}
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold mb-2">Set Delivery Fee</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Delivery cost is agreed with the customer directly. Saving it here updates
+                      the order total; the customer is not emailed automatically.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={deliveryFeeInput}
+                        onChange={(e) => setDeliveryFeeInput(e.target.value)}
+                        disabled={selectedOrder.status === "cancelled"}
+                        className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-50"
+                      />
+                      <button
+                        onClick={handleDeliveryFee}
+                        disabled={saving !== null || selectedOrder.status === "cancelled"}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
+                      >
+                        {saving === "delivery" ? "Saving..." : "Save fee"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Status transitions */}
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold mb-2">Update Status</h3>
+                    {isFinal ? (
+                      <p className="text-sm text-muted-foreground">
+                        This order is {statusLabel(selectedOrder.status).toLowerCase()} and can no
+                        longer be changed.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <select
+                          value={nextStatus}
+                          onChange={(e) => {
+                            setNextStatus(e.target.value);
+                            setConfirmCancel(false);
+                          }}
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
+                        >
+                          <option value="">Choose new status...</option>
+                          {nextOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {statusLabel(option)}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={statusNote}
+                          onChange={(e) => setStatusNote(e.target.value)}
+                          placeholder="Note (optional)"
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
+                        />
+                        {confirmCancel && (
+                          <div className="p-3 bg-destructive/10 text-destructive rounded border border-destructive text-sm">
+                            Cancelling returns every item on this order to stock. This cannot be
+                            undone — press the button again to confirm.
+                          </div>
+                        )}
+                        <button
+                          onClick={handleStatusChange}
+                          disabled={!nextStatus || saving !== null}
+                          className={`w-full px-4 py-2 rounded disabled:opacity-50 ${
+                            nextStatus === "cancelled"
+                              ? "bg-destructive text-white hover:bg-destructive/90"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          }`}
+                        >
+                          {saving === "status"
+                            ? "Updating..."
+                            : confirmCancel
+                              ? "Confirm cancellation & restock"
+                              : "Update status"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold mb-2">Payment</h3>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-sm">
+                        <div>
+                          Method: {selectedOrder.paymentMethod || "N/A"}
+                        </div>
+                        <div
+                          className={
+                            selectedOrder.paymentConfirmed ? "text-green-600" : "text-yellow-600"
+                          }
+                        >
+                          {selectedOrder.paymentConfirmed ? "Confirmed ✓" : "Pending"}
+                          {selectedOrder.paymentConfirmedAt &&
+                            ` — ${formatDateTime(selectedOrder.paymentConfirmedAt)}`}
+                        </div>
+                      </div>
+                      <button
+                        onClick={handlePaymentToggle}
+                        disabled={saving !== null}
+                        className="px-4 py-2 border rounded hover:bg-accent transition-colors disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {saving === "payment"
+                          ? "Saving..."
+                          : selectedOrder.paymentConfirmed
+                            ? "Mark unpaid"
+                            : "Mark received"}
+                      </button>
                     </div>
                   </div>
 
                   <div className="border-t pt-4">
-                    <h3 className="font-semibold mb-2">Payment Information</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Payment Method:</span>
-                        <span>{selectedOrder.paymentMethod || "N/A"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Payment Status:</span>
-                        <span className={selectedOrder.paymentConfirmed ? "text-green-600" : "text-yellow-600"}>
-                          {selectedOrder.paymentConfirmed ? "Confirmed ✓" : "Pending"}
-                        </span>
-                      </div>
-                      {selectedOrder.paymentConfirmedAt && (
-                        <div className="flex justify-between">
-                          <span>Confirmed At:</span>
-                          <span>{formatDateTime(selectedOrder.paymentConfirmedAt)}</span>
-                        </div>
-                      )}
+                    <h3 className="font-semibold mb-2">Tracking Number</h3>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={trackingInput}
+                        onChange={(e) => setTrackingInput(e.target.value)}
+                        placeholder="Courier reference"
+                        className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-secondary"
+                      />
+                      <button
+                        onClick={handleTracking}
+                        disabled={saving !== null}
+                        className="px-4 py-2 border rounded hover:bg-accent transition-colors disabled:opacity-50"
+                      >
+                        {saving === "tracking" ? "Saving..." : "Save"}
+                      </button>
                     </div>
                   </div>
 
-                  {selectedOrder.trackingNumber && (
+                  {selectedOrder.adminNotes && (
                     <div className="border-t pt-4">
-                      <div className="text-sm text-muted-foreground">Tracking Number</div>
-                      <div className="font-mono">{selectedOrder.trackingNumber}</div>
+                      <h3 className="font-semibold mb-2">Admin Notes</h3>
+                      <pre className="text-sm whitespace-pre-wrap font-sans text-muted-foreground">
+                        {selectedOrder.adminNotes.trim()}
+                      </pre>
                     </div>
                   )}
 

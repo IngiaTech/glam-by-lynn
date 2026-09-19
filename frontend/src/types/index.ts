@@ -196,6 +196,14 @@ export interface Order {
   updatedAt: string;
 }
 
+/**
+ * An order as the admin dashboard sees it: everything in Order plus the
+ * internal-only fields the admin endpoints return.
+ */
+export interface AdminOrder extends Order {
+  adminNotes?: string;
+}
+
 export interface OrderItem {
   id: string;
   orderId: string;
