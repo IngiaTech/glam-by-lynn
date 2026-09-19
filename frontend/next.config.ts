@@ -1,5 +1,35 @@
 import type { NextConfig } from "next";
 
+/**
+ * Hosts allowed through the next/image optimizer.
+ *
+ * `hostname: '**'` turns the deployment into an open image proxy: any HTTPS URL
+ * on the internet can be fetched and cached at our expense, and served from our
+ * domain. Only the hosts that actually serve our media belong here:
+ *   - the API host itself (locally-stored uploads under /uploads)
+ *   - Cloudinary and S3, the two configurable storage providers
+ */
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+const apiImageHost = (() => {
+  if (!apiUrl) return [];
+  try {
+    const { protocol, hostname, port } = new URL(apiUrl);
+    return [
+      {
+        protocol: protocol.replace(":", "") as "http" | "https",
+        hostname,
+        ...(port ? { port } : {}),
+        pathname: "/uploads/**",
+      },
+    ];
+  } catch {
+    // A malformed NEXT_PUBLIC_API_URL shouldn't break the build; the host is
+    // simply not allowlisted and the image request 400s visibly.
+    return [];
+  }
+})();
+
 const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -7,9 +37,21 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
     remotePatterns: [
+      ...apiImageHost,
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.*.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+        pathname: '/**',
       },
     ],
   },
