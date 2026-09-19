@@ -102,6 +102,14 @@ export const API_ENDPOINTS = {
     CANCEL: (id: string) => `/api/admin/bookings/${id}`,
     EXPORT_CSV: "/api/admin/bookings/export/csv",
   },
+  // Admin - Orders
+  ADMIN_ORDERS: {
+    LIST: "/api/admin/orders",
+    DETAIL: (id: string) => `/api/admin/orders/${id}`,
+    UPDATE: (id: string) => `/api/admin/orders/${id}`,
+    STATUS: (id: string) => `/api/admin/orders/${id}/status`,
+    DELIVERY: (id: string) => `/api/admin/orders/${id}/delivery`,
+  },
   // Makeup Classes (Public)
   CLASSES: {
     LIST: "/api/classes",
