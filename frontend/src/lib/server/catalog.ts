@@ -16,7 +16,13 @@
  */
 
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
-import type { Category, Product, ServicePackage } from "@/types";
+import type { Category, GalleryPost, Product, ServicePackage } from "@/types";
+import type {
+  Category as HomepageCategory,
+  Product as HomepageProduct,
+  ServicePackage as HomepageServicePackage,
+  Testimonial as HomepageTestimonial,
+} from "@/types/homepage";
 
 /** How long server-rendered catalog data stays fresh, in seconds. */
 export const CATALOG_REVALIDATE_SECONDS = 300;
@@ -161,4 +167,86 @@ export async function getServicePackagesForServer(): Promise<ServicePackage[]> {
 
   if (!data) return [];
   return data.items ?? [];
+}
+
+/**
+ * Everything the homepage renders above the fold, fetched in parallel.
+ *
+ * The client version ran these four requests in sequence inside a single
+ * `useEffect`, so the slowest one gated the rest. Each failure is independent:
+ * one empty section is better than an empty homepage.
+ */
+export interface HomepageData {
+  featuredServices: HomepageServicePackage[];
+  featuredProducts: HomepageProduct[];
+  categories: HomepageCategory[];
+  testimonials: HomepageTestimonial[];
+}
+
+export async function getHomepageData(): Promise<HomepageData> {
+  const [featured, products, categories, testimonials] = await Promise.all([
+    fetchJson<Paginated<HomepageServicePackage> | HomepageServicePackage[]>(
+      `${API_ENDPOINTS.SERVICES.LIST}?is_featured=true&page_size=3`,
+      "featured services"
+    ),
+    fetchJson<Paginated<HomepageProduct> | HomepageProduct[]>(
+      `${API_ENDPOINTS.PRODUCTS.FEATURED}?limit=6`,
+      "featured products"
+    ),
+    fetchJson<Paginated<HomepageCategory> | HomepageCategory[]>(
+      `${API_ENDPOINTS.CATEGORIES.LIST}?limit=4`,
+      "homepage categories"
+    ),
+    fetchJson<Paginated<HomepageTestimonial> | HomepageTestimonial[]>(
+      `${API_ENDPOINTS.TESTIMONIALS.FEATURED}?limit=3`,
+      "featured testimonials"
+    ),
+  ]);
+
+  const unwrap = <T,>(value: Paginated<T> | T[] | null): T[] => {
+    if (!value) return [];
+    return Array.isArray(value) ? value : (value.items ?? []);
+  };
+
+  let featuredServices = unwrap<HomepageServicePackage>(featured);
+
+  // Nothing flagged as featured yet — fall back to the first three, matching
+  // what the client component did.
+  if (featuredServices.length === 0) {
+    const fallback = await fetchJson<
+      Paginated<HomepageServicePackage> | HomepageServicePackage[]
+    >(`${API_ENDPOINTS.SERVICES.LIST}?page_size=3`, "services fallback");
+    featuredServices = unwrap<HomepageServicePackage>(fallback);
+  }
+
+  return {
+    featuredServices,
+    featuredProducts: unwrap<HomepageProduct>(products),
+    categories: unwrap<HomepageCategory>(categories),
+    testimonials: unwrap<HomepageTestimonial>(testimonials),
+  };
+}
+
+export interface ServerGalleryPage {
+  posts: GalleryPost[];
+  totalPages: number;
+}
+
+/**
+ * First page of the gallery, unfiltered — the state the page opens in.
+ *
+ * Filtered and paged views stay on the client: they're behaviour a crawler
+ * never reaches, and only the default view needs to be in the initial HTML.
+ */
+export async function getGalleryPostsForServer(pageSize = 12): Promise<ServerGalleryPage> {
+  const params = new URLSearchParams({ page: "1", page_size: String(pageSize) });
+
+  const data = await fetchJson<Paginated<GalleryPost>>(
+    `${API_ENDPOINTS.GALLERY.LIST}?${params}`,
+    "gallery"
+  );
+
+  if (!data) return { posts: [], totalPages: 1 };
+
+  return { posts: data.items ?? [], totalPages: data.total_pages ?? 1 };
 }
