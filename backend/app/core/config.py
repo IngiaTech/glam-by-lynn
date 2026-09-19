@@ -75,6 +75,18 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
+    # Number of *trusted* reverse proxies in front of the app, used to pick the
+    # real client IP out of X-Forwarded-For. XFF is appended to by each hop and
+    # is attacker-controlled at the front, so the client IP is the Nth entry
+    # from the right, where N is the number of proxies we actually run.
+    #
+    # 0 (the default) means "don't trust X-Forwarded-For at all". That's correct
+    # on Render, where Cloudflare fronts every service and supplies the
+    # non-forgeable CF-Connecting-IP header instead. Behind a single nginx or
+    # ALB that you control (e.g. after a move to Docker on DO/AWS), set this
+    # to 1.
+    TRUSTED_PROXY_HOPS: int = 0
+
     # Observability
     LOG_LEVEL: str = "INFO"
     SENTRY_DSN: str = ""
