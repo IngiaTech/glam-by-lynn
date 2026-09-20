@@ -8,12 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User
-from app.schemas.analytics import (
-    BookingAnalytics,
-    OverviewStats,
-    ProductAnalytics,
-    SalesAnalytics,
-)
+from app.schemas.analytics import OverviewStats
 from app.services import analytics_service
 
 router = APIRouter(tags=["Admin Analytics"])
@@ -54,123 +49,6 @@ def get_overview_analytics(
     return OverviewStats(**stats)
 
 
-@router.get(
-    "/admin/analytics/sales",
-    response_model=SalesAnalytics,
-    summary="Get sales analytics (admin only)",
-)
-def get_sales_analytics(
-    start_date: Optional[datetime] = Query(
-        None,
-        alias="startDate",
-        description="Start date for analytics period",
-    ),
-    end_date: Optional[datetime] = Query(
-        None,
-        alias="endDate",
-        description="End date for analytics period",
-    ),
-    interval: str = Query(
-        "day",
-        description="Time interval for data points ('day', 'week', 'month')",
-    ),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
-):
-    """
-    Get sales analytics with time series data.
-
-    Returns revenue, order counts, and average order value over time.
-    """
-    # Default to last 30 days if not specified
-    if not end_date:
-        end_date = datetime.utcnow()
-    if not start_date:
-        start_date = end_date - timedelta(days=30)
-
-    analytics = analytics_service.get_sales_analytics(db, start_date, end_date, interval)
-    return SalesAnalytics(**analytics)
-
-
-@router.get(
-    "/admin/analytics/products",
-    response_model=ProductAnalytics,
-    summary="Get product analytics (admin only)",
-)
-def get_product_analytics(
-    start_date: Optional[datetime] = Query(
-        None,
-        alias="startDate",
-        description="Start date for analytics period",
-    ),
-    end_date: Optional[datetime] = Query(
-        None,
-        alias="endDate",
-        description="End date for analytics period",
-    ),
-    limit: int = Query(
-        10,
-        ge=1,
-        le=50,
-        description="Number of top products to return",
-    ),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
-):
-    """
-    Get product performance analytics.
-
-    Returns top selling products by revenue and stock information.
-    """
-    # Default to last 30 days if not specified
-    if not end_date:
-        end_date = datetime.utcnow()
-    if not start_date:
-        start_date = end_date - timedelta(days=30)
-
-    analytics = analytics_service.get_product_analytics(db, start_date, end_date, limit)
-    return ProductAnalytics(**analytics)
-
-
-@router.get(
-    "/admin/analytics/bookings",
-    response_model=BookingAnalytics,
-    summary="Get booking analytics (admin only)",
-)
-def get_booking_analytics(
-    start_date: Optional[datetime] = Query(
-        None,
-        alias="startDate",
-        description="Start date for analytics period",
-    ),
-    end_date: Optional[datetime] = Query(
-        None,
-        alias="endDate",
-        description="End date for analytics period",
-    ),
-    interval: str = Query(
-        "day",
-        description="Time interval for data points ('day', 'week', 'month')",
-    ),
-    limit: int = Query(
-        5,
-        ge=1,
-        le=20,
-        description="Number of top services to return",
-    ),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
-):
-    """
-    Get booking analytics with time series data.
-
-    Returns booking counts, revenue, status distribution, and top services.
-    """
-    # Default to last 30 days if not specified
-    if not end_date:
-        end_date = datetime.utcnow()
-    if not start_date:
-        start_date = end_date - timedelta(days=30)
-
-    analytics = analytics_service.get_booking_analytics(db, start_date, end_date, interval, limit)
-    return BookingAnalytics(**analytics)
+# The sales, products and bookings analytics endpoints were removed (Cut List).
+# The admin dashboard calls /admin/analytics/overview and nothing else; the
+# other three were never requested by any client.
