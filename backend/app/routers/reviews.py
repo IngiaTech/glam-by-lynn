@@ -130,26 +130,3 @@ async def get_my_review_for_product(
         )
 
     return review
-
-
-@router.post("/reviews/{review_id}/helpful", response_model=ReviewResponse)
-async def mark_review_helpful(
-    review_id: UUID,
-    db: Session = Depends(get_db),
-):
-    """
-    Mark a review as helpful (public).
-
-    Increments the helpful_count for a review. No authentication required.
-    In a production system, you might want to track which users marked
-    which reviews as helpful to prevent duplicate votes.
-    """
-    review = review_service.mark_review_helpful(db, review_id)
-
-    if not review:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Review with ID {review_id} not found",
-        )
-
-    return review

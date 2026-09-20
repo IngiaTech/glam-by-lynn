@@ -119,13 +119,6 @@ export async function deleteReview(reviewId: string, token: string): Promise<voi
 }
 
 /**
- * Mark a review as helpful
- */
-export async function markReviewHelpful(reviewId: string): Promise<void> {
-  await axios.post(`${API_BASE_URL}${API_ENDPOINTS.REVIEWS.MARK_HELPFUL(reviewId)}`);
-}
-
-/**
  * Check if current user has reviewed a product
  */
 export async function hasUserReviewedProduct(

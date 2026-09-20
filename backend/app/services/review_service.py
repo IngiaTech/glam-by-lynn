@@ -298,49 +298,11 @@ def admin_update_review(
     return True, "Review updated successfully", review
 
 
-def increment_helpful_count(db: Session, review_id: UUID) -> Tuple[bool, str]:
-    """
-    Increment helpful count for a review.
-
-    Args:
-        db: Database session
-        review_id: Review ID
-
-    Returns:
-        Tuple of (success, message)
-    """
-    review = db.query(Review).filter(Review.id == review_id).first()
-
-    if not review:
-        return False, "Review not found"
-
-    review.helpful_count += 1
-    db.commit()
-
-    return True, "Review marked as helpful"
-
-
-def mark_review_helpful(db: Session, review_id: UUID) -> Optional[Review]:
-    """
-    Increment helpful count for a review (deprecated - use increment_helpful_count).
-
-    Args:
-        db: Database session
-        review_id: Review ID
-
-    Returns:
-        Updated review or None if not found
-    """
-    review = db.query(Review).filter(Review.id == review_id).first()
-
-    if not review:
-        return None
-
-    review.helpful_count += 1
-    db.commit()
-    db.refresh(review)
-
-    return review
+# increment_helpful_count / mark_review_helpful were removed with the "Helpful"
+# vote feature (readiness M11). Both were reachable unauthenticated and without
+# any per-user or per-IP dedup, so any review's helpful_count could be inflated
+# at will. The column is kept so historical counts aren't destroyed, but nothing
+# writes to it any more.
 
 
 def get_product_rating_summary(db: Session, product_id: UUID) -> dict:

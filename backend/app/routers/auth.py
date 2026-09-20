@@ -229,39 +229,11 @@ async def logout(
     }
 
 
-@router.post("/guest", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_guest_user(
-    email: str,
-    name: str = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Create a guest user account (without Google OAuth)
-    Used for checkout and booking without registration
-
-    Args:
-        email: Guest email address
-        name: Optional guest name
-        db: Database session
-
-    Returns:
-        Created guest user
-
-    Raises:
-        HTTPException: If user with email already exists
-    """
-    try:
-        guest_user = user_service.create_guest_user(
-            db=db,
-            email=email,
-            name=name
-        )
-        return guest_user
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+# POST /auth/guest was removed (readiness M12). It created a User row from an
+# unauthenticated query parameter and returned a distinct "already exists"
+# error, which made it an email-enumeration oracle and an unbounded row-spam
+# vector. Nothing called it: guest checkout carries the customer's details
+# inline on the order or booking and never creates a guest account.
 
 
 @router.post("/link-guest-data")

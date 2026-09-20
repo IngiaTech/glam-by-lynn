@@ -302,38 +302,3 @@ def admin_update_review(
         )
 
     return review
-
-
-@router.post(
-    "/reviews/{review_id}/helpful",
-    status_code=status.HTTP_200_OK,
-    summary="Mark review as helpful",
-)
-def mark_review_helpful(
-    review_id: str,
-    db: Session = Depends(get_db),
-):
-    """
-    Increment the helpful count for a review.
-
-    No authentication required (can be done by anyone).
-    """
-    from uuid import UUID
-
-    try:
-        review_uuid = UUID(review_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid review ID format",
-        )
-
-    success, message = review_service.increment_helpful_count(db, review_uuid)
-
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=message,
-        )
-
-    return {"message": "Review marked as helpful"}

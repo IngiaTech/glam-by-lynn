@@ -498,13 +498,17 @@ def test_admin_update_review_unauthorized(client, db_session, user_token, sample
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_mark_review_helpful(client, db_session, sample_product, regular_user):
-    """Test marking a review as helpful."""
+def test_helpful_vote_endpoint_is_gone(client, db_session, sample_product, regular_user):
+    """The "Helpful" vote was removed (readiness M11).
+
+    It was unauthenticated and un-deduped, so helpful_count could be inflated
+    arbitrarily — review-ranking manipulation on a shop with few reviews.
+    """
     review = Review(
         product_id=sample_product.id,
         user_id=regular_user.id,
         rating=5,
-        review_text="Helpful review that other customers find useful and informative.",
+        review_text="A review that customers would previously have been able to vote on.",
         is_approved=True,
         helpful_count=0,
     )
@@ -514,8 +518,11 @@ def test_mark_review_helpful(client, db_session, sample_product, regular_user):
 
     response = client.post(f"/api/reviews/{review.id}/helpful")
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code in (
+        status.HTTP_404_NOT_FOUND,
+        status.HTTP_405_METHOD_NOT_ALLOWED,
+    )
 
-    # Verify helpful count incremented
+    # And the count is untouched — no shadowed duplicate route picked it up.
     db_session.refresh(review)
-    assert review.helpful_count == 1
+    assert review.helpful_count == 0

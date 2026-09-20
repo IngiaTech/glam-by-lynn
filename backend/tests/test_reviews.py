@@ -188,8 +188,13 @@ def test_get_my_review_not_found(client: TestClient, test_user, test_product, au
     assert response.status_code == 404
 
 
-def test_mark_review_helpful(client: TestClient, db_session: Session, test_product):
-    """Test marking a review as helpful."""
+def test_helpful_vote_endpoint_is_gone(client: TestClient, db_session: Session, test_product):
+    """Duplicate coverage of the removal, against the shadowed router.
+
+    Two routers both declared POST /api/reviews/{id}/helpful; the first
+    registered one shadowed the second. Removing only one would have silently
+    promoted the other, so both are asserted gone.
+    """
     user = User(email="user@test.com", google_id="user_123", full_name="User", is_active=True)
     db_session.add(user)
     db_session.commit()
@@ -200,6 +205,7 @@ def test_mark_review_helpful(client: TestClient, db_session: Session, test_produ
 
     response = client.post(f"/api/reviews/{review.id}/helpful")
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["helpfulCount"] == 1
+    assert response.status_code in (404, 405)
+
+    db_session.refresh(review)
+    assert review.helpful_count == 0

@@ -301,41 +301,30 @@ class TestRefreshToken:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-class TestGuestUserCreation:
-    """Test guest user creation and management"""
+class TestGuestUserEndpointRemoved:
+    """POST /auth/guest was removed (readiness M12).
 
-    def test_create_guest_user(self, client, db_session):
-        """Test creating a guest user"""
-        response = client.post(
-            "/api/auth/guest?email=guest@test.com&name=Guest+User"
+    It created a User row from an unauthenticated query parameter and returned
+    a distinct "already exists" error, making it both an email-enumeration
+    oracle and an unbounded row-spam vector. Nothing called it — guest checkout
+    carries customer details inline on the order or booking.
+    """
+
+    def test_guest_endpoint_is_gone(self, client):
+        response = client.post("/api/auth/guest?email=guest@test.com")
+        assert response.status_code in (
+            status.HTTP_404_NOT_FOUND,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
+    def test_guest_endpoint_cannot_enumerate_existing_emails(self, client, regular_user):
+        """The enumeration oracle specifically: a known email must not be
+        distinguishable from an unknown one."""
+        known = client.post(f"/api/auth/guest?email={regular_user.email}")
+        unknown = client.post("/api/auth/guest?email=nobody-here@test.com")
 
-        assert data["email"] == "guest@test.com"
-        assert data["name"] == "Guest User"
-        assert data["isAdmin"] is False
-        assert data["googleId"] is None
-
-        # Verify in database
-        user = db_session.query(User).filter(User.email == "guest@test.com").first()
-        assert user is not None
-        assert user.google_id is None
-
-    def test_create_guest_user_without_name(self, client, db_session):
-        """Test creating guest user without name"""
-        response = client.post("/api/auth/guest?email=guest2@test.com")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["email"] == "guest2@test.com"
-
-    def test_create_guest_user_duplicate_email(self, client, regular_user):
-        """Test creating guest user with existing email"""
-        response = client.post(f"/api/auth/guest?email={regular_user.email}")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert known.status_code == unknown.status_code
+        assert known.status_code != status.HTTP_400_BAD_REQUEST
 
 
 class TestGuestDataLinking:
