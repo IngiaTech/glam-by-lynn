@@ -20,7 +20,7 @@ const locationSchema = z.object({
 }).refine(
   (data) => {
     // If marked as free, transport cost should be 0
-    if (data.isFree && data.transportCost > 0) {
+    if (data.isFree && Number(data.transportCost) > 0) {
       return false;
     }
     return true;
@@ -245,7 +245,7 @@ export default function NewLocation() {
                 {formData.isFree ? (
                   <span className="text-green-600">FREE</span>
                 ) : (
-                  `KES ${formData.transportCost.toLocaleString()}`
+                  `KES ${Number(formData.transportCost).toLocaleString()}`
                 )}
               </span>
             </div>

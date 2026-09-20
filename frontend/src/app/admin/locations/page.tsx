@@ -182,8 +182,13 @@ export default function LocationsManagement() {
     setFreeFilter("all");
   };
 
-  const formatPrice = (price: number) => {
-    return `KES ${price.toLocaleString()}`;
+  const formatPrice = (price: number | string) => {
+    // transport_cost is a Decimal, which serialises as a JSON string. Calling
+    // toLocaleString() on "2500.00" returns it unchanged, silently dropping
+    // the thousands separator.
+    const value = typeof price === "string" ? Number(price) : price;
+    if (!Number.isFinite(value)) return "KES 0";
+    return `KES ${value.toLocaleString()}`;
   };
 
   if (loading) {
