@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import BackgroundTasks
 from sqlalchemy import or_, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.order import Cart, CartItem, Order, OrderItem
@@ -22,25 +23,24 @@ from app.services.order_notifications import schedule_order_notifications
 logger = logging.getLogger(__name__)
 
 
-def generate_order_number(db: Session) -> str:
+def generate_order_number(db: Session = None) -> str:
     """
-    Generate a unique order number.
+    Generate an order number.
 
-    Format: ORD-YYYYMMDD-XXXXX where X is random alphanumeric
+    Format: ORD-YYYYMMDD-XXXXX where X is random alphanumeric.
+
+    This no longer SELECTs to check the number is free. That check was a
+    check-then-insert race: two concurrent orders could both find the same
+    number unused and the loser would 500 on the unique constraint at commit.
+    The constraint is the real guard; create_order retries on IntegrityError.
+
+    `db` is accepted but unused, so existing callers don't need changing.
     """
     date_part = datetime.utcnow().strftime("%Y%m%d")
-
-    # Generate random 5-character suffix
-    while True:
-        random_part = "".join(
-            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5)
-        )
-        order_number = f"ORD-{date_part}-{random_part}"
-
-        # Check if order number already exists
-        existing = db.query(Order).filter(Order.order_number == order_number).first()
-        if not existing:
-            return order_number
+    random_part = "".join(
+        secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5)
+    )
+    return f"ORD-{date_part}-{random_part}"
 
 
 def validate_cart_and_calculate_totals(
@@ -198,6 +198,52 @@ def validate_inline_items_and_calculate_totals(
 
 
 def create_order(
+    db: Session,
+    user: Optional[User],
+    guest_info: Optional[GuestInfo],
+    delivery_info: DeliveryInfo,
+    promo_code: Optional[str],
+    payment_method: Optional[str],
+    cart_items: Optional[List[OrderItemCreate]] = None,
+    contact_phone: Optional[str] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+) -> Tuple[bool, str, Optional[Order]]:
+    """
+    Create an order, retrying once if the generated order number collides.
+
+    Order numbers carry a random 5-character suffix, so a same-day collision is
+    about 1 in 36^5 — rare, but it used to surface as a 500 for the losing
+    customer. The unique constraint raises IntegrityError at commit; we roll
+    back and run the whole creation again rather than just retrying the commit,
+    because the rollback also discards the stock decrements, the promo-usage
+    increment and the cart clear. Re-running re-reads and re-validates all of
+    them, so the retry is equivalent to a fresh attempt.
+
+    See _create_order_once for the argument documentation.
+    """
+    for attempt in range(2):
+        try:
+            return _create_order_once(
+                db=db,
+                user=user,
+                guest_info=guest_info,
+                delivery_info=delivery_info,
+                promo_code=promo_code,
+                payment_method=payment_method,
+                cart_items=cart_items,
+                contact_phone=contact_phone,
+                background_tasks=background_tasks,
+            )
+        except IntegrityError:
+            db.rollback()
+            if attempt == 1:
+                raise
+            logger.warning(
+                "Order creation hit an integrity error; retrying with a new order number"
+            )
+
+
+def _create_order_once(
     db: Session,
     user: Optional[User],
     guest_info: Optional[GuestInfo],

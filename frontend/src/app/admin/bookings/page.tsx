@@ -372,7 +372,7 @@ export default function AdminBookingsPage() {
                           </Button>
                         </td>
                         <td className="px-4 py-3 font-medium">
-                          KES {(booking.totalAmount || 0).toLocaleString()}
+                          KES {Number(booking.totalAmount || 0).toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <Button
@@ -515,20 +515,20 @@ export default function AdminBookingsPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>KES {(selectedBooking.subtotal || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedBooking.subtotal || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Transport:</span>
-                        <span>KES {(selectedBooking.transportCost || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedBooking.transportCost || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total:</span>
-                        <span>KES {(selectedBooking.totalAmount || 0).toLocaleString()}</span>
+                        <span>KES {Number(selectedBooking.totalAmount || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Deposit (50%):</span>
                         <span className={selectedBooking.depositPaid ? "text-green-600" : ""}>
-                          KES {(selectedBooking.depositAmount || 0).toLocaleString()}
+                          KES {Number(selectedBooking.depositAmount || 0).toLocaleString()}
                           {selectedBooking.depositPaid && " ✓"}
                         </span>
                       </div>
