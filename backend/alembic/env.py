@@ -36,7 +36,6 @@ from app.models import (
     Review,
     GalleryPost,
     Testimonial,
-    VisionRegistration,
     MakeupClass,
     ClassEnrollment,
 )

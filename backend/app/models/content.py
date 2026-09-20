@@ -1,4 +1,4 @@
-"""Content-related models including reviews, gallery posts, testimonials, and vision registrations."""
+"""Content-related models including reviews, gallery posts and testimonials."""
 from datetime import datetime
 from uuid import uuid4
 
@@ -137,47 +137,3 @@ class Testimonial(Base):
 
     def __repr__(self) -> str:
         return f"<Testimonial(id={self.id}, customer_name={self.customer_name}, rating={self.rating})>"
-
-
-class VisionRegistration(Base):
-    """2026 vision interest registrations."""
-
-    __tablename__ = "vision_registrations"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    full_name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=False, index=True)
-    phone_number = Column(String(20), nullable=False)
-    location = Column(String(100), index=True)
-    interested_in_salon = Column(Boolean, default=False)
-    interested_in_barbershop = Column(Boolean, default=False)
-    interested_in_spa = Column(Boolean, default=False)
-    interested_in_mobile_van = Column(Boolean, default=False)
-    additional_comments = Column(Text)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
-
-    __table_args__ = (
-        Index(
-            "idx_vision_registrations_salon",
-            "interested_in_salon",
-            postgresql_where="interested_in_salon = TRUE",
-        ),
-        Index(
-            "idx_vision_registrations_barbershop",
-            "interested_in_barbershop",
-            postgresql_where="interested_in_barbershop = TRUE",
-        ),
-        Index(
-            "idx_vision_registrations_spa",
-            "interested_in_spa",
-            postgresql_where="interested_in_spa = TRUE",
-        ),
-        Index(
-            "idx_vision_registrations_van",
-            "interested_in_mobile_van",
-            postgresql_where="interested_in_mobile_van = TRUE",
-        ),
-    )
-
-    def __repr__(self) -> str:
-        return f"<VisionRegistration(id={self.id}, name={self.full_name}, email={self.email})>"
