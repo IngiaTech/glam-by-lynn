@@ -252,112 +252,22 @@ def test_get_overview_analytics_no_auth(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_sales_analytics_success(client, admin_token, sample_orders):
-    """Test getting sales analytics with admin token."""
-    response = client.get(
+@pytest.mark.parametrize(
+    "path",
+    [
         "/api/admin/analytics/sales",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    assert "totalRevenue" in data
-    assert "totalOrders" in data
-    assert "averageOrderValue" in data
-    assert "dataPoints" in data
-    assert isinstance(data["dataPoints"], list)
-
-    # Check totals
-    assert data["totalOrders"] == 2
-    assert float(data["totalRevenue"]) == 4500.00
-
-
-def test_get_sales_analytics_with_date_range(client, admin_token, sample_orders):
-    """Test getting sales analytics with custom date range."""
-    start_date = (datetime.utcnow() - timedelta(days=1)).isoformat()
-    end_date = datetime.utcnow().isoformat()
-
-    response = client.get(
-        f"/api/admin/analytics/sales?startDate={start_date}&endDate={end_date}",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    # Should only include order from today
-    assert data["totalOrders"] == 1
-    assert float(data["totalRevenue"]) == 1500.00
-
-
-def test_get_product_analytics_success(client, admin_token, sample_orders, sample_product):
-    """Test getting product analytics with admin token."""
-    response = client.get(
         "/api/admin/analytics/products",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    assert "topProducts" in data
-    assert "totalProducts" in data
-    assert "lowStockCount" in data
-    assert isinstance(data["topProducts"], list)
-
-    # Check that our product appears in top products
-    if len(data["topProducts"]) > 0:
-        top_product = data["topProducts"][0]
-        assert "productId" in top_product
-        assert "productName" in top_product
-        assert "totalSold" in top_product
-        assert "totalRevenue" in top_product
-        assert top_product["totalSold"] == 3  # 2 + 1 from sample orders
-
-
-def test_get_booking_analytics_success(client, admin_token, sample_bookings, sample_service):
-    """Test getting booking analytics with admin token."""
-    response = client.get(
         "/api/admin/analytics/bookings",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
+        "/api/admin/booking-analytics/locations",
+        "/api/admin/booking-analytics/popular-locations",
+    ],
+)
+def test_removed_analytics_endpoints_are_gone(client, admin_token, path):
+    """Only /analytics/overview is used by the dashboard (Cut List).
 
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
+    Asserted with an admin token so a 404 means the route is genuinely absent,
+    rather than an auth failure masking a route that still exists.
+    """
+    response = client.get(path, headers={"Authorization": f"Bearer {admin_token}"})
 
-    assert "totalBookings" in data
-    assert "totalRevenue" in data
-    assert "pendingBookings" in data
-    assert "confirmedBookings" in data
-    assert "completedBookings" in data
-    assert "cancelledBookings" in data
-    assert "dataPoints" in data
-    assert "topServices" in data
-
-    # Check booking counts
-    assert data["totalBookings"] == 2
-    assert data["pendingBookings"] == 1
-    assert data["confirmedBookings"] == 1
-
-    # Check top services
-    if len(data["topServices"]) > 0:
-        top_service = data["topServices"][0]
-        assert "serviceId" in top_service
-        assert "serviceName" in top_service
-        assert "totalBookings" in top_service
-        assert top_service["totalBookings"] == 2
-
-
-def test_get_booking_analytics_with_interval(client, admin_token, sample_bookings):
-    """Test getting booking analytics with different intervals."""
-    response = client.get(
-        "/api/admin/analytics/bookings?interval=week",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-
-    assert "dataPoints" in data
-    # Week interval not implemented yet, but endpoint should still work
+    assert response.status_code == status.HTTP_404_NOT_FOUND, path
