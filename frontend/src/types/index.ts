@@ -140,10 +140,12 @@ export interface Booking {
   numOthers: number;
   weddingTheme?: string;
   specialRequests?: string;
-  subtotal: number;
-  transportCost: number;
-  totalAmount: number;
-  depositAmount?: number;
+  // Money is serialised from Decimal, so these arrive as strings. Coerce with
+  // Number() before arithmetic or toLocaleString().
+  subtotal: number | string;
+  transportCost: number | string;
+  totalAmount: number | string;
+  depositAmount?: number | string;
   depositPaid: boolean;
   depositPaidAt?: string;
   status: "pending" | "confirmed" | "deposit_paid" | "completed" | "cancelled";

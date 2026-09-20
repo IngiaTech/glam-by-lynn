@@ -372,10 +372,12 @@ def export_bookings_csv(
             booking.num_mothers,
             booking.num_others,
             booking.wedding_theme or "",
-            float(booking.subtotal),
-            float(booking.transport_cost),
-            float(booking.total_amount),
-            float(booking.deposit_amount) if booking.deposit_amount else 0,
+            # str() on the Decimal, not float() — casting to binary float here
+            # put values like 2500.0100000000002 into the exported CSV.
+            str(booking.subtotal),
+            str(booking.transport_cost),
+            str(booking.total_amount),
+            str(booking.deposit_amount) if booking.deposit_amount else "0.00",
             booking.deposit_paid,
             booking.deposit_paid_at.isoformat() if booking.deposit_paid_at else "",
             booking.admin_notes or "",

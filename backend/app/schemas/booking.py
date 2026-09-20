@@ -1,6 +1,7 @@
 """
 Booking schemas for request/response validation
 """
+from decimal import Decimal
 from datetime import datetime
 from datetime import date as date_type
 from datetime import time as time_type
@@ -84,10 +85,14 @@ class BookingResponse(BaseModel):
     num_others: int
     wedding_theme: Optional[str]
     special_requests: Optional[str]
-    subtotal: float
-    transport_cost: float
-    total_amount: float
-    deposit_amount: Optional[float]
+    # Money is Decimal end to end: the columns are Numeric(10,2) and every
+    # calculation uses Decimal. Declaring these as float re-introduced binary
+    # representation drift at the API boundary (2500.0100000000002), which is
+    # what OrderResponse already avoids.
+    subtotal: Decimal
+    transport_cost: Decimal
+    total_amount: Decimal
+    deposit_amount: Optional[Decimal]
     deposit_paid: bool
     deposit_paid_at: Optional[datetime]
     status: str

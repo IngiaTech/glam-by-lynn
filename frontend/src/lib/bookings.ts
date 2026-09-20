@@ -232,9 +232,19 @@ export async function getBookingById(bookingId: string, token?: string): Promise
 /**
  * Format currency for display (KSh)
  */
-export function formatCurrency(amount: number | undefined | null): string {
-  if (amount === undefined || amount === null) return "KSh 0";
-  return `KSh ${amount.toLocaleString()}`;
+export function formatCurrency(
+  amount: number | string | undefined | null
+): string {
+  if (amount === undefined || amount === null || amount === "") return "KSh 0";
+
+  // Money arrives as a JSON string: the API serialises Decimal that way, which
+  // is what keeps 2500.01 from drifting to 2500.0100000000002. Calling
+  // toLocaleString() on the raw string would silently skip thousands
+  // separators, so coerce first.
+  const value = typeof amount === "string" ? Number(amount) : amount;
+  if (!Number.isFinite(value)) return "KSh 0";
+
+  return `KSh ${value.toLocaleString()}`;
 }
 
 /**

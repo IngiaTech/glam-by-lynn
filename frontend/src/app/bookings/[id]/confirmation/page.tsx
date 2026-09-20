@@ -311,7 +311,7 @@ export default function BookingConfirmationPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Transport:</span>
-                  {booking.transportCost && booking.transportCost > 0 ? (
+                  {Number(booking.transportCost) > 0 ? (
                     <span>{formatCurrency(booking.transportCost)}</span>
                   ) : (
                     <span className="italic text-muted-foreground">
