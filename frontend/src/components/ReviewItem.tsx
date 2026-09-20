@@ -7,18 +7,15 @@
 
 import { StarRating } from "@/components/StarRating";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsUp, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import type { Review } from "@/types";
 
 interface ReviewItemProps {
   review: Review;
-  onMarkHelpful?: (reviewId: string) => void;
-  isMarkingHelpful?: boolean;
 }
 
-export function ReviewItem({ review, onMarkHelpful, isMarkingHelpful }: ReviewItemProps) {
+export function ReviewItem({ review }: ReviewItemProps) {
   const formattedDate = new Date(review.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -76,19 +73,6 @@ export function ReviewItem({ review, onMarkHelpful, isMarkingHelpful }: ReviewIt
             </div>
           )}
 
-          {/* Helpful Button */}
-          <div className="flex items-center gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onMarkHelpful?.(review.id)}
-              disabled={isMarkingHelpful}
-              className="gap-2"
-            >
-              <ThumbsUp className="h-4 w-4" />
-              <span>Helpful {review.helpfulCount > 0 && `(${review.helpfulCount})`}</span>
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

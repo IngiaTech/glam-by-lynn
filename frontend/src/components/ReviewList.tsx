@@ -18,7 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { getProductReviews, markReviewHelpful, type ReviewListResponse } from "@/lib/reviews";
+import { getProductReviews, type ReviewListResponse } from "@/lib/reviews";
 import type { Review } from "@/types";
 
 interface ReviewListProps {
@@ -36,7 +36,6 @@ export function ReviewList({ productId, filterRating }: ReviewListProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [markingHelpful, setMarkingHelpful] = useState<string | null>(null);
 
   const pageSize = 10;
 
@@ -94,27 +93,6 @@ export function ReviewList({ productId, filterRating }: ReviewListProps) {
   useEffect(() => {
     setPage(1);
   }, [sortBy, filterRating]);
-
-  const handleMarkHelpful = async (reviewId: string) => {
-    setMarkingHelpful(reviewId);
-
-    try {
-      await markReviewHelpful(reviewId);
-
-      // Update local state to increment count
-      setReviews((prev) =>
-        prev.map((review) =>
-          review.id === reviewId
-            ? { ...review, helpfulCount: review.helpfulCount + 1 }
-            : review
-        )
-      );
-    } catch (error) {
-      console.error("Error marking review as helpful:", error);
-    } finally {
-      setMarkingHelpful(null);
-    }
-  };
 
   // Loading state
   if (loading) {
@@ -190,8 +168,6 @@ export function ReviewList({ productId, filterRating }: ReviewListProps) {
           <ReviewItem
             key={review.id}
             review={review}
-            onMarkHelpful={handleMarkHelpful}
-            isMarkingHelpful={markingHelpful === review.id}
           />
         ))}
       </div>

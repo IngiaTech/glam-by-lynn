@@ -70,7 +70,6 @@ export const API_ENDPOINTS = {
     SUMMARY: (productId: string) => `/api/products/${productId}/reviews/summary`,
     UPDATE: (reviewId: string) => `/api/reviews/${reviewId}`,
     DELETE: (reviewId: string) => `/api/reviews/${reviewId}`,
-    MARK_HELPFUL: (reviewId: string) => `/api/reviews/${reviewId}/helpful`,
   },
   // Admin Reviews
   ADMIN_REVIEWS: {
