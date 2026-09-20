@@ -27,7 +27,6 @@ from app.models.content import (
     Review,
     GalleryPost,
     Testimonial,
-    VisionRegistration,
 )
 from app.models.makeup_class import (
     MakeupClass,
@@ -62,7 +61,6 @@ __all__ = [
     "Review",
     "GalleryPost",
     "Testimonial",
-    "VisionRegistration",
     # Makeup Classes
     "MakeupClass",
     "ClassEnrollment",

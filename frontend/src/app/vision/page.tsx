@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { Header } from "@/components/Header";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles,
@@ -17,55 +14,13 @@ import {
   CheckCircle2,
   Users,
   MapPin,
-  Mail,
-  Phone,
-  Loader2,
   Heart,
   Star,
   Clock,
   Award,
 } from "lucide-react";
-import { API_BASE_URL } from "@/config/api";
 
 export default function VisionPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    serviceInterest: "",
-    message: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-
-    try {
-      // For now, just simulate submission
-      // In production, this would call an API endpoint to save interest registrations
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      setSuccess(true);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        serviceInterest: "",
-        message: "",
-      });
-
-      setTimeout(() => setSuccess(false), 5000);
-    } catch (err) {
-      setError("Failed to submit your interest. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const services = [
     {
       icon: Sparkles,
@@ -346,119 +301,33 @@ export default function VisionPage() {
                 Be the First to Know
               </h2>
               <p className="text-lg text-muted-foreground">
-                Register your interest and receive exclusive updates on our launch,
-                including early bird discounts and special offers.
+                Message us on WhatsApp to register your interest, and we&apos;ll keep
+                you posted on the launch — including early bird offers.
               </p>
             </div>
 
-            {success && (
-              <div className="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3">
-                <div className="flex items-center gap-2 text-green-800">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span className="font-medium">Thank you for your interest!</span>
-                </div>
-                <p className="mt-1 text-sm text-green-700">
-                  We'll keep you updated on our launch and send you exclusive early access offers.
+            <Card className="border-secondary/50">
+              <CardContent className="space-y-6 p-8 text-center">
+                <p className="text-muted-foreground">
+                  Tell us which of the new services you&apos;d like to hear about —
+                  salon, barbershop, spa or the mobile beauty van — and we&apos;ll
+                  add you to the list.
                 </p>
-              </div>
-            )}
 
-            {error && (
-              <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-                {error}
-              </div>
-            )}
+                <WhatsAppButton
+                  context={{ type: "general" }}
+                  label="Register your interest on WhatsApp"
+                  className="w-full"
+                  size="lg"
+                />
 
-            <Card>
-              <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      placeholder="Your name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                        placeholder="your@email.com"
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+254..."
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="serviceInterest">Service Interest</Label>
-                    <Input
-                      id="serviceInterest"
-                      value={formData.serviceInterest}
-                      onChange={(e) => setFormData({ ...formData, serviceInterest: e.target.value })}
-                      placeholder="e.g., Makeup, Beauty, Spa, Mobile Services"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message (Optional)</Label>
-                    <Textarea
-                      id="message"
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      placeholder="Tell us what excites you most about our vision..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        Register Your Interest
-                        <Sparkles className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-center text-sm text-muted-foreground">
-                    By submitting, you agree to receive updates about our launch.
-                    You can unsubscribe at any time.
-                  </p>
-                </form>
+                <p className="text-sm text-muted-foreground">
+                  Prefer email? Reach us from the{" "}
+                  <Link href="/contact" className="text-secondary underline">
+                    contact page
+                  </Link>
+                  .
+                </p>
               </CardContent>
             </Card>
           </div>
