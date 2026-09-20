@@ -181,34 +181,3 @@ class VisionRegistration(Base):
 
     def __repr__(self) -> str:
         return f"<VisionRegistration(id={self.id}, name={self.full_name}, email={self.email})>"
-
-
-class AdminActivityLog(Base):
-    """Audit trail for admin actions."""
-
-    __tablename__ = "admin_activity_logs"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    admin_user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    action = Column(String(100), nullable=False, index=True)
-    entity_type = Column(String(50))
-    entity_id = Column(UUID(as_uuid=True))
-    details = Column(JSONB)
-    ip_address = Column(String(45))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
-
-    # Relationships
-    admin_user = relationship("User", back_populates="admin_activity_logs")
-
-    __table_args__ = (
-        Index("idx_admin_activity_logs_entity", "entity_type", "entity_id"),
-        Index("idx_admin_activity_logs_details", "details", postgresql_using="gin"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<AdminActivityLog(id={self.id}, action={self.action}, admin_user_id={self.admin_user_id})>"

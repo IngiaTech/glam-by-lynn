@@ -37,7 +37,6 @@ from app.models import (
     GalleryPost,
     Testimonial,
     VisionRegistration,
-    AdminActivityLog,
     MakeupClass,
     ClassEnrollment,
 )
