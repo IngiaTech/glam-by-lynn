@@ -40,9 +40,6 @@ class User(Base):
     reviews = relationship("Review", back_populates="user", lazy="dynamic")
     cart = relationship("Cart", back_populates="user", uselist=False)
     wishlists = relationship("Wishlist", back_populates="user", lazy="dynamic")
-    admin_activity_logs = relationship(
-        "AdminActivityLog", back_populates="admin_user", lazy="dynamic"
-    )
     class_enrollments = relationship(
         "ClassEnrollment", back_populates="user", lazy="dynamic"
     )

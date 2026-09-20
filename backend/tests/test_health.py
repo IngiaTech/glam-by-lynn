@@ -1,25 +1,27 @@
+"""Health endpoints, ported from the dead app/tests scaffold.
+
+`/health/db` is Render's configured `healthCheckPath` (set in #215), so if it
+regresses a deploy fails rather than merely losing an endpoint. These tests
+lived in backend/app/tests/, which `testpaths = tests` never collected — so
+they had never actually run. Ported here as part of merging that scaffold away
+(Cut List hygiene).
 """
-Test main application endpoints
-"""
-import pytest
 from fastapi.testclient import TestClient
 
 
-@pytest.mark.unit
 def test_root_endpoint(client: TestClient):
-    """Test root endpoint returns correct response"""
     response = client.get("/")
+
     assert response.status_code == 200
     data = response.json()
     assert data["message"] == "Glam by Lynn API is running"
-    assert "version" in data
     assert data["status"] == "healthy"
+    assert "version" in data
 
 
-@pytest.mark.unit
 def test_health_check_endpoint(client: TestClient):
-    """Test health check endpoint"""
     response = client.get("/health")
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -28,13 +30,11 @@ def test_health_check_endpoint(client: TestClient):
     assert "environment" in data
 
 
-@pytest.mark.unit
 def test_database_health_check_endpoint(client: TestClient):
-    """Test database health check endpoint"""
+    """The endpoint Render polls; it must report a live database."""
     response = client.get("/health/db")
+
     assert response.status_code == 200
     data = response.json()
-    assert "database" in data
-    assert "status" in data
     assert data["database"] == "connected"
     assert data["status"] == "healthy"
