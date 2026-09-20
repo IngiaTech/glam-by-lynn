@@ -38,7 +38,7 @@ if settings.SENTRY_DSN:
 
 # Import routers
 from app.routers import auth, services, bookings, gallery, testimonials, products as public_products, promo_codes as public_promo_codes, reviews as public_reviews, cart, wishlist, vision, classes, site_settings as public_site_settings, whatsapp as whatsapp_router, categories as public_categories
-from app.api.routes import brands, categories, products, product_images, product_variants, service_packages, orders, reviews
+from app.api.routes import brands, categories, products, product_images, product_variants, service_packages, orders
 from app.api.routes.admin import locations as admin_locations, calendar as admin_calendar, bookings as admin_bookings, gallery as admin_gallery, users as admin_users, testimonials as admin_testimonials, promo_codes as admin_promo_codes, analytics as admin_analytics, vision as admin_vision, activity_logs as admin_activity_logs, booking_analytics, classes as admin_classes, site_settings as admin_site_settings, storage_settings as admin_storage_settings, instagram_settings as admin_instagram_settings, orders as admin_orders
 
 # Initialize FastAPI app
@@ -165,7 +165,6 @@ app.include_router(product_images.router, prefix="/api")
 app.include_router(product_variants.router, prefix="/api")
 app.include_router(service_packages.router, prefix="/api")  # Admin services API
 app.include_router(orders.router, prefix="/api")  # Orders API
-app.include_router(reviews.router, prefix="/api")  # Reviews API
 app.include_router(admin_locations.router, prefix="/api")  # Admin locations API
 app.include_router(admin_calendar.router, prefix="/api")  # Admin calendar API
 app.include_router(admin_bookings.router, prefix="/api")  # Admin bookings API
