@@ -24,7 +24,7 @@ class User(Base):
     admin_role = Column(
         String(50),
         CheckConstraint(
-            "admin_role IN ('super_admin', 'product_manager', 'booking_manager', 'content_editor', 'artist')",
+            "admin_role IN ('super_admin', 'admin')",
             name="users_admin_role_values",
         ),
     )

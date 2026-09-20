@@ -16,7 +16,7 @@ declare module "next-auth" {
     name?: string | null;
     image?: string | null;
     isAdmin?: boolean;
-    adminRole?: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist" | null;
+    adminRole?: "super_admin" | "admin" | null;
     accessToken?: string;
     refreshToken?: string;
   }
@@ -31,7 +31,7 @@ declare module "next-auth" {
       name?: string | null;
       image?: string | null;
       isAdmin: boolean;
-      adminRole: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist" | null;
+      adminRole: "super_admin" | "admin" | null;
     };
     accessToken?: string;
     refreshToken?: string;
@@ -47,7 +47,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     isAdmin: boolean;
-    adminRole: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist" | null;
+    adminRole: "super_admin" | "admin" | null;
     accessToken?: string;
     refreshToken?: string;
     lastRefresh?: number;

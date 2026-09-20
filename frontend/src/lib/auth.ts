@@ -156,13 +156,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isAdmin = token.isAdmin as boolean;
-        session.user.adminRole = token.adminRole as
-          | "super_admin"
-          | "product_manager"
-          | "booking_manager"
-          | "content_editor"
-          | "artist"
-          | null;
+        session.user.adminRole = token.adminRole as "super_admin" | "admin" | null;
       }
 
       // Add tokens at session level
@@ -208,7 +202,7 @@ export function isAdmin(user: NextAuthUser | null | undefined): boolean {
  */
 export function hasAdminRole(
   user: NextAuthUser | null | undefined,
-  role: "super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist"
+  role: "super_admin" | "admin"
 ): boolean {
   return user?.isAdmin === true && user?.adminRole === role;
 }
@@ -220,41 +214,7 @@ export function isSuperAdmin(user: NextAuthUser | null | undefined): boolean {
   return hasAdminRole(user, "super_admin");
 }
 
-/**
- * Check if user has any of the specified admin roles
- */
-export function hasAnyAdminRole(
-  user: NextAuthUser | null | undefined,
-  roles: ("super_admin" | "product_manager" | "booking_manager" | "content_editor" | "artist")[]
-): boolean {
-  if (!user?.isAdmin || !user?.adminRole) return false;
-  return roles.includes(user.adminRole as any);
-}
-
-/**
- * Check if user is product manager or super admin
- */
-export function canManageProducts(user: NextAuthUser | null | undefined): boolean {
-  return hasAnyAdminRole(user, ["super_admin", "product_manager"]);
-}
-
-/**
- * Check if user is booking manager or super admin
- */
-export function canManageBookings(user: NextAuthUser | null | undefined): boolean {
-  return hasAnyAdminRole(user, ["super_admin", "booking_manager"]);
-}
-
-/**
- * Check if user is content editor or super admin
- */
-export function canEditContent(user: NextAuthUser | null | undefined): boolean {
-  return hasAnyAdminRole(user, ["super_admin", "content_editor"]);
-}
-
-/**
- * Check if user is artist or super admin
- */
-export function isArtist(user: NextAuthUser | null | undefined): boolean {
-  return hasAnyAdminRole(user, ["super_admin", "artist"]);
-}
+// The per-role helpers (hasAnyAdminRole, canManageProducts, canManageBookings,
+// canEditContent, isArtist) are gone along with the roles they tested. Nothing
+// rendered differently based on them — they were re-exported through useAuth
+// and never read — and the backend guards they mirrored enforced nothing.

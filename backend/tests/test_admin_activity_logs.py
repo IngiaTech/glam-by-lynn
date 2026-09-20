@@ -34,7 +34,7 @@ def content_editor(db_session):
         google_id="editor123",
         full_name="Content Editor",
         is_admin=True,
-        admin_role="content_editor",
+        admin_role="admin",
         is_active=True,
     )
     db_session.add(user)
@@ -338,7 +338,7 @@ def test_get_user_activity_summary_no_activity(client, admin_token, content_edit
         google_id="newadmin123",
         full_name="New Admin",
         is_admin=True,
-        admin_role="product_manager",
+        admin_role="admin",
         is_active=True,
     )
     import pytest
