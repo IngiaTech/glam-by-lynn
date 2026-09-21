@@ -35,11 +35,46 @@ interface OverviewStats {
   ordersChangePercent?: number;
 }
 
+interface RecentActivityItem {
+  type: "order" | "booking";
+  id: string;
+  reference: string;
+  summary: string;
+  status: string;
+  amount: string;
+  createdAt: string;
+}
+
+/** "just now", "5 minutes ago", "3 days ago" — falls back to a date after a week. */
+function timeAgo(iso: string): string {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+
+  const units: Array<[number, string]> = [
+    [60 * 60 * 24, "day"],
+    [60 * 60, "hour"],
+    [60, "minute"],
+  ];
+  if (seconds >= 60 * 60 * 24 * 7) {
+    return new Date(iso).toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+  for (const [size, name] of units) {
+    const count = Math.floor(seconds / size);
+    if (count >= 1) return `${count} ${name}${count === 1 ? "" : "s"} ago`;
+  }
+  return "just now";
+}
+
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useRequireAdmin();
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -59,16 +94,16 @@ export default function AdminDashboard() {
         return;
       }
 
-      const response = await axios.get<OverviewStats>(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/analytics/overview`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const headers = { Authorization: `Bearer ${token}` };
+      const base = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/analytics`;
 
-      setStats(response.data);
+      const [overview, activity] = await Promise.all([
+        axios.get<OverviewStats>(`${base}/overview`, { headers }),
+        axios.get<RecentActivityItem[]>(`${base}/recent-activity`, { headers }),
+      ]);
+
+      setStats(overview.data);
+      setRecentActivity(activity.data);
     } catch (err: any) {
       console.error("Error fetching analytics:", err);
       setError(extractErrorMessage(err, "Failed to load analytics"));
@@ -122,26 +157,6 @@ export default function AdminDashboard() {
     },
   ] : [];
 
-  const recentActivity = [
-    {
-      id: 1,
-      type: "order",
-      message: "New order #1234 placed",
-      time: "2 minutes ago",
-    },
-    {
-      id: 2,
-      type: "booking",
-      message: "Booking confirmed for tomorrow",
-      time: "15 minutes ago",
-    },
-    {
-      id: 3,
-      type: "product",
-      message: "Product stock updated",
-      time: "1 hour ago",
-    },
-  ];
 
   if (authLoading || loading) {
     return (
@@ -227,21 +242,36 @@ export default function AdminDashboard() {
             <CardDescription>Latest updates from your store</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4 border-b pb-4 last:border-0 last:pb-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                    {activity.type === "order" && <ShoppingBag className="h-4 w-4" />}
-                    {activity.type === "booking" && <Calendar className="h-4 w-4" />}
-                    {activity.type === "product" && <Package className="h-4 w-4" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {recentActivity.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No orders or bookings yet. New ones will appear here as they come in.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <Link
+                    key={`${activity.type}-${activity.id}`}
+                    href={activity.type === "order" ? "/admin/orders" : "/admin/bookings"}
+                    className="flex items-start gap-4 border-b pb-4 last:border-0 last:pb-0 hover:opacity-80"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      {activity.type === "order" ? (
+                        <ShoppingBag className="h-4 w-4" />
+                      ) : (
+                        <Calendar className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.summary}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {timeAgo(activity.createdAt)} · {activity.status.replace(/_/g, " ")} ·{" "}
+                        KSh {Number(activity.amount).toLocaleString()}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

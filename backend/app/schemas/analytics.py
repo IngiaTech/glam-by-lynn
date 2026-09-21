@@ -2,6 +2,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,21 @@ class OverviewStats(BaseModel):
     pending_bookings: int = Field(..., alias="pendingBookings")
     revenue_change_percent: Optional[float] = Field(None, alias="revenueChangePercent")
     orders_change_percent: Optional[float] = Field(None, alias="ordersChangePercent")
+
+    class Config:
+        populate_by_name = True
+
+
+class RecentActivityItem(BaseModel):
+    """One placed order or booking in the dashboard's activity feed."""
+
+    type: str = Field(..., description="'order' or 'booking'")
+    id: UUID
+    reference: str = Field(..., description="Order or booking number")
+    summary: str
+    status: str
+    amount: Decimal
+    created_at: datetime = Field(..., alias="createdAt")
 
     class Config:
         populate_by_name = True
