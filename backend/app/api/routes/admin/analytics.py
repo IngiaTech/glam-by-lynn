@@ -1,6 +1,6 @@
 """Admin analytics routes."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User
-from app.schemas.analytics import OverviewStats
+from app.schemas.analytics import OverviewStats, RecentActivityItem
 from app.services import analytics_service
 
 router = APIRouter(tags=["Admin Analytics"])
@@ -47,6 +47,24 @@ def get_overview_analytics(
 
     stats = analytics_service.get_overview_stats(db, start_date, end_date)
     return OverviewStats(**stats)
+
+
+@router.get(
+    "/admin/analytics/recent-activity",
+    response_model=List[RecentActivityItem],
+    summary="Most recently placed orders and bookings (admin only)",
+)
+def get_recent_activity(
+    limit: int = Query(8, ge=1, le=50, description="Maximum items to return"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Orders and bookings merged into one feed, newest first by when they were
+    placed. Powers the dashboard's "Recent Activity" panel, which previously
+    rendered hardcoded placeholder entries.
+    """
+    return analytics_service.get_recent_activity(db, limit=limit)
 
 
 # The sales, products and bookings analytics endpoints were removed (Cut List).

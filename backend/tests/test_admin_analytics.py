@@ -271,3 +271,100 @@ def test_removed_analytics_endpoints_are_gone(client, admin_token, path):
     response = client.get(path, headers={"Authorization": f"Bearer {admin_token}"})
 
     assert response.status_code == status.HTTP_404_NOT_FOUND, path
+
+
+# --- Recent activity -------------------------------------------------------
+# The dashboard's "Recent Activity" panel used to render a hardcoded array
+# ("New order #1234 placed — 2 minutes ago") whatever had actually happened.
+
+
+def _activity(client, admin_token, **params):
+    response = client.get(
+        "/api/admin/analytics/recent-activity",
+        params=params,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    return response.json()
+
+
+def test_recent_activity_merges_orders_and_bookings(
+    client, admin_token, sample_orders, sample_bookings
+):
+    items = _activity(client, admin_token)
+
+    assert {item["type"] for item in items} == {"order", "booking"}
+    references = {item["reference"] for item in items}
+    assert {"ORD-TEST-001", "ORD-TEST-002", "BK-TEST-001", "BK-TEST-002"} <= references
+
+
+def test_recent_activity_is_newest_first(client, admin_token, sample_orders, sample_bookings):
+    items = _activity(client, admin_token)
+
+    timestamps = [item["createdAt"] for item in items]
+    assert timestamps == sorted(timestamps, reverse=True)
+
+
+def test_recent_activity_orders_by_when_placed_not_event_date(
+    client, admin_token, db_session, regular_user, sample_service, sample_location
+):
+    """The admin bookings list sorts by booking_date, which is why it couldn't
+    feed this panel. Here the two orderings disagree on purpose."""
+    from datetime import date, time
+
+    placed_long_ago_for_next_year = Booking(
+        booking_number="BK-OLD-FAR",
+        user_id=regular_user.id,
+        package_id=sample_service.id,
+        location_id=sample_location.id,
+        booking_date=date.today() + timedelta(days=365),
+        booking_time=time(10, 0),
+        num_brides=1,
+        subtotal=Decimal("5000.00"),
+        transport_cost=Decimal("0.00"),
+        total_amount=Decimal("5000.00"),
+        status="confirmed",
+        created_at=datetime.utcnow() - timedelta(days=60),
+    )
+    placed_just_now_for_next_week = Booking(
+        booking_number="BK-NEW-NEAR",
+        user_id=regular_user.id,
+        package_id=sample_service.id,
+        location_id=sample_location.id,
+        booking_date=date.today() + timedelta(days=7),
+        booking_time=time(11, 0),
+        num_brides=1,
+        subtotal=Decimal("5000.00"),
+        transport_cost=Decimal("0.00"),
+        total_amount=Decimal("5000.00"),
+        status="pending",
+        created_at=datetime.utcnow(),
+    )
+    db_session.add_all([placed_long_ago_for_next_year, placed_just_now_for_next_week])
+    db_session.commit()
+
+    references = [item["reference"] for item in _activity(client, admin_token)]
+
+    assert references.index("BK-NEW-NEAR") < references.index("BK-OLD-FAR")
+
+
+def test_recent_activity_respects_limit(client, admin_token, sample_orders, sample_bookings):
+    assert len(_activity(client, admin_token, limit=2)) == 2
+
+
+def test_recent_activity_is_empty_for_an_empty_store(client, admin_token):
+    """No placeholder entries — an empty store shows an empty feed."""
+    assert _activity(client, admin_token) == []
+
+
+def test_recent_activity_requires_admin(client, regular_token):
+    response = client.get(
+        "/api/admin/analytics/recent-activity",
+        headers={"Authorization": f"Bearer {regular_token}"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_recent_activity_requires_auth(client):
+    response = client.get("/api/admin/analytics/recent-activity")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
