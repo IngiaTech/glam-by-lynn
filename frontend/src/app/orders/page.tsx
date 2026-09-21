@@ -27,7 +27,8 @@ import {
   formatStatus,
   getStatusBadgeVariant,
 } from "@/lib/orders";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useRedirectWhenSignedOut } from "@/hooks/useAuth";
+import { endExpiredSession } from "@/lib/sessionExpiry";
 import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
 import {
   Loader2,
@@ -45,7 +46,7 @@ import {
 
 export default function OrderHistoryPage() {
   const router = useRouter();
-  const { session, authenticated, loading: authLoading } = useAuth();
+  const { session } = useAuth();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,12 +59,9 @@ export default function OrderHistoryPage() {
 
   const limit = 10;
 
-  // Redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (!authLoading && !authenticated) {
-      router.push("/auth/signin");
-    }
-  }, [authenticated, authLoading, router]);
+  // Signed-out visitors go to sign-in; a session that expires while here goes
+  // to the homepage instead (see useRedirectWhenSignedOut).
+  useRedirectWhenSignedOut("/orders");
 
   useEffect(() => {
     async function loadOrders() {
@@ -91,9 +89,9 @@ export default function OrderHistoryPage() {
 
         // Check if it's an authentication error
         if (err.message?.includes("Could not validate credentials") || err.message?.includes("Not authenticated")) {
-          setError("Your session has expired. Please sign in again.");
-          // Optionally redirect to sign-in
-          setTimeout(() => router.push("/auth/signin"), 2000);
+          // The session ran out mid-visit: sign out and go home, the same exit
+          // every other expiry path takes.
+          endExpiredSession();
         } else {
           setError(err.message || "Failed to load orders");
         }

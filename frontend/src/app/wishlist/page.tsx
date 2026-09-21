@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/Header";
@@ -18,7 +17,7 @@ import {
   Package,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useRedirectWhenSignedOut } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/config/api";
 import { resolveImageUrl } from "@/lib/utils";
 
@@ -41,21 +40,19 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const { authenticated, session } = useAuth();
-  const router = useRouter();
 
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [movingToCart, setMovingToCart] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!authenticated) {
-      router.push("/auth/signin?redirect=/wishlist");
-      return;
-    }
+  // Signed-out visitors go to sign-in; a session that expires while here goes
+  // to the homepage instead (see useRedirectWhenSignedOut).
+  useRedirectWhenSignedOut("/wishlist");
 
-    fetchWishlist();
-  }, [authenticated, router]);
+  useEffect(() => {
+    if (authenticated) fetchWishlist();
+  }, [authenticated]);
 
   const fetchWishlist = async () => {
     setLoading(true);

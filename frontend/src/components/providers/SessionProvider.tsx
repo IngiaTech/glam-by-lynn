@@ -8,6 +8,8 @@
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { ReactNode } from "react";
 
+import { SessionExpiryWatcher } from "./SessionExpiryWatcher";
+
 interface SessionProviderProps {
   children: ReactNode;
 }
@@ -19,6 +21,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
   // checkout or booking form), instead of going stale and 401-ing on submit.
   return (
     <NextAuthSessionProvider refetchInterval={5 * 60} refetchOnWindowFocus>
+      <SessionExpiryWatcher />
       {children}
     </NextAuthSessionProvider>
   );

@@ -5,6 +5,8 @@
 
 "use client";
 
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { User as NextAuthUser } from "next-auth";
 import {
@@ -27,6 +29,11 @@ export function useAuth() {
   const hasValidToken = session?.accessToken != null && session?.error == null;
   const authenticated = status === "authenticated" && hasValidToken;
 
+  // The session exists but its backend token can no longer be refreshed —
+  // i.e. a signed-in user whose session has run out. SessionExpiryWatcher
+  // signs them out and sends them home; guards should leave that to it.
+  const expired = session?.error === "RefreshTokenError";
+
   const user = authenticated ? (session?.user as NextAuthUser | undefined) : undefined;
 
   return {
@@ -34,6 +41,7 @@ export function useAuth() {
     session,
     loading,
     authenticated,
+    expired,
     isAdmin: isAdmin(user),
     isSuperAdmin: isSuperAdmin(user),
     adminRole: user?.adminRole ?? null,
@@ -78,4 +86,49 @@ export function useRequireAdmin() {
     authenticated,
     isAdmin: admin,
   };
+}
+
+/**
+ * Keep signed-out visitors off a page that needs an account.
+ *
+ * Two different situations look the same here — "not authenticated" — and
+ * need different destinations:
+ *
+ * - **Arrived signed out** (e.g. opened /orders from a bookmark, or clicked
+ *   Wishlist while anonymous) → the sign-in page, returning here afterwards.
+ * - **Signed in, then the session ended** — expired, or signed out from another
+ *   tab → the homepage. They didn't ask to sign in; their session ran out.
+ *
+ * An expired session is left alone entirely: SessionExpiryWatcher is already
+ * signing it out and navigating home, and redirecting here as well would race
+ * it to a different destination.
+ *
+ * @param returnTo path to come back to after signing in, if any
+ */
+export function useRedirectWhenSignedOut(returnTo?: string) {
+  const { authenticated, loading, expired } = useAuth();
+  const router = useRouter();
+  const wasAuthenticated = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (authenticated) {
+      wasAuthenticated.current = true;
+      return;
+    }
+
+    if (expired) return;
+
+    if (wasAuthenticated.current) {
+      router.replace("/");
+      return;
+    }
+
+    router.push(
+      returnTo ? `/auth/signin?redirect=${encodeURIComponent(returnTo)}` : "/auth/signin"
+    );
+  }, [loading, authenticated, expired, returnTo, router]);
+
+  return { authenticated, loading };
 }

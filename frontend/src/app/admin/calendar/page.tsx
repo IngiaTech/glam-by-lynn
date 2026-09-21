@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRedirectWhenSignedOut } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import {
   blockTimeSlot,
@@ -49,11 +50,14 @@ export default function AdminCalendarPage() {
     timeSlot: string;
   } | null>(null);
 
-  // Redirect if not authenticated or not admin
+  // A session that ends while here goes to the homepage (see
+  // useRedirectWhenSignedOut). Anonymous visitors never reach this page: the
+  // /admin proxy sends them to sign-in before it renders.
+  useRedirectWhenSignedOut();
+
+  // Signed in, but not an admin.
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-    } else if (status === "authenticated" && !session?.user?.isAdmin) {
+    if (status === "authenticated" && !session?.user?.isAdmin) {
       router.push("/");
     }
   }, [status, session, router]);

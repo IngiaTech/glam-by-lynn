@@ -31,7 +31,7 @@ import {
 } from "@/lib/bookings";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useAuth, useRequireAuth } from "@/hooks/useAuth";
+import { useAuth, useRedirectWhenSignedOut, useRequireAuth } from "@/hooks/useAuth";
 import {
   Loader2,
   Calendar,
@@ -46,7 +46,7 @@ import {
 
 export default function BookingHistoryPage() {
   const router = useRouter();
-  const { session, authenticated, loading: authLoading } = useAuth();
+  const { session } = useAuth();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +60,9 @@ export default function BookingHistoryPage() {
 
   const pageSize = 10;
 
-  // Redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (!authLoading && !authenticated) {
-      router.push("/auth/signin");
-    }
-  }, [authenticated, authLoading, router]);
+  // Signed-out visitors go to sign-in; a session that expires while here goes
+  // to the homepage instead (see useRedirectWhenSignedOut).
+  useRedirectWhenSignedOut("/bookings");
 
   useEffect(() => {
     async function loadBookings() {
