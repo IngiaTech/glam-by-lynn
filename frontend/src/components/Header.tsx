@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ import { CartDrawer, openCartDrawer, CART_UPDATED_EVENT } from "@/components/Car
 
 export function Header() {
   const { user, authenticated, isAdmin, session } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
   const [cartItemCount, setCartItemCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,48 +57,9 @@ export function Header() {
         : "hover:text-[#FFB6C1] hover:bg-[#FFB6C1]/10"
     }`;
 
-  // Validate session token periodically
-  useEffect(() => {
-    if (!authenticated || !session?.accessToken) return;
-
-    // Skip validation on auth pages to avoid interfering with OAuth flow
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/')) {
-      return;
-    }
-
-    const validateToken = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        // If token is invalid (401), sign out the user
-        if (res.status === 401) {
-          console.log("[Header] Session token expired, signing out...");
-          await signOut({ redirect: false });
-          router.push("/auth/signin");
-        }
-      } catch (error) {
-        // Silently catch network errors to avoid crashing the app
-        // This can happen during SSR or when the backend is temporarily unavailable
-        console.warn("[Header] Could not validate session (network error):", error);
-      }
-    };
-
-    // Don't validate immediately to avoid SSR issues and OAuth interference
-    // Wait 5 seconds after mount to ensure OAuth flow completes
-    const initialTimeout = setTimeout(validateToken, 5000);
-
-    // Then validate every 5 minutes
-    const interval = setInterval(validateToken, 5 * 60 * 1000);
-
-    return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(interval);
-    };
-  }, [authenticated, session?.accessToken, router]);
+  // Session expiry is detected and handled globally by SessionExpiryWatcher,
+  // which sends an expired user to the homepage. This component used to poll
+  // for it here and send them to the sign-in page instead.
 
   // Categories are no longer fetched globally to reduce API calls
   // They are now extracted from products on the products page
