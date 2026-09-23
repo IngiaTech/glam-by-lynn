@@ -11,9 +11,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import { usePublicSettings } from "@/hooks/usePublicSettings";
 
@@ -37,7 +35,7 @@ export default function ContactPage() {
               Contact Us
             </h1>
             <p className="text-lg text-muted-foreground">
-              Have questions about our services or ready to book? We'd love to hear from you
+              Have questions about our services or ready to book? We&apos;d love to hear from you
             </p>
           </div>
         </div>
@@ -45,41 +43,57 @@ export default function ContactPage() {
 
       <main className="container mx-auto px-4 py-16">
         <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-2">
-          {/* Contact Form */}
+          {/* Message us — WhatsApp */}
           <Card>
             <CardHeader>
               <CardTitle>Send us a Message</CardTitle>
               <CardDescription>
-                Fill out the form below and we'll get back to you as soon as possible
+                WhatsApp is the fastest way to reach us — messages go straight to
+                Lynn&apos;s phone and you&apos;ll usually get a reply the same day.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input id="name" placeholder="Your name" disabled />
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Tell us about your event, the look you have in mind, or anything
+                you&apos;d like to ask about our services and products.
+              </p>
+
+              <WhatsAppButton
+                context={{ type: "general" }}
+                label="Chat with us on WhatsApp"
+                className="w-full"
+                size="lg"
+              />
+
+              {(publicSettings.contact_email || publicSettings.contact_phone) && (
+                <div className="border-t pt-4 text-sm text-muted-foreground">
+                  <p className="mb-2">Prefer not to use WhatsApp?</p>
+                  <div className="space-y-1">
+                    {publicSettings.contact_email && (
+                      <p>
+                        Email us at{" "}
+                        <a
+                          className="text-secondary underline"
+                          href={`mailto:${publicSettings.contact_email}`}
+                        >
+                          {publicSettings.contact_email}
+                        </a>
+                      </p>
+                    )}
+                    {publicSettings.contact_phone && (
+                      <p>
+                        Call us on{" "}
+                        <a
+                          className="text-secondary underline"
+                          href={`tel:${publicSettings.contact_phone}`}
+                        >
+                          {publicSettings.contact_phone}
+                        </a>
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="your.email@example.com" disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input id="subject" placeholder="How can we help?" disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    rows={6}
-                    placeholder="Tell us about your event or ask any questions..."
-                    disabled
-                  />
-                </div>
-                <Button className="w-full" disabled>
-                  Send Message (Coming Soon)
-                </Button>
-              </form>
+              )}
             </CardContent>
           </Card>
 
@@ -93,21 +107,36 @@ export default function ContactPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">📧</div>
-                  <div>
-                    <p className="font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">
-                      info@glambylynn.com
-                    </p>
+                {/* Shown only when set in admin settings — better an absent row
+                    than an invented address or number. */}
+                {publicSettings.contact_email && (
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">📧</div>
+                    <div>
+                      <p className="font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground">
+                        {publicSettings.contact_email}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+                {publicSettings.contact_phone && (
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">📱</div>
+                    <div>
+                      <p className="font-medium">Phone</p>
+                      <p className="text-sm text-muted-foreground">
+                        {publicSettings.contact_phone}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-start gap-3">
-                  <div className="text-2xl">📱</div>
+                  <div className="text-2xl">💬</div>
                   <div>
-                    <p className="font-medium">Phone</p>
+                    <p className="font-medium">WhatsApp</p>
                     <p className="text-sm text-muted-foreground">
-                      (555) 123-4567
+                      The quickest way to reach us — use the button on the left
                     </p>
                   </div>
                 </div>
@@ -116,7 +145,7 @@ export default function ContactPage() {
                   <div>
                     <p className="font-medium">Location</p>
                     <p className="text-sm text-muted-foreground">
-                      Serving the Greater Metropolitan Area
+                      Kitui &amp; Nairobi, Kenya
                     </p>
                   </div>
                 </div>
